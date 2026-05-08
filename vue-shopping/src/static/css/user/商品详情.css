@@ -1,0 +1,890 @@
+/* ========== 商品详情页样式 ========== */
+/* 页面根容器：最大宽度1200px，水平居中，内边距20px */
+.product-detail-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+/* 面包屑导航：flex布局，间距8px，底部外边距24px */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* 面包屑链接样式 */
+.breadcrumb a {
+  color: #4a6491;
+  text-decoration: none;
+}
+
+/* 面包屑链接悬停效果 */
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+/* 面包屑当前页面样式 */
+.breadcrumb .active {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+/* 加载状态容器：flex居中，最小高度400px */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+/* 加载动画圆圈 */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #4a6491;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+/* 旋转动画关键帧 */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 商品主体区域：flex布局，间距40px，白色背景，圆角16px */
+.product-main {
+  display: flex;
+  gap: 40px;
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 左侧图片区域：弹性1，最小宽度0（防止溢出） */
+.product-gallery {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 主图容器：相对定位，圆角12px，溢出隐藏 */
+.main-image {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+  cursor: crosshair;
+}
+
+/* 主图样式：宽度100%，宽高比1:1，覆盖裁剪 */
+.main-image img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+/* 放大镜效果层：绝对定位，圆角8px，初始透明 */
+.image-zoom {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+  background-repeat: no-repeat;
+  background-size: 400% 400%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* 主图悬停时显示放大镜 */
+.main-image:hover .image-zoom {
+  opacity: 1;
+}
+
+/* 缩略图列表：flex布局，间距12px，顶部外边距16px */
+.thumbnail-list {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+/* 缩略图项：宽度80px，高度80px，圆角8px，边框2px透明 */
+.thumbnail-item {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+/* 激活的缩略图：边框为主题色 */
+.thumbnail-item.active {
+  border-color: #4a6491;
+}
+
+/* 缩略图图片：宽度100%，高度100%，覆盖裁剪 */
+.thumbnail-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 右侧信息区域：弹性1，最小宽度0 */
+.product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 商品标题：24px，加粗，底部外边距12px */
+.product-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+/* 商品品牌：底部外边距16px，字体14px */
+.product-brand {
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* 品牌标签样式 */
+.product-brand .label {
+  color: #94a3b8;
+}
+
+/* 价格区域：浅灰背景，内边距16px，圆角12px */
+.product-price-section {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+/* 价格包装器：flex，基线对齐，间距12px，允许换行 */
+.price-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 价格标签样式 */
+.price-wrapper .label {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* 当前价格：28px，加粗，红色 */
+.current-price {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+/* 原价：16px，灰色，删除线 */
+.original-price {
+  font-size: 16px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+/* 折扣标签：浅红背景，红色文字，圆角12px */
+.discount {
+  background: #fee2e2;
+  color: #ef4444;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 商品统计区域：flex，间距30px，上下内边距16px */
+.product-stats {
+  display: flex;
+  gap: 30px;
+  padding: 16px 0;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+}
+
+/* 统计项：字体14px */
+.stat-item {
+  font-size: 14px;
+}
+
+/* 统计标签：灰色 */
+.stat-item .label {
+  color: #94a3b8;
+}
+
+/* 统计值：深色，加粗 */
+.stat-item .value {
+  color: #1e293b;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+/* 库存警告样式：橙色 */
+.stat-item .value.stock-warning {
+  color: #f59e0b;
+}
+
+/* 商品描述区域：底部外边距24px */
+.product-description {
+  margin-bottom: 24px;
+}
+
+/* 描述标签：14px，加粗 */
+.product-description .label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+/* 描述文字：14px，灰色，行高1.6 */
+.product-description p {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+/* 下架提示横幅：浅红背景，红色文字，圆角8px */
+.offline-banner {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+/* 操作区域：顶部外边距24px */
+.product-actions {
+  margin-top: 24px;
+}
+
+/* 数量选择器：flex，居中，间距16px */
+.quantity-selector {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* 数量标签：14px */
+.quantity-selector .label {
+  font-size: 14px;
+  color: #1e293b;
+}
+
+/* 数量控制器：flex，边框，圆角8px，溢出隐藏 */
+.quantity-control {
+  display: flex;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 数量按钮：36x36，浅灰背景，无边框 */
+.quantity-btn {
+  width: 36px;
+  height: 36px;
+  background: #f8fafc;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+/* 数量按钮悬停效果 */
+.quantity-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+/* 数量按钮禁用样式 */
+.quantity-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 数量输入框：50px宽，居中文本，无边框 */
+.quantity-input {
+  width: 50px;
+  height: 36px;
+  text-align: center;
+  border: none;
+  border-left: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  font-size: 14px;
+  outline: none;
+}
+
+/* 禁用输入框样式 */
+.quantity-input:disabled {
+  background: #f8fafc;
+  cursor: not-allowed;
+}
+
+/* 数量输入框箭头样式 */
+.quantity-input::-webkit-inner-spin-button,
+.quantity-input::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+/* 数量单位：14px，灰色 */
+.unit {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* 按钮组：flex，间距16px */
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* 通用操作按钮：弹性1，flex居中，圆角40px */
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  border-radius: 40px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+}
+
+/* 操作按钮禁用样式 */
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* 购物车按钮：主题色背景 */
+.cart-btn {
+  background: #4a6491;
+  color: white;
+}
+
+/* 购物车按钮悬停效果 */
+.cart-btn:hover:not(:disabled) {
+  background: #3a5479;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 100, 145, 0.3);
+}
+
+/* 立即购买按钮：红色背景 */
+.buy-btn {
+  background: #ef4444;
+  color: white;
+}
+
+/* 立即购买按钮悬停效果 */
+.buy-btn:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* 操作链接区域：flex，间距24px */
+.action-links {
+  display: flex;
+  gap: 24px;
+}
+
+/* 链接按钮：无背景，flex居中 */
+.link-btn {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 8px 0;
+}
+
+/* 链接按钮悬停效果 */
+.link-btn:hover {
+  color: #4a6491;
+}
+
+/* 激活的链接按钮（收藏状态）：红色 */
+.link-btn.active {
+  color: #ef4444;
+}
+
+/* 选项卡容器：白色背景，圆角16px，溢出隐藏 */
+.product-tabs {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 选项卡头部：flex，底部边框 */
+.tab-header {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+/* 选项卡按钮：内边距16px 32px，无背景，相对定位 */
+.tab-btn {
+  padding: 16px 32px;
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+/* 选项卡按钮悬停效果 */
+.tab-btn:hover {
+  color: #4a6491;
+}
+
+/* 激活的选项卡按钮：主题色 */
+.tab-btn.active {
+  color: #4a6491;
+}
+
+/* 激活选项卡底部指示线 */
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #4a6491;
+}
+
+/* 选项卡内容：内边距24px */
+.tab-content {
+  padding: 24px;
+}
+
+/* 选项卡面板：最小高度200px */
+.tab-pane {
+  min-height: 200px;
+}
+
+/* 详情内容：14px，行高1.8 */
+.detail-content {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #334155;
+}
+
+/* 规格参数表格：宽度100%，边框合并 */
+.spec-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* 表格行：底部边框 */
+.spec-table tr {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* 表格单元格：内边距12px */
+.spec-table td {
+  padding: 12px;
+}
+
+/* 规格名称单元格：宽度120px，加粗，浅灰背景 */
+.spec-key {
+  width: 120px;
+  font-weight: 500;
+  color: #1e293b;
+  background: #f8fafc;
+}
+
+/* 规格值单元格：灰色 */
+.spec-value {
+  color: #64748b;
+}
+
+/* 评价统计区域：内边距20px，浅灰背景，圆角12px */
+.comment-stats {
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* 评分区域：flex居中，间距16px，允许换行 */
+.rating-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* 评分数字：36px，加粗，橙色 */
+.score {
+  font-size: 36px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+/* 星星容器：flex，间距4px */
+.stars {
+  display: flex;
+  gap: 4px;
+}
+
+/* 星星图标：默认灰色 */
+.stars i {
+  color: #e2e8f0;
+  font-size: 18px;
+}
+
+/* 激活的星星：黄色 */
+.stars i.active {
+  color: #fbbf24;
+}
+
+/* 评价总数：14px */
+.comment-count {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* 评价列表：flex垂直，间距20px */
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 评价项：flex，间距16px，内边距16px */
+.comment-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* 评价头像：48x48，圆形 */
+.comment-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* 评价内容：弹性1 */
+.comment-content {
+  flex: 1;
+}
+
+/* 评价用户名：加粗，底部外边距4px */
+.comment-user {
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+/* 评价评分：底部外边距8px */
+.comment-rating {
+  margin-bottom: 8px;
+}
+
+/* 评分星星：14px */
+.comment-rating i {
+  color: #e2e8f0;
+  font-size: 14px;
+}
+
+/* 激活的评分星星 */
+.comment-rating i.active {
+  color: #fbbf24;
+}
+
+/* 评价文字：14px，灰色，行高1.5 */
+.comment-text {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+/* 评价时间：12px，灰色 */
+.comment-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* 暂无评价提示：居中，内边距60px */
+.no-comment {
+  text-align: center;
+  padding: 60px;
+  color: #94a3b8;
+}
+
+/* 空状态容器：居中，内边距80px 20px，白色背景 */
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 16px;
+}
+
+/* 空状态图标：64px，灰色 */
+.empty-state i {
+  font-size: 64px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+/* 空状态文字：灰色 */
+.empty-state p {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+/* 返回首页按钮：行内块，内边距10px 24px */
+.back-home {
+  display: inline-block;
+  padding: 10px 24px;
+  background: #4a6491;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+/* 返回首页按钮悬停效果 */
+.back-home:hover {
+  background: #3a5479;
+}
+
+/* ========== 响应式布局（移动端适配） ========== */
+/* 屏幕宽度小于768px时 */
+@media (max-width: 768px) {
+  /* 容器内边距减小 */
+  .product-detail-container {
+    padding: 12px;
+  }
+  
+  /* 商品主体区域改为垂直排列 */
+  .product-main {
+    flex-direction: column;
+    padding: 20px;
+  }
+  
+  /* 标题字体减小 */
+  .product-title {
+    font-size: 20px;
+  }
+  
+  /* 当前价格字体减小 */
+  .current-price {
+    font-size: 24px;
+  }
+  
+  /* 操作按钮改为垂直排列 */
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  /* 选项卡按钮内边距减小 */
+  .tab-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+  
+  /* 统计区域允许换行 */
+  .product-stats {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  
+  /* 评价项改为垂直居中 */
+  .comment-item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+/* 缺货提示样式 */
+.out-of-stock-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fef3c7;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #d97706;
+  margin-bottom: 16px;
+}
+
+/* 禁用按钮样式 */
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 缺货时按钮文字变色 */
+.cart-btn:disabled,
+.buy-btn:disabled {
+  background: #94a3b8;
+}
+
+/* ========== 评价区域滚动加载样式 ========== */
+.comment-list {
+  max-height: 600px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.loading-spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #4a6491;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.no-more {
+  text-align: center;
+  padding: 20px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.rating-filter {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 6px 16px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.filter-btn:hover {
+  background: #e2e8f0;
+}
+
+.filter-btn.active {
+  background: #4a6491;
+  color: white;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 滚动条美化 */
+.comment-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comment-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.comment-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.comment-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ========== 评论图片样式 ========== */
+.comment-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+
+.comment-image {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #eaeaea;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.comment-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 响应式：手机端图片缩小 */
+@media (max-width: 768px) {
+  .comment-image {
+    width: 60px;
+    height: 60px;
+  }
+}

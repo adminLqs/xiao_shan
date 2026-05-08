@@ -1,0 +1,666 @@
+/* ========== 页面容器 ========== */
+.checkout-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+/* ========== 页面头部 ========== */
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-title i {
+  color: #4a6491;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.breadcrumb a {
+  color: #4a6491;
+  text-decoration: none;
+}
+
+.breadcrumb .current {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+/* ========== 加载状态 ========== */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #4a6491;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 结算内容布局 ========== */
+.checkout-content {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.checkout-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkout-sidebar {
+  width: 360px;
+  flex-shrink: 0;
+}
+
+/* ========== 地址区域 ========== */
+.address-section {
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fafbfc;
+}
+
+.section-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-address-btn {
+  background: none;
+  border: none;
+  color: #4a6491;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.add-address-btn:hover {
+  background: #eff6ff;
+}
+
+.address-list {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.address-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.address-card:hover {
+  border-color: #cbd5e1;
+  background: #fafbfc;
+}
+
+.address-card.active {
+  border-color: #4a6491;
+  background: #eff6ff;
+}
+
+.address-info {
+  flex: 1;
+}
+
+.address-recipient {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.address-recipient .name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.address-recipient .phone {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.default-badge {
+  background: #4a6491;
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.address-detail {
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.address-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.address-label i {
+  font-size: 10px;
+}
+
+.address-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-address,
+.delete-address {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.edit-address {
+  color: #4a6491;
+}
+
+.edit-address:hover {
+  background: #eff6ff;
+}
+
+.delete-address {
+  color: #ef4444;
+}
+
+.delete-address:hover {
+  background: #fef2f2;
+}
+
+.empty-address {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-address i {
+  font-size: 48px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.empty-address p {
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+/* ========== 商品区域 ========== */
+.product-section {
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.product-list {
+  padding: 0 20px;
+}
+
+.product-item {
+  display: flex;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 16px;
+}
+
+.product-item:last-child {
+  border-bottom: none;
+}
+
+.product-image {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.product-info {
+  flex: 1;
+}
+
+.product-name {
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.product-brand {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.product-price {
+  width: 100px;
+  text-align: center;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.product-quantity {
+  width: 60px;
+  text-align: center;
+  color: #64748b;
+}
+
+.product-subtotal {
+  width: 100px;
+  text-align: right;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+/* ========== 订单结算栏 ========== */
+.order-summary {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 20px;
+}
+
+.order-summary h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.summary-row.total {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.summary-row.total .total-amount {
+  font-size: 24px;
+  color: #ef4444;
+}
+
+/* ========== 支付方式 ========== */
+.payment-section {
+  margin: 20px 0;
+  padding: 16px 0;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.payment-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.payment-options {
+  display: flex;
+  gap: 16px;
+}
+
+.payment-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.payment-option.active {
+  border-color: #4a6491;
+  background: #eff6ff;
+}
+
+.payment-icon {
+  flex-shrink: 0;
+}
+
+.alipay-icon path:first-child {
+  fill: #1677FF;
+}
+
+.wechat-icon path:first-child {
+  fill: #07C160;
+}
+
+.check-icon {
+  margin-left: auto;
+  color: #10b981;
+}
+
+/* ========== 提交按钮 ========== */
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.warning-tip {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #f59e0b;
+  text-align: center;
+}
+
+/* ========== 模态框 ========== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 500px;
+  max-width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #94a3b8;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ========== 表单样式 ========== */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #4a6491;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+/* 地址标签选项 */
+.label-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.label-option {
+  padding: 8px 16px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.label-option:hover {
+  background: #e2e8f0;
+}
+
+.label-option.active {
+  background: #4a6491;
+  color: white;
+}
+
+/* ========== 按钮样式 ========== */
+.btn-cancel {
+  padding: 8px 20px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-cancel:hover {
+  background: #f1f5f9;
+}
+
+.btn-confirm {
+  padding: 8px 20px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-confirm:hover {
+  background: #3a5479;
+}
+
+.btn-primary {
+  padding: 10px 24px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.btn-primary:hover {
+  background: #3a5479;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 968px) {
+  .checkout-content {
+    flex-direction: column;
+  }
+  
+  .checkout-sidebar {
+    width: 100%;
+  }
+  
+  .order-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .product-item {
+    flex-wrap: wrap;
+  }
+  
+  .product-info {
+    width: calc(100% - 100px);
+  }
+  
+  .product-price,
+  .product-quantity,
+  .product-subtotal {
+    width: auto;
+    margin-left: 96px;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .label-options {
+    justify-content: center;
+  }
+}

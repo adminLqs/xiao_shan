@@ -1,0 +1,403 @@
+/* 地址容器 */
+.address-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* 页面头部 */
+.address-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.address-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+/* 主要按钮样式 */
+.btn-primary {
+  padding: 8px 16px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.btn-primary:hover {
+  background: #3a5479;
+  transform: translateY(-2px);
+}
+
+/* 地址列表容器 */
+.address-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 地址卡片 */
+.address-card {
+  display: flex;
+  justify-content: space-between;  /* 左右分布 */
+  align-items: center;    /* 垂直居中 */
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.address-card:hover {
+  border-color: #cbd5e1;
+  background: #fafbfc;
+}
+
+/* 地址信息区域 */
+.address-info {
+  flex: 1;
+}
+
+/* 收件人信息行 */
+.address-recipient {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.address-recipient .name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.address-recipient .phone {
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* 默认地址标签 */
+.default-badge {
+  background: #4a6491;
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+/* 详细地址 */
+.address-detail {
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+/* 地址标签样式 */
+.address-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* 操作按钮区域 */
+.address-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0; /* 防止被压缩 */
+}
+
+.address-actions button {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+/* 编辑按钮 */
+.edit-btn {
+  color: #4a6491;
+}
+.edit-btn:hover { background: #eff6ff; }
+
+/* 设为默认按钮 */
+.set-default-btn {
+  color: #10b981;
+}
+.set-default-btn:hover { background: #d1fae5; }
+
+/* 删除按钮 */
+.delete-btn {
+  color: #ef4444;
+}
+.delete-btn:hover { background: #fee2e2; }
+
+/* 弹窗遮罩层 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+/* 弹窗内容 */
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 500px;
+  max-width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* 弹窗头部 */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+/* 弹窗关闭按钮 */
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 4px;
+}
+
+/* 弹窗主体 */
+.modal-body {
+  padding: 20px;
+}
+
+/* 弹窗底部 */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* 表单项 */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: all 0.3s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #4a6491;
+  box-shadow: 0 0 0 3px rgba(74, 100, 145, 0.1);
+}
+
+/* 表单行（三列布局） */
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+.form-row .form-group { flex: 1; }
+
+/* 地址标签选项 */
+.label-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.label-option {
+  padding: 6px 14px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: inline-block;
+}
+
+.label-option:hover {
+  background: #e2e8f0;
+}
+
+.label-option.active {
+  background: #4a6491;
+  color: white;
+}
+
+
+/* 复选框容器美化 */
+.form-group .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+  padding: 12px 0;
+}
+
+/* 复选框样式美化 */
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #4a6491;  /* 使用主题色 */
+  transform: translateX(4px);  /* 向右偏移 */
+}
+
+/* 复选框文字样式 */
+.checkbox-label span {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+  order: -1;  /* 文字在左，复选框在右 */
+}
+
+/* 弹窗按钮 */
+.btn-cancel, .btn-confirm {
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-cancel {
+  background: white;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-cancel:hover {
+  background: #f1f5f9;
+}
+
+.btn-confirm {
+  background: #4a6491;
+  color: white;
+  border: none;
+}
+
+.btn-confirm:hover {
+  background: #3a5479;
+}
+
+/* 加载状态 */
+.loading-state, .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+/* 加载动画 */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #4a6491;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+/* 空状态图标 */
+.empty-state i {
+  font-size: 64px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+/* 空状态按钮居中 */
+.empty-state .btn-primary {
+  display: inline-flex;
+  margin: 0 auto;
+}
+
+/* 旋转动画 */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .address-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .address-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .modal-content {
+    width: 95%;
+  }
+}
+
+
+
+

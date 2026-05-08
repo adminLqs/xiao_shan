@@ -1,0 +1,576 @@
+/* ========== 页面容器 ========== */
+/* 限制最大宽度，水平居中，设置背景色 */
+.seller-orders-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+/* ========== 页面头部 ========== */
+/* 页面标题区域样式 */
+.page-header {
+  margin-bottom: 24px;
+}
+
+/* 页面主标题 */
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 标题图标颜色 */
+.page-title i {
+  color: #4a6491;
+}
+
+/* 面包屑导航样式 */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* 面包屑链接样式 */
+.breadcrumb a {
+  color: #4a6491;
+  text-decoration: none;
+}
+
+/* 当前页面文字加粗 */
+.breadcrumb .current {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+/* ========== 订单标签页 ========== */
+/* 标签页容器，白色卡片样式 */
+.order-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
+}
+
+/* 单个标签样式 */
+.order-tab {
+  padding: 8px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border-radius: 20px;
+  color: #64748b;
+  position: relative;
+}
+
+/* 标签悬停效果 */
+.order-tab:hover {
+  background: #f1f5f9;
+  color: #4a6491;
+}
+
+/* 激活标签样式 */
+.order-tab.active {
+  background: #4a6491;
+  color: white;
+}
+
+/* 标签数量角标 */
+.tab-count {
+  margin-left: 6px;
+  padding: 0 6px;
+  background: #ef4444;
+  color: white;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+/* ========== 加载状态 ========== */
+/* 加载状态容器 */
+.loading-state {
+  text-align: center;
+  padding: 80px;
+}
+
+/* 加载动画旋转图标 */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #4a6491;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+/* 旋转动画关键帧 */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 空状态 ========== */
+/* 无订单时显示的空状态卡片 */
+.empty-state {
+  text-align: center;
+  padding: 80px;
+  background: white;
+  border-radius: 12px;
+}
+
+/* 空状态图标 */
+.empty-state i {
+  font-size: 64px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+/* 空状态文字 */
+.empty-state p {
+  color: #64748b;
+}
+
+/* ========== 订单列表 ========== */
+/* 订单列表垂直布局 */
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 单个订单卡片 */
+.order-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 订单头部（订单号+状态） */
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* 订单信息（订单号+时间） */
+.order-info {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* 订单号字体加粗 */
+.order-number {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+/* 订单状态徽章 */
+.order-status {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+/* 待付款状态样式（橙色） */
+.status-pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* 已付款状态样式（蓝色） */
+.status-paid {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+/* 处理中状态样式（紫色） */
+.status-processing {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+/* 已发货状态样式（青色） */
+.status-shipped {
+  background: #cffafe;
+  color: #0891b2;
+}
+
+/* 已完成状态样式（绿色） */
+.status-completed {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* 已取消状态样式（红色） */
+.status-cancelled {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* 已退款状态样式（灰色） */
+.status-refunded {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* ========== 订单商品 ========== */
+/* 订单商品列表容器 */
+.order-items {
+  padding: 0 20px;
+}
+
+/* 单个商品项 */
+.order-item {
+  display: flex;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #f1f5f9;
+  gap: 16px;
+}
+
+/* 最后一个商品无边框 */
+.order-item:last-child {
+  border-bottom: none;
+}
+
+/* 商品图片 */
+.item-image {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* 商品信息区域（弹性占满） */
+.item-info {
+  flex: 1;
+}
+
+/* 商品名称 */
+.item-name {
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+/* 商品规格/数量 */
+.item-spec {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* 商品单价 */
+.item-price {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+/* ========== 订单底部 ========== */
+/* 订单底部栏 */
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #fafbfc;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* 订单总金额文字 */
+.order-total {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* 实付金额（大号红色） */
+.total-amount {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+/* 操作按钮组 */
+.order-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* 主要按钮（蓝色填充） */
+.btn-primary {
+  padding: 8px 20px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+/* 主要按钮悬停效果 */
+.btn-primary:hover {
+  background: #3a5479;
+}
+
+/* 次要按钮（白色边框） */
+.btn-outline {
+  padding: 8px 20px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+/* 次要按钮悬停效果 */
+.btn-outline:hover {
+  background: #f8fafc;
+}
+
+/* ========== 分页 ========== */
+/* 分页组件容器 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 30px;
+  padding: 20px;
+}
+
+/* 分页按钮 */
+.page-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+/* 分页按钮悬停效果（未禁用时） */
+.page-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+/* 禁用按钮样式 */
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 页码信息文字 */
+.page-info {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 36px;
+}
+
+/* ========== 发货弹窗样式 ========== */
+/* 弹窗遮罩层 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+/* 弹窗内容 */
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 450px;
+  max-width: 90%;
+}
+
+/* 弹窗头部 */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* 弹窗标题 */
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+/* 弹窗关闭按钮 */
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #94a3b8;
+}
+
+/* 弹窗主体 */
+.modal-body {
+  padding: 20px;
+}
+
+/* 弹窗底部 */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* 表单组 */
+.form-group {
+  margin-bottom: 16px;
+}
+
+/* 表单标签 */
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+/* 必填标签 */
+.form-label.required::after {
+  content: ' *';
+  color: #ef4444;
+}
+
+/* 表单输入框 */
+.form-control {
+  width: 90%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+/* 表单输入框聚焦 */
+.form-control:focus {
+  outline: none;
+  border-color: #4a6491;
+  box-shadow: 0 0 0 3px rgba(74, 100, 145, 0.1);
+}
+
+/* 取消按钮 */
+.btn-cancel {
+  padding: 8px 20px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+/* 取消按钮悬停 */
+.btn-cancel:hover {
+  background: #f8fafc;
+}
+
+/* 确认按钮 */
+.btn-confirm {
+  padding: 8px 20px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+/* 确认按钮悬停 */
+.btn-confirm:hover:not(:disabled) {
+  background: #3a5479;
+}
+
+/* 确认按钮禁用 */
+.btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========== 响应式 ========== */
+/* 平板及手机端适配 */
+@media (max-width: 768px) {
+  /* 容器内边距减小 */
+  .seller-orders-container {
+    padding: 16px;
+  }
+
+  /* 订单头部改为垂直布局 */
+  .order-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  /* 订单信息垂直排列 */
+  .order-info {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* 订单底部改为垂直布局 */
+  .order-footer {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  /* 操作按钮占满宽度 */
+  .order-actions {
+    width: 100%;
+  }
+
+  /* 按钮等宽分布 */
+  .order-actions button {
+    flex: 1;
+  }
+
+  /* 标签页横向滚动 */
+  .order-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  /* 标签文字不换行 */
+  .order-tab {
+    white-space: nowrap;
+  }
+}

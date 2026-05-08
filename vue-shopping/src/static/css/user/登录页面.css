@@ -1,0 +1,229 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.main-container{
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 商城主题背景 */
+#main_background {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+  z-index: -2;
+}
+
+/* 购物主题装饰元素 */
+.shopping-elements {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.shopping-icon {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.1);
+  font-size: 24px;
+}
+
+/* 主容器 */
+.main_section {
+  width: 750px;
+  min-width: 750px;
+  height: 500px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+  display: flex;
+}
+
+/* 左侧欢迎区域 */
+.welcome-section {
+  width: 45%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.welcome-title {
+  font-size: 28px;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.welcome-text {
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 30px;
+  opacity: 0.9;
+}
+
+.shopping-benefits {
+  list-style: none;
+}
+
+.shopping-benefits li {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.shopping-benefits i {
+  margin-right: 10px;
+  color: #64ffda;
+}
+
+/* 右侧表单区域 */
+.form-section {
+  width: 55%;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.logo {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.logo h2 {
+  color: #4b6cb7;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.logo p {
+  color: #666;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+/* 选项卡样式 */
+.tabs {
+  display: flex;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #eee;
+}
+
+.tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  color: #666;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.tab.active {
+  color: #4b6cb7;
+  border-bottom: 2px solid #4b6cb7;
+}
+
+/* 输入框样式 */
+.input-container {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.input-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #4b6cb7;
+  z-index: 2;
+}
+
+.input-container input {
+  width: 100%;
+  padding: 12px 45px 12px 45px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 15px;
+  transition: all 0.3s;
+}
+
+.input-container input:focus {
+  outline: none;
+  border-color: #4b6cb7;
+  box-shadow: 0 0 0 2px rgba(75, 108, 183, 0.2);
+}
+
+/* 密码眼睛图标 - 修复位置 */
+.password-container {
+  position: relative;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8892b0;
+  cursor: pointer;
+  font-size: 16px;
+  transition: color 0.3s ease;
+  z-index: 2;
+}
+
+.toggle-password:hover {
+  color: #4b6cb7;
+}
+
+/* 按钮样式 */
+.btn {
+  padding: 12px;
+  background: #4b6cb7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+  display: block;
+  width: 100%;
+}
+
+.btn:hover {
+  background: #3a5999;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 辅助链接 */
+.helper-links {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.helper-links a {
+  color: #4b6cb7;
+  text-decoration: none;
+}
+
+.helper-links a:hover {
+  text-decoration: underline;
+}
