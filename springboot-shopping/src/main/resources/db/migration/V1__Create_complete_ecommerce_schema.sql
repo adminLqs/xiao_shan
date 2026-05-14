@@ -296,7 +296,7 @@ CREATE TABLE review_images (
     FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
 ) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COMMENT='评论图片表';
 
--- 商家申请表（添加邮箱字段）
+-- 商家申请表
 CREATE TABLE merchant_apply (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
     user_id BIGINT NOT NULL COMMENT '申请人用户ID',

@@ -317,7 +317,6 @@
             <div class="service-info">
               <i class="fas fa-headset"></i>
               <span>客服热线：400-888-6666</span>
-              <span class="service-time">（9:00-21:00）</span>
             </div>
           </div>
         </div>

@@ -15,7 +15,6 @@ export default [
     component: () => import('@/views/user/Dashboard.vue'),
     meta: {
       title: '用户首页',
-      layout: 'user',
     },
   },
   
@@ -135,7 +134,6 @@ export default [
   },
 
   // ============= 评论路由 ==============
-  // 评论路由
   {
       path: '/review/:orderItemId',
       name: 'Review',
