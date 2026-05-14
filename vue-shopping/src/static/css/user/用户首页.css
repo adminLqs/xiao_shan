@@ -390,7 +390,7 @@
 
 .mobile-search-section .search-icon {
   position: absolute;
-  left: 24px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
   color: #94a3b8;

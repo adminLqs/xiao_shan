@@ -144,7 +144,7 @@
             type: 'fail',
             duration: 2000
           })
-          router.push("/")
+          router.push({name: 'UserDashboard'})
       }
     }
 
@@ -212,9 +212,9 @@
         try {
             const response = await authAPI.updateAvatar(formData)
             if (response.success) {
-            if (response.data?.avatar) {
+            if (response.data) {
                 // 更新成功，使用服务器返回的真实头像地址
-                userProfile.value.avatar = response.data.avatar
+                userProfile.value.avatar = response.data
             }
             toast.close()
             showToast({
@@ -234,7 +234,6 @@
                 userProfile.value.avatar = ''
             }
         }} catch (error: any) {
-            console.error('上传失败:', error)
             toast.close()
             showToast({
               message: error.message || '上传失败，请重试',
@@ -271,7 +270,7 @@
                   duration: 1500
               })
               setTimeout(() => {
-                  router.push('/')
+                  router.push({name: 'UserDashboard'})
               }, 1500)
             } else {
               toast.close()

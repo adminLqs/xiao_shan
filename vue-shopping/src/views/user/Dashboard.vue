@@ -426,7 +426,7 @@
   const currentPage = ref(1)
   const pageSize = ref(20)
   const totalPages = ref(1)
-  const currentSort = ref('createdAt,desc')
+  const currentSort = ref('recommended,desc')
 
   // ==================== UI 状态 ====================
 
@@ -435,10 +435,9 @@
   const selectedProduct = ref<Product | null>(null)
 
   const sortOptions = ref([
-    { label: '默认', value: 'createdAt,desc' },
-    { label: '销量', value: 'salesCount,desc' },
-    { label: '价格从低到高', value: 'price,asc' },
-    { label: '价格从高到低', value: 'price,desc' }
+    { label: '综合推荐', value: 'recommended,desc' },
+    { label: '最新上架', value: 'createdAt,desc' },
+    { label: '热销排行', value: 'salesCount,desc' }
   ])
 
   // ==================== 轮播图数据 ====================
