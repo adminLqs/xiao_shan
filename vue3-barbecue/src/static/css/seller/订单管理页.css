@@ -1,0 +1,509 @@
+/* ==================== 订单管理页 - 大厂规范版 ==================== */
+
+.seller-orders {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #fffaf2;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', sans-serif;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* ==================== 页面头部 ==================== */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 0 4px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.page-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0;
+  position: relative;
+  padding-left: 12px;
+  letter-spacing: -0.2px;
+}
+
+.page-header h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(135deg, #e65100, #ff8a3c);
+  border-radius: 2px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.status-filter {
+  padding: 8px 16px;
+  border: 1px solid #e8e0d5;
+  border-radius: 8px;
+  background-color: #ffffff;
+  font-size: 14px;
+  color: #5a3e2b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  font-family: inherit;
+}
+
+.status-filter:hover {
+  border-color: #e65100;
+}
+
+.status-filter:focus {
+  border-color: #e65100;
+  box-shadow: 0 0 0 3px rgba(230, 81, 0, 0.1);
+}
+
+.refresh-btn {
+  padding: 8px 20px;
+  background: #ffffff;
+  border: 1px solid #e8e0d5;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #e65100;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.refresh-btn:hover {
+  background: #fff5e6;
+  border-color: #e65100;
+}
+
+/* ==================== 订单列表容器 ==================== */
+.orders-list {
+  width: 100%;
+}
+
+/* ==================== 加载状态 ==================== */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f0e4d4;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #f0e4d4;
+  border-top-color: #e65100;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-state span {
+  color: #b87c4b;
+  font-size: 14px;
+}
+
+/* ==================== 空状态 ==================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f0e4d4;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  color: #b87c4b;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ==================== 订单表格容器 ==================== */
+.orders-table {
+  background-color: #ffffff;
+  border-radius: 16px;
+  overflow: auto;
+  border: 1px solid #f0e4d4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* 表格基础样式 */
+.orders-table table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
+}
+
+/* 表头样式 */
+.orders-table thead th {
+  position: sticky;
+  top: 0;
+  background: #fef7e9;
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #5a3e2b;
+  border-bottom: 1px solid #f0e4d4;
+  text-align: center;
+  z-index: 10;
+}
+
+/* 表格单元格 */
+.orders-table td {
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #3d2a1a;
+  border-bottom: 1px solid #f5ede3;
+  vertical-align: middle;
+  text-align: center;
+}
+
+/* 行悬停效果 */
+.orders-table tbody tr:hover {
+  background-color: #fef7e9;
+}
+
+/* 首列左对齐 */
+.orders-table th:first-child,
+.orders-table td:first-child {
+  text-align: left;
+}
+
+/* 第二列左对齐 */
+.orders-table th:nth-child(2),
+.orders-table td:nth-child(2) {
+  text-align: left;
+}
+
+/* 第三列左对齐 */
+.orders-table th:nth-child(3),
+.orders-table td:nth-child(3) {
+  text-align: left;
+}
+
+/* 订单号样式 */
+.order-no {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e65100;
+  letter-spacing: -0.2px;
+}
+
+/* 金额样式 */
+.amount {
+  font-weight: 500;
+  color: #e65100;
+}
+
+/* ==================== 滚动条 - 大厂规范版 ==================== */
+
+/* 表格滚动条 */
+.orders-table::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.orders-table::-webkit-scrollbar-track {
+  background: #f0e4d4;
+  border-radius: 4px;
+}
+
+.orders-table::-webkit-scrollbar-thumb {
+  background: #c4a882;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.orders-table::-webkit-scrollbar-thumb:hover {
+  background: #e65100;
+}
+
+.orders-table::-webkit-scrollbar-corner {
+  background: #f0e4d4;
+}
+
+/* ==================== 状态徽章 ==================== */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  min-width: 64px;
+  line-height: 1.4;
+}
+
+.status-badge.pending {
+  background: #fff3e0;
+  color: #ff9800;
+}
+
+.status-badge.paid {
+  background: #e8f5e9;
+  color: #4caf50;
+}
+
+.status-badge.shipped {
+  background: #e3f2fd;
+  color: #2196f3;
+}
+
+.status-badge.completed {
+  background: #e0f2f1;
+  color: #009688;
+}
+
+.status-badge.cancelled {
+  background: #ffebee;
+  color: #f44336;
+}
+
+.status-badge.refunding {
+  background: #fff8e1;
+  color: #ffc107;
+}
+
+.status-badge.refunded {
+  background: #f3e5f5;
+  color: #9c27b0;
+}
+
+/* ==================== 操作按钮 ==================== */
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.detail-btn,
+.cancel-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-family: inherit;
+  background: transparent;
+}
+
+.detail-btn {
+  background-color: #f5f5f5;
+  color: #5a3e2b;
+}
+
+.detail-btn:hover {
+  background-color: #e65100;
+  color: #ffffff;
+}
+
+.cancel-btn {
+  background-color: #ffebee;
+  color: #f44336;
+}
+
+.cancel-btn:hover {
+  background-color: #f44336;
+  color: #ffffff;
+}
+
+/* ==================== 分页 ==================== */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 8px 0;
+}
+
+.pagination button {
+  min-width: 72px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #e8e0d5;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #5a3e2b;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: #e65100;
+  border-color: #e65100;
+  color: #ffffff;
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #b87c4b;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 0 12px;
+}
+
+/* ==================== 响应式 - 移动端优化 ==================== */
+@media (max-width: 768px) {
+  .seller-orders {
+    padding: 16px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-header h2 {
+    font-size: 20px;
+  }
+
+  .orders-table {
+    border-radius: 12px;
+  }
+
+  .orders-table thead th,
+  .orders-table td {
+    padding: 10px 12px;
+  }
+
+  .orders-table td {
+    font-size: 13px;
+  }
+
+  .detail-btn,
+  .cancel-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .status-badge {
+    padding: 2px 8px;
+    font-size: 11px;
+    min-width: 52px;
+  }
+
+  .pagination button {
+    min-width: 60px;
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+}
+
+/* 小屏幕手机优化 */
+@media (max-width: 480px) {
+  .seller-orders {
+    padding: 12px;
+  }
+
+  .orders-table thead th,
+  .orders-table td {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .order-no {
+    font-size: 11px;
+  }
+
+  .actions {
+    gap: 6px;
+  }
+
+  .detail-btn,
+  .cancel-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .status-badge {
+    font-size: 10px;
+    min-width: 46px;
+  }
+}
+
+/* 发货按钮样式 */
+.ship-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+  color: white;
+  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+}
+
+.ship-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+}
+
+.ship-btn:active {
+  transform: translateY(0);
+}
+
+/* 核销按钮样式 */
+.complete-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: white;
+  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
+}
+
+.complete-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.complete-btn:active {
+  transform: translateY(0);
+}

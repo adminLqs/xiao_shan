@@ -1,0 +1,684 @@
+/* ==================== 主容器 ==================== */
+.seller-products {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #fffaf2;
+  overflow: hidden;
+}
+
+/* ==================== 页面头部 ==================== */
+.page-header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0 24px;
+  margin-bottom: 24px;
+}
+
+.page-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0;
+  position: relative;
+  padding-left: 12px;
+}
+
+.page-header h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(135deg, #e65100, #ff8a3c);
+  border-radius: 2px;
+}
+
+.add-btn {
+  flex-shrink: 0;
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #e65100, #ff8a3c);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(230, 81, 0, 0.2);
+}
+
+.add-btn:hover {
+  background: linear-gradient(135deg, #bf360c, #e65100);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(230, 81, 0, 0.25);
+}
+
+/* ==================== 商品列表容器 ==================== */
+.products-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 24px 24px 24px;
+}
+
+/* 美化滚动条 */
+.products-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.products-container::-webkit-scrollbar-track {
+  background: #f0e4d4;
+  border-radius: 3px;
+}
+
+.products-container::-webkit-scrollbar-thumb {
+  background: #e65100;
+  border-radius: 3px;
+}
+
+.products-container::-webkit-scrollbar-thumb:hover {
+  background: #bf360c;
+}
+
+/* ==================== 状态包装器（加载/空状态居中） ==================== */
+.state-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  height: 100%;
+}
+
+/* ==================== 加载状态 ==================== */
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #b87c4b;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 16px;
+  border: 3px solid #f0e4d4;
+  border-top-color: #e65100;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==================== 空状态 ==================== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #b87c4b;
+}
+
+.empty-icon {
+  font-size: 80px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: #5a3e2b;
+  margin: 0 0 8px 0;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: #b87c4b;
+  margin: 0 0 24px 0;
+}
+
+.empty-add-btn {
+  margin-top: 16px;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #e65100, #ff8a3c);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.empty-add-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(230, 81, 0, 0.2);
+}
+
+/* ==================== 商品网格 ==================== */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding-bottom: 20px;
+}
+
+/* ==================== 商品卡片 ==================== */
+.product-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s;
+  border: 1px solid #f0e4d4;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(230, 81, 0, 0.12);
+  border-color: #ffe0b2;
+}
+
+.product-card.sold-out {
+  opacity: 0.7;
+}
+
+.product-image {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #fff5e6, #ffe6d5);
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  background: linear-gradient(135deg, #fff5e6, #ffe6d5);
+}
+
+.product-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+}
+
+.product-tag.popular {
+  background: linear-gradient(135deg, #ff6b35, #ff8a3c);
+}
+
+.product-tag.new {
+  background: linear-gradient(135deg, #4caf50, #66bb6a);
+}
+
+.product-tag.soldout {
+  background: #9e9e9e;
+}
+
+.product-info {
+  padding: 16px;
+}
+
+.product-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #3d2a1a;
+}
+
+.product-desc {
+  font-size: 13px;
+  color: #b87c4b;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.price-info {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.current-price {
+  font-size: 20px;
+  font-weight: bold;
+  color: #e65100;
+}
+
+.original-price {
+  font-size: 12px;
+  color: #b87c4b;
+  text-decoration: line-through;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.action-btn.edit {
+  background-color: #fef7e9;
+  color: #b87c4b;
+}
+
+.action-btn.edit:hover {
+  background: linear-gradient(135deg, #e65100, #ff8a3c);
+  color: white;
+}
+
+.action-btn.delete {
+  background-color: #fef7e9;
+  color: #b87c4b;
+}
+
+.action-btn.delete:hover {
+  background-color: #f44336;
+  color: white;
+}
+
+.action-btn.restock {
+  background-color: #fef7e9;
+  color: #b87c4b;
+}
+
+.action-btn.restock:hover {
+  background-color: #4caf50;
+  color: white;
+}
+
+/* ==================== 模态框样式 ==================== */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  background: white;
+  border-radius: 24px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0e4d4;
+  background: linear-gradient(135deg, #fffaf2, #fef5e7);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a2e;
+  position: relative;
+  padding-left: 12px;
+}
+
+.modal-header h3::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  background: linear-gradient(135deg, #e65100, #ff8a3c);
+  border-radius: 2px;
+}
+
+.close-modal {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #b87c4b;
+  transition: all 0.2s;
+  border-radius: 8px;
+}
+
+.close-modal:hover {
+  background-color: #fef7e9;
+  color: #e65100;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #f0e4d4;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #fef7e9;
+}
+
+/* ==================== 表单样式 ==================== */
+.form-item {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b87c4b;
+  margin-bottom: 8px;
+}
+
+.form-label.required::after {
+  content: '*';
+  color: #f44336;
+  margin-left: 4px;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #f0e4d4;
+  border-radius: 12px;
+  font-size: 14px;
+  transition: all 0.2s;
+  background: white;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #e65100;
+  box-shadow: 0 0 0 3px rgba(230, 81, 0, 0.1);
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-item.half {
+  flex: 1;
+}
+
+/* ==================== 图片上传 ==================== */
+.image-upload {
+  width: 150px;
+}
+
+.image-preview {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid #f0e4d4;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-placeholder {
+  width: 150px;
+  height: 150px;
+  border: 2px dashed #f0e4d4;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fef7e9;
+}
+
+.upload-placeholder:hover {
+  border-color: #e65100;
+  background: #fff5e6;
+}
+
+.upload-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.upload-text {
+  font-size: 12px;
+  color: #b87c4b;
+}
+
+/* ==================== 标签组 ==================== */
+.tag-group {
+  display: flex;
+  gap: 16px;
+}
+
+.tag-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #b87c4b;
+}
+
+.tag-checkbox input {
+  cursor: pointer;
+}
+
+/* ==================== 确认对话框 ==================== */
+.confirm-dialog {
+  background: white;
+  border-radius: 24px;
+  width: 90%;
+  max-width: 400px;
+  overflow: hidden;
+}
+
+.confirm-header {
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid #f0e4d4;
+  background: linear-gradient(135deg, #fffaf2, #fef5e7);
+}
+
+.warning-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.confirm-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.confirm-body {
+  padding: 20px;
+  text-align: center;
+}
+
+.confirm-body p {
+  margin: 0 0 8px 0;
+  color: #5a3e2b;
+}
+
+.warning-text {
+  font-size: 12px;
+  color: #f44336;
+}
+
+.confirm-footer {
+  padding: 16px 20px;
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid #f0e4d4;
+}
+
+.cancel-btn,
+.delete-btn,
+.submit-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn {
+  background-color: #fef7e9;
+  color: #b87c4b;
+  border: 1px solid #f0e4d4;
+}
+
+.cancel-btn:hover {
+  background-color: #fff5e6;
+  border-color: #e65100;
+  color: #e65100;
+}
+
+.delete-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #d32f2f;
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, #e65100, #ff8a3c);
+  color: white;
+  box-shadow: 0 2px 4px rgba(230, 81, 0, 0.2);
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(230, 81, 0, 0.25);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==================== 响应式 ==================== */
+@media (max-width: 768px) {
+  .page-header {
+    padding: 16px 16px 0 16px;
+  }
+  
+  .page-header h2 {
+    font-size: 20px;
+  }
+  
+  .products-container {
+    padding: 0 16px 16px 16px;
+  }
+  
+  .product-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .tag-group {
+    flex-wrap: wrap;
+  }
+  
+  .empty-icon {
+    font-size: 60px;
+  }
+  
+  .empty-title {
+    font-size: 16px;
+  }
+}

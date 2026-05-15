@@ -1,0 +1,632 @@
+/* ========== 预支付页 - 暖白色主题 ========== */
+
+.pre-checkout-container {
+  min-height: 100vh;
+  background-color: #fef7e9;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-wrapper {
+  flex: 1;
+  padding: 0 16px 90px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ========== 头部导航 ========== */
+.pre-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: linear-gradient(145deg, #e65100, #bf360c);
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:active {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0.95);
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.header-placeholder {
+  width: 40px;
+}
+
+/* ========== 通用卡片样式 ========== */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.title-icon {
+  font-size: 20px;
+}
+
+.title-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #5a3e2b;
+}
+
+/* ========== 配送方式选择 ========== */
+.delivery-section {
+  background: white;
+  margin: 16px 0;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid #f0e0d0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.delivery-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.delivery-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #fffaf2;
+  border: 1px solid #f0e0d0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delivery-option:hover {
+  border-color: #e65100;
+  background: #fff5e6;
+}
+
+.delivery-option.active {
+  border-color: #e65100;
+  background: #fff5e6;
+  box-shadow: 0 0 0 2px rgba(230, 81, 0, 0.1);
+}
+
+.option-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.option-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.option-icon.dine-in {
+  background: #fff5e6;
+  color: #e65100;
+}
+
+.option-icon.takeaway {
+  background: #e8f5e9;
+  color: #4caf50;
+}
+
+.option-icon.delivery {
+  background: #e3f2fd;
+  color: #2196f3;
+}
+
+.option-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.option-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #5a3e2b;
+}
+
+.option-desc {
+  font-size: 13px;
+  color: #b87c4b;
+}
+
+.option-check {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e65100;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.option-uncheck {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #f0e0d0;
+  display: inline-block;
+}
+
+/* ========== 表单区域 ========== */
+.form-section {
+  margin: 16px 0;
+}
+
+.form-card {
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid #f0e0d0;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  color: #b87c4b;
+  margin-bottom: 8px;
+}
+
+.form-input {
+  width: 90%;
+  padding: 14px 16px;
+  background: #fffaf2;
+  border: 1px solid #f0e0d0;
+  border-radius: 12px;
+  font-size: 16px;
+  color: #5a3e2b;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  border-color: #e65100;
+  background: #fff5e6;
+}
+
+.form-input::placeholder {
+  color: #c9a87c;
+}
+
+/* 人数计数器 */
+.people-counter {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #fffaf2;
+  border-radius: 30px;
+  padding: 4px;
+  width: fit-content;
+  border: 1px solid #f0e0d0;
+}
+
+.counter-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: #f5e6d5;
+  color: #e65100;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.counter-btn:active:not(:disabled) {
+  background: #e8d5c0;
+  transform: scale(0.95);
+}
+
+.counter-btn:disabled {
+  background: #f5f0e8;
+  color: #c9a87c;
+  cursor: not-allowed;
+}
+
+.people-count {
+  font-size: 18px;
+  font-weight: 600;
+  color: #5a3e2b;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* ========== 订单商品列表 ========== */
+.order-items-section {
+  background: white;
+  margin: 16px 0;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid #f0e0d0;
+}
+
+.item-count {
+  margin-left: auto;
+  font-size: 14px;
+  color: #b87c4b;
+  background: #fff5e6;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.order-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-item {
+  display: flex;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0e0d0;
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.item-image {
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+  background: #fff5e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid #f0e0d0;
+}
+
+.item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.item-img-placeholder {
+  font-size: 32px;
+}
+
+.item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.item-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #5a3e2b;
+}
+
+.item-price-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.item-price {
+  font-size: 16px;
+  font-weight: 500;
+  color: #e65100;
+}
+
+.item-quantity {
+  font-size: 14px;
+  color: #b87c4b;
+}
+
+.item-total {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e65100;
+  align-self: center;
+  min-width: 80px;
+  text-align: right;
+}
+
+/* ========== 备注信息 ========== */
+.remark-section {
+  background: white;
+  margin: 16px 0;
+  padding: 16px 20px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #f0e0d0;
+}
+
+.remark-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.remark-icon {
+  font-size: 18px;
+}
+
+.remark-label {
+  font-size: 15px;
+  color: #5a3e2b;
+  white-space: nowrap;
+}
+
+.remark-input {
+  flex: 1;
+  background: #fffaf2;
+  border: 1px solid #f0e0d0;
+  border-radius: 30px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #5a3e2b;
+  outline: none;
+}
+
+.remark-input:focus {
+  border-color: #e65100;
+  background: #fff5e6;
+}
+
+.remark-input::placeholder {
+  color: #c9a87c;
+}
+
+/* ========== 费用明细 ========== */
+.fee-section {
+  background: white;
+  margin: 16px 0;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid #f0e0d0;
+}
+
+.fee-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 15px;
+  color: #b87c4b;
+}
+
+.fee-row.total {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0e0d0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #5a3e2b;
+}
+
+.fee-row.total .fee-value {
+  color: #e65100;
+  font-size: 22px;
+}
+
+.fee-value {
+  color: #5a3e2b;
+}
+
+/* ========== 底部提交栏 ========== */
+.pre-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #f0e0d0;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 100;
+  max-width: 600px;
+  margin: 0 auto;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.footer-left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.total-label {
+  font-size: 14px;
+  color: #b87c4b;
+}
+
+.total-price {
+  font-size: 26px;
+  font-weight: 700;
+  color: #e65100;
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, #e65100, #bf360c);
+  color: white;
+  border: none;
+  padding: 14px 40px;
+  border-radius: 40px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 140px;
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: scale(0.95);
+  opacity: 0.9;
+}
+
+.submit-btn:disabled {
+  background: #e0d0c0;
+  color: #c0a080;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.submitting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ffffff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 过渡动画 ========== */
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  .content-wrapper {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  
+  .delivery-section,
+  .form-card,
+  .order-items-section,
+  .remark-section,
+  .fee-section {
+    padding: 16px;
+  }
+  
+  .option-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+  
+  .item-image {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .item-total {
+    font-size: 16px;
+    min-width: 70px;
+  }
+  
+  .total-price {
+    font-size: 22px;
+  }
+  
+  .submit-btn {
+    padding: 12px 30px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .delivery-option {
+    padding: 12px;
+  }
+  
+  .option-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  
+  .option-name {
+    font-size: 14px;
+  }
+  
+  .option-desc {
+    font-size: 11px;
+  }
+  
+  .people-counter {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .order-item {
+    flex-wrap: wrap;
+  }
+  
+  .item-total {
+    width: 100%;
+    text-align: left;
+    margin-left: 86px;
+  }
+}

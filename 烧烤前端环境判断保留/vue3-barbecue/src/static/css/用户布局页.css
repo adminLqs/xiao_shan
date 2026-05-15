@@ -1,0 +1,203 @@
+/* src/static/css/用户布局.css - 强制暖白色主题 */
+
+/* ✅ 强制使用暖白色，忽略系统深色模式 */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #fef7e9; /* 暖米色 */
+  overflow: hidden;
+}
+
+/* 主内容区域 */
+.main-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background-color: #fef7e9; /* 暖米色 */
+}
+
+/* 底部导航栏包装器 */
+.bottom-nav-wrapper {
+  background-color: #ffffff; /* 纯白色 */
+  flex-shrink: 0;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
+  border-top: 1px solid #f0e4d4;
+}
+
+.bottom-nav {
+  max-width: 1700px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #ffffff; /* 纯白色 */
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 30px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: #8b5a3a; /* 暖棕色 */
+  position: relative;
+}
+
+.nav-item:active {
+  transform: scale(0.95);
+}
+
+.nav-item.active {
+  color: #e65100 ; /* 品牌橙色 */
+  background: #fff5e6; /* 浅米色背景 */
+  font-weight: 500;
+}
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  background: #e65100 !important; /* 橙色下划线 */
+  border-radius: 2px;
+}
+
+.nav-icon {
+  font-size: 22px;
+  transition: transform 0.2s ease;
+}
+
+.nav-item:active .nav-icon {
+  transform: scale(0.95);
+}
+
+.nav-item.active .nav-icon {
+  transform: scale(1.05);
+}
+
+.nav-text {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* 悬停效果（仅PC端） */
+@media (hover: hover) {
+  .nav-item:hover {
+    background-color: #fff5e6 !important;
+    transform: translateY(-2px);
+  }
+  
+  .nav-item:hover .nav-icon {
+    transform: scale(1.05);
+  }
+}
+
+/* ❌ 完全禁用深色模式 */
+@media (prefers-color-scheme: dark) {
+  .app-layout {
+    background-color: #fef7e9 !important; /* 强制暖米色，不使用深色 */
+  }
+  
+  .main-content {
+    background-color: #fef7e9 !important;
+  }
+  
+  .bottom-nav-wrapper {
+    background-color: #ffffff !important;
+    border-top-color: #f0e4d4 !important;
+  }
+  
+  .bottom-nav {
+    background-color: #ffffff !important;
+  }
+  
+  .nav-item {
+    color: #8b5a3a !important;
+  }
+  
+  .nav-item.active {
+    color: #e65100 !important;
+    background: #fff5e6 !important;
+  }
+  
+  .nav-item.active::after {
+    background: #e65100 !important;
+  }
+  
+  @media (hover: hover) {
+    .nav-item:hover {
+      background-color: #fff5e6 !important;
+    }
+  }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .bottom-nav {
+    padding: 6px 12px;
+  }
+  
+  .nav-item {
+    padding: 6px 12px;
+  }
+  
+  .nav-icon {
+    font-size: 20px;
+  }
+  
+  .nav-text {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bottom-nav {
+    padding: 6px 8px;
+  }
+  
+  .nav-item {
+    padding: 5px 10px;
+  }
+  
+  .nav-icon {
+    font-size: 18px;
+  }
+  
+  .nav-text {
+    font-size: 9px;
+  }
+  
+  .nav-item.active::after {
+    width: 18px;
+  }
+}
+
+@media (max-width: 360px) {
+  .nav-item {
+    padding: 4px 8px;
+  }
+  
+  .nav-icon {
+    font-size: 16px;
+  }
+  
+  .nav-text {
+    font-size: 8px;
+  }
+  
+  .nav-item.active::after {
+    width: 16px;
+  }
+}
