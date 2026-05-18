@@ -115,8 +115,8 @@
 <script setup lang="ts">
   import { authAPI } from '@/api/authAPI';
   import { ref, reactive } from 'vue';
-  import { showToast, showSuccessToast, showFailToast } from 'vant';
-  import 'vant/es/toast/style';
+  import Message from '@/utils/message';
+  import 'element-plus/dist/index.css';
 
   interface ProductForm {
     name: string;
@@ -127,10 +127,11 @@
     category: string;
   }
 
-  const fileInput = ref<HTMLInputElement | null>(null); // 文件元素
+  const fileInput = ref<HTMLInputElement | null>(null);
   const submitting = ref(false);
   const previewData = ref<ProductForm | null>(null);
-  const selectedFile = ref<File | null>(null); // 存储实际的文件对象
+  const selectedFile = ref<File | null>(null);
+  let loadingInstance: any = null;
 
   const form = reactive<ProductForm>({
     name: '',
@@ -155,14 +156,14 @@
     
     // 验证文件大小
     if (file.size > 5 * 1024 * 1024) {
-      alert('图片大小不能超过5MB');
+      Message.error('图片大小不能超过5MB');
       input.value = '';
       return;
     }
     
     // 验证文件类型
     if (!file.type.startsWith('image/')) {
-      alert('请上传图片文件');
+      Message.error('请上传图片文件');
       input.value = '';
       return;
     }
@@ -170,10 +171,10 @@
     // 保存实际的文件对象
     selectedFile.value = file;
     
-    // 设置预览图片的代码
+    // 设置预览图片
     const reader = new FileReader();
     reader.onload = (e) => {
-      form.image = e.target?.result as string; // 设置预览
+      form.image = e.target?.result as string;
     };
     reader.readAsDataURL(file);
   };
@@ -181,6 +182,7 @@
   // 移除图片
   const removeImage = () => {
     form.image = '';
+    selectedFile.value = null;
     if (fileInput.value) {
       fileInput.value.value = '';
     }
@@ -189,28 +191,27 @@
   // 验证表单
   const validateForm = (): boolean => {
     if (!form.name.trim()) {
-      alert('请输入商品名称');
+      Message.warning('请输入商品名称');
       return false;
     }
     if (!form.category) {
-      alert('请选择商品分类');
+      Message.warning('请选择商品分类');
       return false;
     }
     if (!form.price || Number(form.price) <= 0) {
-      alert('请输入有效的价格');
+      Message.warning('请输入有效的价格');
       return false;
     }
     if (!form.originalPrice || Number(form.originalPrice) <= 0) {
-      alert('请输入有效的原价');
+      Message.warning('请输入有效的原价');
       return false;
     }
-    // 检查 selectedFile.value（实际要上传的文件）
     if (!selectedFile.value) {
-        alert('请上传商品图片');
-        return false;
+      Message.warning('请上传商品图片');
+      return false;
     }
     if (!form.image) {
-      alert('图片预览生成失败，请重新上传');
+      Message.warning('图片预览生成失败，请重新上传');
       return false;
     }
     return true;
@@ -218,24 +219,19 @@
 
   // 提交表单
   const submitForm = async () => {
-    // 验证表单
     if (!validateForm()) return;
     
     submitting.value = true;
     
     // 显示加载提示
-    const toast = showToast({
-      type: 'loading',
-      message: '发布中...',
-      forbidClick: true,
-      duration: 0,
+    loadingInstance = Message.loading({
+      text: '发布中...',
     });
     
     try {
       // 创建表单数据
       const data = new FormData();
 
-      // 发送基本数据
       const submitData = {
         name: form.name,
         description: form.description,
@@ -244,23 +240,21 @@
         category: form.category
       };
 
-      // 添加数据
       const productBlob = new Blob([JSON.stringify(submitData)], { 
         type: 'application/json' 
       });
       data.append("product", productBlob);
-      data.append("image", selectedFile.value!)
+      data.append("image", selectedFile.value!);
 
-      // 调用API
-      await authAPI.addProduct(data)
+      await authAPI.addProduct(data);
       
-      toast.close();
-      showSuccessToast('商品发布成功');
-      resetForm(); // 发布成功后重置表单
+      loadingInstance.close();
+      Message.success('商品发布成功');
+      resetForm();
       
     } catch (error) {
-      toast.close();
-      showFailToast('商品发布失败，请稍后重试');
+      loadingInstance.close();
+      Message.error('商品发布失败，请稍后重试');
     } finally {
       submitting.value = false;
     }
@@ -274,13 +268,12 @@
     form.originalPrice = '';
     form.image = '';
     form.category = '';
+    selectedFile.value = null;
+    previewData.value = null;
     if (fileInput.value) {
       fileInput.value.value = '';
     }
-    selectedFile.value = null; // 清空选中的文件
-    previewData.value = null;
   };
-
 </script>
 
 <style scoped>

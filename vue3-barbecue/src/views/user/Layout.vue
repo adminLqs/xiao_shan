@@ -49,16 +49,54 @@
 
 <script lang="ts" setup>
   import { useRoute } from 'vue-router'
+  import { useWebSocketStore } from '@/stores/websocket'
+  import { onMounted, onUnmounted, ref } from 'vue'
+  import { useUserStore } from '@/stores/auth'
+  import Message from '@/utils/message'
+  import router from '@/router'
 
+  // ==================== 响应式数据 ====================
+  const webSocketStore = useWebSocketStore()
+  const userStore = useUserStore()
   const route = useRoute()
+
+  // 当前用户ID
+  const currentUserId = ref<number | null>(null)
 
   const isActive = (routeName: string): boolean => {
     return route.name === routeName
   }
 
+  // ==================== 初始化 ====================
+  const init = async (): Promise<void> => {
+    const userId = userStore.userId
+    if (!userId) {
+      Message.error('请先登录')
+      router.back()
+      return
+    }
 
+    currentUserId.value = Number(userId)
+    if (isNaN(currentUserId.value) || currentUserId.value <= 0) {
+      Message.error('用户信息错误')
+      router.back()
+      return
+    }
+
+  }
+
+
+  // ==================== 生命周期 ====================
+  onMounted(() => {
+    init()
+    webSocketStore.connectUser(currentUserId.value!)
+  })
+
+  onUnmounted(() => {
+    webSocketStore.disconnect()
+  })
 </script>
 
 <style scoped>
-    @import url("@/static/css/user/用户布局页.css")
+  @import url("@/static/css/user/用户布局页.css")
 </style>

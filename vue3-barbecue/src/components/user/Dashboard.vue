@@ -44,8 +44,8 @@
     <!-- 分类标签 -->
     <div class="category-tabs">
       <div class="tabs-container">
-        <div 
-          v-for="(category, index) in categoryList" 
+        <div
+          v-for="(category, index) in categoryList"
           :key="category.id"
           class="tab-item"
           :class="{ active: currentCategoryIndex === index }"
@@ -62,35 +62,35 @@
       <div v-if="loading" class="loading-state">
         <span>加载中...</span>
       </div>
-      
+
       <div v-else class="product-grid">
-        <div 
-          v-for="product in filteredProducts" 
+        <div
+          v-for="product in filteredProducts"
           :key="product.id"
           class="product-card"
         >
           <!-- 商品内容保持不变 -->
           <div class="product-image">
-            <img 
-              v-if="product.image" 
-              :src="product.image" 
+            <img
+              v-if="product.image"
+              :src="product.image"
               :alt="product.name"
             />
             <span v-else class="product-img-placeholder">🥩</span>
-            
+
             <span v-if="product.isPopular" class="product-tag popular">🔥 招牌</span>
             <span v-else-if="product.isNew" class="product-tag new">✨ 新品</span>
             <span v-else-if="product.isSoldOut" class="product-tag soldout">售罄</span>
-            
+
             <span v-if="getCartQuantity(product.id) > 0" class="cart-badge">
               {{ getCartQuantity(product.id) }}
             </span>
           </div>
-          
+
           <div class="product-info">
             <h3 class="product-name">{{ product.name }}</h3>
             <p class="product-desc" v-if="product.description">{{ product.description }}</p>
-            
+
             <div class="product-footer">
               <div class="price-info">
                 <span class="current-price">¥{{ formatPrice(product.price) }}</span>
@@ -98,27 +98,27 @@
                   ¥{{ formatPrice(product.original_price) }}
                 </span>
               </div>
-              
+
               <div class="cart-controls">
                 <div v-if="getCartQuantity(product.id) > 0" class="quantity-control">
-                  <button 
-                    class="quantity-btn minus" 
+                  <button
+                    class="quantity-btn minus"
                     @click.stop="decreaseCart(product)"
                   >
                     <span class="btn-icon">−</span>
                   </button>
                   <span class="quantity-num">{{ getCartQuantity(product.id) }}</span>
-                  <button 
-                    class="quantity-btn plus" 
+                  <button
+                    class="quantity-btn plus"
                     @click.stop="increaseCart(product)"
                   >
                     <span class="btn-icon">+</span>
                   </button>
                 </div>
-                
-                <button 
+
+                <button
                   v-else
-                  class="add-cart-btn" 
+                  class="add-cart-btn"
                   :class="{ disabled: product.isSoldOut }"
                   @click.stop="addToCart(product)"
                   :disabled="product.isSoldOut"
@@ -173,25 +173,25 @@
 
         <div v-else class="panel-content">
           <div class="cart-list">
-            <div 
-              v-for="item in cartItems" 
+            <div
+              v-for="item in cartItems"
               :key="item.id"
               class="cart-item"
             >
               <div class="item-image">
-                <img 
-                  v-if="item.image" 
-                  :src="item.image" 
+                <img
+                  v-if="item.image"
+                  :src="item.image"
                   :alt="item.name"
                 />
                 <span v-else class="item-img-placeholder">{{ getCategoryEmoji(item.category) }}</span>
               </div>
-              
+
               <div class="item-info">
                 <div class="item-name">{{ item.name }}</div>
                 <div class="item-price">¥{{ formatPrice(item.price) }}</div>
               </div>
-              
+
               <div class="item-controls">
                 <button class="item-btn minus" @click="decreaseCart(item)">
                   <span>−</span>
@@ -203,7 +203,7 @@
               </div>
             </div>
           </div>
-          
+
           <div class="cart-summary">
             <div class="summary-row">
               <span class="summary-label">商品合计</span>
@@ -221,7 +221,7 @@
               ⚡ 实际费用以订单确认为准
             </div>
           </div>
-          
+
           <button class="checkout-btn" @click="handleCheckout">
             <span>去结算</span>
             <span class="checkout-arrow">›</span>
@@ -241,11 +241,9 @@
 <script lang="ts" setup>
   import { ref, reactive, computed, onMounted, watch } from 'vue'
   import { useRouter } from 'vue-router'
-  import { showToast, showConfirmDialog } from 'vant'
+  import { Toast, Dialog } from '@/utils/vant'
   import { authAPI } from '@/api/authAPI'
-  import { useUserStore } from '@/stores/auth.ts'
-  import 'vant/es/toast/style'
-  import 'vant/lib/index.css'
+  import { useUserStore } from '@/stores/auth'
 
   // ==================== 路由和Store ====================
   const router = useRouter()
@@ -287,16 +285,13 @@
   }
 
   // ==================== 响应式数据 ====================
-  const currentTab = ref<'home' | 'orders' | 'profile'>('home')
   const currentCategoryIndex = ref(0)
   const loading = ref(false)
   const DEFAULT_AVATAR = '/images/seller-avatar.jpg'
 
-  // 购物车相关
   const cartItems = ref<CartItem[]>([])
   const showCartPanel = ref(false)
 
-  // 店铺信息
   const shopInfo = reactive<ShopInfo>({
     name: '杉杉烤肉坊',
     avatar: '',
@@ -307,16 +302,9 @@
     storeDetail: ''
   })
 
-  // 商品列表
   const products = ref<Product[]>([])
 
   // ==================== 常量配置 ====================
-  const TOAST_DURATION = {
-    SHORT: 1500,
-    NORMAL: 2000,
-    LONG: 3000
-  } as const
-
   const categoryNames: Record<string, string> = {
     'meat': '🔥 招牌烤肉',
     'seafood': '🦐 海鲜烧烤',
@@ -352,13 +340,13 @@
   const categoryList = computed<Category[]>(() => {
     const map = new Map<string, number>()
     products.value.forEach(p => map.set(p.category, (map.get(p.category) || 0) + 1))
-    
+
     const categories = Array.from(map.entries()).map(([id, count]) => ({
       id,
       name: categoryNames[id] || id,
       count
     }))
-    
+
     return categories.sort((a, b) => {
       if (a.id === 'meat') return -1
       if (b.id === 'meat') return 1
@@ -368,7 +356,7 @@
 
   const filteredProducts = computed(() => {
     const current = categoryList.value[currentCategoryIndex.value]
-    return current 
+    return current
       ? products.value.filter(p => p.category === current.id)
       : products.value
   })
@@ -377,10 +365,9 @@
   const loadSellerProfile = async () => {
     try {
       const response = await authAPI.getSellerProfile()
-      const data = response.data || response
-      
-      if (data.success && data.profile) {
-        const profile = data.profile
+
+      if (response.success && response.data) {
+        const profile = response.data.profile
         shopInfo.name = profile.storeName || shopInfo.name
         shopInfo.avatar = profile.storeAvatar || ''
         shopInfo.slogan = profile.slogan || shopInfo.slogan
@@ -390,11 +377,7 @@
         shopInfo.storeDetail = profile.storeDetail || ''
       }
     } catch (error) {
-      showToast({
-        message: '加载商家信息失败，请刷新重试',
-        type: 'fail',
-        duration: TOAST_DURATION.NORMAL
-      })
+      Toast.fail('加载商家信息失败，请刷新重试')
     }
   }
 
@@ -405,21 +388,17 @@
   }
 
   const getCategoryEmoji = (category: string): string => {
-    return categoryEmoji[category] || categoryEmoji.default
+    return categoryEmoji[category] || categoryEmoji.default || '🍖'
   }
 
   const addToCart = (product: Product) => {
     if (!product || product.isSoldOut) {
-      showToast({
-        message: '商品已售罄',
-        type: 'fail',
-        duration: TOAST_DURATION.SHORT
-      })
+      Toast.fail('商品已售罄')
       return
     }
-    
+
     const existingItem = cartItems.value.find(item => item.id === product.id)
-    
+
     if (existingItem) {
       existingItem.quantity += 1
     } else {
@@ -430,7 +409,7 @@
       }
       cartItems.value.push(newItem)
     }
-    
+
     saveCartToStorage()
   }
 
@@ -453,39 +432,28 @@
       saveCartToStorage()
     }
   }
-  
-  const clearCart = () => {
+
+  const clearCart = async () => {
     if (cartItems.value.length === 0) {
-      showToast({
-        message: '购物车已是空的',
-        type: 'info',
-        duration: TOAST_DURATION.SHORT
-      })
+      Toast.info('购物车已是空的')
       return
     }
-    
-    showConfirmDialog({
-      title: '提示',
-      message: '确定清空购物车吗？',
-      confirmButtonColor: '#ee0a24'
-    }).then(() => {
+
+    try {
+      await Dialog.deleteConfirm('确定清空购物车吗？')
       cartItems.value = []
       localStorage.removeItem('cartItems')
-      showToast({
-        message: '清空成功',
-        type: 'success',
-        duration: TOAST_DURATION.SHORT
-      })
-    }).catch(() => {
-      // 用户取消，无需提示
-    })
+      Toast.success('清空成功')
+    } catch {
+      // 取消清空
+    }
   }
 
   const saveCartToStorage = () => {
     try {
       localStorage.setItem('cartItems', JSON.stringify(cartItems.value))
-    } catch (error) {
-      // 静默失败，不影响用户体验
+    } catch {
+      // 静默失败
     }
   }
 
@@ -495,8 +463,8 @@
       if (saved) {
         cartItems.value = JSON.parse(saved)
       }
-    } catch (error) {
-      // 静默失败，使用空购物车
+    } catch {
+      // 静默失败
     }
   }
 
@@ -506,18 +474,11 @@
 
   const handleCheckout = () => {
     if (cartItems.value.length === 0) {
-      showToast({
-        message: '购物车是空的，请先添加商品',
-        type: 'fail',
-        duration: TOAST_DURATION.NORMAL
-      })
+      Toast.fail('购物车是空的，请先添加商品')
       return
     }
-    
-    router.replace({
-      name: "UserPreCheckout"
-    })
-    
+
+    router.replace({ name: 'UserPreCheckout' })
     showCartPanel.value = false
   }
 
@@ -527,20 +488,15 @@
   }
 
   const handleSearch = () => {
-    showToast({
-      message: '搜索功能开发中，敬请期待',
-      type: 'info',
-      duration: TOAST_DURATION.SHORT
-    })
+    Toast.info('搜索功能开发中，敬请期待')
   }
 
   const previewShop = () => {
-    // 店铺预览功能
-    showToast({
-      message: '店铺详情加载中',
-      type: 'loading',
-      duration: TOAST_DURATION.SHORT
-    })
+    router.push({ name: 'SellerProfile' })
+  }
+
+  const handleScroll = () => {
+    // 滚动加载更多逻辑
   }
 
   // ==================== 商品数据加载 ====================
@@ -548,17 +504,13 @@
     loading.value = true
     try {
       const response = await authAPI.getAllProducts()
-      
+
       let productData = null
-      
-      if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          productData = response.data
-        } else if (response.data.success && Array.isArray(response.data.data)) {
-          productData = response.data.data
-        }
+
+      if (response && response.success && response.data && response.data.products) {
+        productData = response.data.products
       }
-      
+
       if (productData && productData.length > 0) {
         products.value = productData.map((item: any) => ({
           id: item.id,
@@ -573,19 +525,10 @@
           isSoldOut: item.isSoldOut || false
         }))
       } else {
-        showToast({
-          message: '暂无商品数据',
-          type: 'info',
-          duration: TOAST_DURATION.NORMAL
-        })
+        Toast.info('暂无商品数据')
       }
-      
     } catch (error) {
-      showToast({
-        message: '加载商品失败，请检查网络',
-        type: 'fail',
-        duration: TOAST_DURATION.LONG
-      })
+      Toast.fail('加载商品失败，请检查网络')
     } finally {
       loading.value = false
     }
@@ -593,7 +536,6 @@
 
   const checkIfNew = (createdAt: string): boolean => {
     if (!createdAt) return false
-    
     try {
       const createTime = new Date(createdAt).getTime()
       const now = new Date().getTime()
@@ -617,8 +559,8 @@
         loadCartData(),
         getAllProducts()
       ])
-    } catch (error) {
-      // 静默处理初始化失败，不影响页面渲染
+    } catch {
+      // 静默处理
     }
   })
 </script>

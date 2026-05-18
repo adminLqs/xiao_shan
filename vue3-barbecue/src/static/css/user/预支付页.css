@@ -20,7 +20,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 12px 16px;
   background: linear-gradient(145deg, #e65100, #bf360c);
   color: white;
   position: sticky;
@@ -29,23 +29,26 @@
 }
 
 .back-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  width: 36px;
+  height: 36px;
   border: none;
   color: white;
-  font-size: 24px;
+  font-size: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  background: none;
+  padding: 0;
+  transition: opacity 0.2s;
 }
 
 .back-btn:active {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(0.95);
+  opacity: 0.6;
+}
+
+.back-icon {
+  line-height: 1;
 }
 
 .header-title {
@@ -54,7 +57,7 @@
 }
 
 .header-placeholder {
-  width: 40px;
+  width: 36px;
 }
 
 /* ========== 通用卡片样式 ========== */
@@ -63,7 +66,6 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
-  padding: 0 4px;
 }
 
 .title-icon {
@@ -82,8 +84,7 @@
   margin: 16px 0;
   padding: 20px;
   border-radius: 16px;
-  border: 1px solid #f0e0d0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .delivery-options {
@@ -98,91 +99,90 @@
   justify-content: space-between;
   padding: 16px;
   background: #fffaf2;
-  border: 1px solid #f0e0d0;
+  border: 2px solid transparent;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
-.delivery-option:hover {
-  border-color: #e65100;
-  background: #fff5e6;
+.delivery-option:active {
+  transform: scale(0.98);
 }
 
 .delivery-option.active {
   border-color: #e65100;
   background: #fff5e6;
-  box-shadow: 0 0 0 2px rgba(230, 81, 0, 0.1);
 }
 
 .option-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .option-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 22px;
   flex-shrink: 0;
 }
 
 .option-icon.dine-in {
-  background: #fff5e6;
-  color: #e65100;
+  background: #fff0e0;
 }
 
 .option-icon.takeaway {
   background: #e8f5e9;
-  color: #4caf50;
 }
 
 .option-icon.delivery {
   background: #e3f2fd;
-  color: #2196f3;
 }
 
 .option-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .option-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #5a3e2b;
 }
 
 .option-desc {
-  font-size: 13px;
-  color: #b87c4b;
+  font-size: 12px;
+  color: #999;
+}
+
+.option-right {
+  display: flex;
+  align-items: center;
 }
 
 .option-check {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #e65100;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
 }
 
 .option-uncheck {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  border: 2px solid #f0e0d0;
-  display: inline-block;
+  border: 2px solid #e0d0c0;
 }
 
 /* ========== 表单区域 ========== */
@@ -194,11 +194,11 @@
   background: white;
   padding: 20px;
   border-radius: 16px;
-  border: 1px solid #f0e0d0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .form-group:last-child {
@@ -208,25 +208,27 @@
 .form-label {
   display: block;
   font-size: 14px;
-  color: #b87c4b;
+  font-weight: 500;
+  color: #5a3e2b;
   margin-bottom: 8px;
 }
 
 .form-input {
-  width: 90%;
-  padding: 14px 16px;
+  width: 100%;
+  padding: 12px 16px;
   background: #fffaf2;
-  border: 1px solid #f0e0d0;
+  border: 2px solid #f0e0d0;
   border-radius: 12px;
-  font-size: 16px;
+  font-size: 15px;
   color: #5a3e2b;
   outline: none;
-  transition: all 0.2s;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
 .form-input:focus {
   border-color: #e65100;
-  background: #fff5e6;
+  background: #fff;
 }
 
 .form-input::placeholder {
@@ -237,22 +239,22 @@
 .people-counter {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   background: #fffaf2;
-  border-radius: 30px;
+  border-radius: 12px;
   padding: 4px;
   width: fit-content;
-  border: 1px solid #f0e0d0;
+  border: 2px solid #f0e0d0;
 }
 
 .counter-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   border: none;
   background: #f5e6d5;
   color: #e65100;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: bold;
   cursor: pointer;
   display: flex;
@@ -262,8 +264,8 @@
 }
 
 .counter-btn:active:not(:disabled) {
-  background: #e8d5c0;
-  transform: scale(0.95);
+  background: #e65100;
+  color: white;
 }
 
 .counter-btn:disabled {
@@ -273,10 +275,10 @@
 }
 
 .people-count {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
   color: #5a3e2b;
-  min-width: 60px;
+  min-width: 50px;
   text-align: center;
 }
 
@@ -286,12 +288,12 @@
   margin: 16px 0;
   padding: 20px;
   border-radius: 16px;
-  border: 1px solid #f0e0d0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .item-count {
   margin-left: auto;
-  font-size: 14px;
+  font-size: 13px;
   color: #b87c4b;
   background: #fff5e6;
   padding: 4px 12px;
@@ -301,23 +303,24 @@
 .order-items {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .order-item {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid #f0e0d0;
+  border-bottom: 1px solid #f5f0e8;
 }
 
 .order-item:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
 .item-image {
-  width: 70px;
-  height: 70px;
+  width: 64px;
+  height: 64px;
   border-radius: 12px;
   background: #fff5e6;
   display: flex;
@@ -325,7 +328,6 @@
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  border: 1px solid #f0e0d0;
 }
 
 .item-image img {
@@ -335,7 +337,7 @@
 }
 
 .item-img-placeholder {
-  font-size: 32px;
+  font-size: 28px;
 }
 
 .item-content {
@@ -343,39 +345,41 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
+  min-width: 0;
 }
 
 .item-name {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   color: #5a3e2b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .item-price-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .item-price {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 14px;
   color: #e65100;
 }
 
 .item-quantity {
-  font-size: 14px;
-  color: #b87c4b;
+  font-size: 13px;
+  color: #999;
 }
 
 .item-total {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #e65100;
   align-self: center;
-  min-width: 80px;
-  text-align: right;
+  white-space: nowrap;
 }
 
 /* ========== 备注信息 ========== */
@@ -387,13 +391,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  border: 1px solid #f0e0d0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .remark-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .remark-icon {
@@ -401,25 +406,25 @@
 }
 
 .remark-label {
-  font-size: 15px;
+  font-size: 14px;
   color: #5a3e2b;
-  white-space: nowrap;
 }
 
 .remark-input {
   flex: 1;
   background: #fffaf2;
-  border: 1px solid #f0e0d0;
-  border-radius: 30px;
-  padding: 12px 16px;
+  border: 2px solid #f0e0d0;
+  border-radius: 12px;
+  padding: 10px 14px;
   font-size: 14px;
   color: #5a3e2b;
   outline: none;
+  min-width: 0;
 }
 
 .remark-input:focus {
   border-color: #e65100;
-  background: #fff5e6;
+  background: #fff;
 }
 
 .remark-input::placeholder {
@@ -432,22 +437,23 @@
   margin: 16px 0;
   padding: 20px;
   border-radius: 16px;
-  border: 1px solid #f0e0d0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .fee-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 15px;
-  color: #b87c4b;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 14px;
+  color: #888;
 }
 
 .fee-row.total {
-  margin-top: 16px;
+  margin-top: 12px;
   padding-top: 16px;
-  border-top: 1px solid #f0e0d0;
-  font-size: 18px;
+  border-top: 2px solid #f5f0e8;
+  font-size: 17px;
   font-weight: 600;
   color: #5a3e2b;
 }
@@ -459,41 +465,40 @@
 
 .fee-value {
   color: #5a3e2b;
+  font-weight: 500;
 }
 
 /* ========== 底部提交栏 ========== */
 .pre-footer {
   position: fixed;
   bottom: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 600px;
   background: white;
-  padding: 16px 20px;
+  padding: 12px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid #f0e0d0;
-  padding-bottom: constant(safe-area-inset-bottom);
-  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
   z-index: 100;
-  max-width: 600px;
-  margin: 0 auto;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .footer-left {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
 }
 
 .total-label {
   font-size: 14px;
-  color: #b87c4b;
+  color: #999;
 }
 
 .total-price {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   color: #e65100;
 }
@@ -502,17 +507,17 @@
   background: linear-gradient(135deg, #e65100, #bf360c);
   color: white;
   border: none;
-  padding: 14px 40px;
-  border-radius: 40px;
-  font-size: 18px;
+  padding: 14px 36px;
+  border-radius: 25px;
+  font-size: 17px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  min-width: 140px;
+  white-space: nowrap;
 }
 
 .submit-btn:active:not(:disabled) {
-  transform: scale(0.95);
+  transform: scale(0.96);
   opacity: 0.9;
 }
 
@@ -520,7 +525,6 @@
   background: #e0d0c0;
   color: #c0a080;
   cursor: not-allowed;
-  transform: none;
 }
 
 .submitting {
@@ -531,10 +535,10 @@
 }
 
 .spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #ffffff;
-  border-top-color: transparent;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -552,7 +556,20 @@
 .slide-enter-from,
 .slide-leave-to {
   opacity: 0;
-  transform: translateY(-20px);
+  transform: translateY(-10px);
+}
+
+/* ========== 错误提示 ========== */
+.input-error {
+  border-color: #f44336 !important;
+  background: #fff5f5 !important;
+}
+
+.error-tip {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #f44336;
 }
 
 /* ========== 响应式 ========== */
@@ -565,40 +582,12 @@
   .delivery-section,
   .form-card,
   .order-items-section,
-  .remark-section,
   .fee-section {
     padding: 16px;
   }
   
-  .option-icon {
-    width: 44px;
-    height: 44px;
-    font-size: 22px;
-  }
-  
-  .item-image {
-    width: 60px;
-    height: 60px;
-  }
-  
-  .item-total {
-    font-size: 16px;
-    min-width: 70px;
-  }
-  
-  .total-price {
-    font-size: 22px;
-  }
-  
-  .submit-btn {
-    padding: 12px 30px;
-    font-size: 16px;
-  }
-}
-
-@media (max-width: 360px) {
   .delivery-option {
-    padding: 12px;
+    padding: 14px;
   }
   
   .option-icon {
@@ -609,6 +598,45 @@
   
   .option-name {
     font-size: 14px;
+  }
+  
+  .item-image {
+    width: 56px;
+    height: 56px;
+  }
+  
+  .item-total {
+    font-size: 15px;
+  }
+  
+  .total-price {
+    font-size: 22px;
+  }
+  
+  .submit-btn {
+    padding: 12px 28px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .delivery-option {
+    padding: 12px;
+  }
+  
+  .option-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    border-radius: 10px;
+  }
+  
+  .option-left {
+    gap: 10px;
+  }
+  
+  .option-name {
+    font-size: 13px;
   }
   
   .option-desc {
@@ -626,19 +654,7 @@
   
   .item-total {
     width: 100%;
-    text-align: left;
-    margin-left: 86px;
+    text-align: right;
+    padding-left: 68px;
   }
-}
-
-/* 错误提示样式 */
-.input-error {
-  border-color: #f44336 !important;
-}
-
-.error-tip {
-  display: block;
-  margin-top: 4px;
-  font-size: 12px;
-  color: #f44336;
 }

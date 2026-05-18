@@ -83,12 +83,11 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, onMounted } from 'vue'
-import { showToast, showSuccessToast, showFailToast } from 'vant'
-import { authAPI } from '@/api/authAPI'
+  import { ref, reactive, onMounted } from 'vue'
+  import { authAPI } from '@/api/authAPI'
+  import Message from '@/utils/message'
 
-// 更新商家信息接口，添加 slogan 和 address
-interface SellerProfile {
+  interface SellerProfile {
     id?: number
     storeName: string
     storeDetail: string
@@ -96,169 +95,162 @@ interface SellerProfile {
     phone: string
     isOpen: boolean
     business: string
-    slogan: string     
-    address: string    
-}
+    slogan: string
+    address: string
+  }
 
-// 响应式数据
-const isEditing = ref(false)
-const avatarInput = ref<HTMLInputElement | null>(null)
+  const isEditing = ref(false)
+  const avatarInput = ref<HTMLInputElement | null>(null)
+  const submitting = ref(false)
 
-// 更新 profile 响应式对象，添加 slogan 和 address
-const profile = reactive<SellerProfile>({
+  const profile = reactive<SellerProfile>({
     storeName: '',
     storeDetail: '',
     storeAvatar: '',
     phone: '',
     isOpen: true,
     business: '',
-    slogan: '',      
-    address: ''      
-})
+    slogan: '',
+    address: ''
+  })
 
-// 更新 editData 响应式对象，添加 slogan 和 address
-const editData = reactive<SellerProfile>({
-    storeName: '',
-    storeDetail: '',
-    storeAvatar: '',
-    phone: '',
-    isOpen: true,
-    business: '',
-    slogan: '',      
-    address: ''      
-})
+  const editData = reactive<SellerProfile>({ ...profile })
 
-// 获取商家信息
-const loadProfile = async () => {
+  // ==================== 加载商家信息 ====================
+  const loadProfile = async () => {
+    const loading = Message.loading({ text: '加载中...' })
+    
     try {
-        const response = await authAPI.getSellerProfile()
-        const data = response.data || response
-        
-        if (data.success) {
-            Object.assign(profile, data.profile)
-            resetEditData()
-        }
-    } catch (error) {
-        showToast({
-            message: '加载失败',
-            type: 'fail'
-        })
+      const response = await authAPI.getSellerProfile()
+      
+      if (response.success) {
+        Object.assign(profile, response.data.profile)
+        resetEditData()
+      } else {
+        Message.error(response.message || '加载失败')
+      }
+    } catch (error: any) {
+      Message.error(error.message || '加载失败')
+    } finally {
+      loading.close()
     }
-}
+  }
 
-// 更新重置编辑数据，包含 slogan 和 address
-const resetEditData = () => {
-    Object.assign(editData, {
-        storeName: profile.storeName,
-        storeDetail: profile.storeDetail,
-        storeAvatar: profile.storeAvatar,
-        phone: profile.phone,
-        isOpen: profile.isOpen,
-        business: profile.business,
-        slogan: profile.slogan,      
-        address: profile.address      
-    })
-}
+  // ==================== 编辑状态管理 ====================
+  const resetEditData = () => {
+    Object.assign(editData, { ...profile })
+  }
 
-// 切换编辑模式
-const toggleEdit = () => {
+  const toggleEdit = () => {
     resetEditData()
     isEditing.value = true
-}
+  }
 
-// 取消编辑
-const cancelEdit = () => {
+  const cancelEdit = () => {
     isEditing.value = false
-}
+  }
 
-// 更新保存信息，包含 slogan 和 address
-const saveProfile = async () => {
-    try {
-        const response = await authAPI.updateSellerProfile({
-            storeName: editData.storeName,
-            storeDetail: editData.storeDetail,
-            phone: editData.phone,
-            isOpen: editData.isOpen,
-            business: editData.business,
-            slogan: editData.slogan,      
-            address: editData.address      
-        })
-        const data = response.data || response
-        
-        if (data.success) {
-            Object.assign(profile, editData)
-            isEditing.value = false
-            showSuccessToast('保存成功')
-        } else {
-            showFailToast(data.message || '保存失败')
-        }
-    } catch (error) {
-        showFailToast('保存失败')
+  // ==================== 保存商家信息 ====================
+  const saveProfile = async () => {
+    if (!editData.storeName.trim()) {
+      Message.warning('请输入店铺名称')
+      return
     }
-}
+    
+    if (!editData.phone.trim()) {
+      Message.warning('请输入联系电话')
+      return
+    }
+    
+    const phoneReg = /^1[3-9]\d{9}$/
+    if (!phoneReg.test(editData.phone)) {
+      Message.warning('请输入正确的手机号码')
+      return
+    }
+    
+    submitting.value = true
+    const loading = Message.loading({ text: '保存中...' })
+    
+    try {
+      const response = await authAPI.updateSellerProfile({
+        storeName: editData.storeName?.trim(),
+        storeDetail: editData.storeDetail?.trim(),
+        phone: editData.phone?.trim(),
+        isOpen: editData.isOpen,
+        business: editData.business?.trim(),
+        slogan: editData.slogan?.trim(),
+        address: editData.address?.trim()
+      })
+      
+      if (response.success) {
+        Object.assign(profile, editData)
+        isEditing.value = false
+        Message.success('保存成功')
+      } else {
+        Message.error(response.message || '保存失败')
+      }
+    } catch (error: any) {
+      Message.error(error.message || '保存失败')
+    } finally {
+      loading.close()
+      submitting.value = false
+    }
+  }
 
-// 触发头像上传
-const triggerAvatarUpload = () => {
+  // ==================== 头像上传 ====================
+  const triggerAvatarUpload = () => {
     avatarInput.value?.click()
-}
+  }
 
-// 处理头像上传
-const handleAvatarChange = async (e: Event) => {
+  const handleAvatarChange = async (e: Event) => {
     const input = e.target as HTMLInputElement
     const file = input.files?.[0]
     
     if (!file) return
     
-    // 验证文件
     const maxSize = 5 * 1024 * 1024
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
     
     if (file.size > maxSize) {
-        showFailToast('文件大小不能超过5MB')
-        return
+      Message.warning('文件大小不能超过5MB')
+      return
     }
     
     if (!allowedTypes.includes(file.type)) {
-        showFailToast('请选择JPEG、PNG、GIF或WebP格式的图片')
-        return
+      Message.warning('请选择JPEG、PNG、GIF或WebP格式的图片')
+      return
     }
     
     const formData = new FormData()
     formData.append('avatar', file)
     
-    const toast = showToast({
-        type: 'loading',
-        message: '上传中...',
-        forbidClick: true,
-        duration: 0
-    })
+    const loading = Message.loading({ text: '上传中...' })
     
     try {
-        const response = await authAPI.updateSellerAvatar(formData)
-        const data = response.data || response
-        
-        if (data.success && data.avatar) {
-            profile.storeAvatar = data.avatar
-            if (isEditing.value) {
-                editData.storeAvatar = data.avatar
-            }
-            showSuccessToast('头像更新成功')
-        } else {
-            showFailToast(data.message || '上传失败')
+      const response = await authAPI.updateSellerAvatar(formData)
+      
+      if (response.success && response.data) {
+        profile.storeAvatar = response.data.storeAvatar
+        if (isEditing.value) {
+          editData.storeAvatar = response.data
         }
-    } catch (error) {
-        showFailToast('上传失败')
+        Message.success('头像更新成功')
+      } else {
+        Message.error(response.message || '上传失败')
+      }
+    } catch (error: any) {
+      Message.error(error.message || '上传失败')
     } finally {
-        toast.close()
-        input.value = ''
+      loading.close()
+      input.value = ''
     }
-}
+  }
 
-onMounted(() => {
+  onMounted(() => {
     loadProfile()
-})
+  })
 </script>
 
 <style scoped>
-@import url('@/static/css/seller/商家信息页.css');
+  @import url('@/static/css/seller/商家信息页.css');
 </style>

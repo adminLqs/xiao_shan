@@ -289,8 +289,7 @@
   // ==================== 导入模块 ====================
   import { ref, computed, onMounted } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
-  import { showToast } from 'vant'
-  import 'vant/es/toast/style'
+  import { Toast, Dialog } from '@/utils/vant'
   import { authAPI } from '@/api/authAPI'
   import { useUserStore } from '@/stores/auth'
 
@@ -326,6 +325,9 @@
   const PHONE_REGEX = /^1[3-9]\d{9}$/
 
   // ==================== 响应式数据 ====================
+
+  /** 当前用户ID */
+  const currentUserId = ref<number | null>(null)
 
   /** 提交状态 */
   const submitting = ref(false)
@@ -385,14 +387,13 @@
     
     switch (deliveryType.value) {
       case 'delivery':
-        total += DELIVERY_FEE      // 配送费 3元
-        total += PACKAGING_FEE     // 打包费 2元
+        total += DELIVERY_FEE
+        total += PACKAGING_FEE
         break
       case 'takeaway':
-        total += PACKAGING_FEE     // 打包费 2元
+        total += PACKAGING_FEE
         break
       case 'dinein':
-        // 到店用餐无附加费用
         break
     }
     
@@ -446,13 +447,24 @@
       staple: '🍚', drink: '🍺', snack: '🍡',
       skewer: '🍢', cold: '🥗', default: '🍖'
     }
-    return map[category] || map.default
+    return map[category] || map.default || '🍖'
   }
 
   /**
    * 返回上一页
    */
-  const goBack = () => router.push({ path: '/' })
+  const goBack = async () => {
+    if (cartItems.value.length > 0) {
+      try {
+        await Dialog.confirm('订单信息将不会保存，确定要返回吗？')
+        router.push({ path: '/' })
+      } catch {
+        // 取消返回
+      }
+    } else {
+      router.push({ path: '/' })
+    }
+  }
 
   /**
    * 选择配送方式
@@ -498,11 +510,11 @@
         cartItems.value = JSON.parse(saved)
       }
     } catch (error) {
-      showToast({ message: '加载购物车失败', type: 'fail' })
+      Toast.fail('加载购物车失败')
     }
 
     if (cartItems.value.length === 0) {
-      showToast({ message: '购物车是空的', type: 'fail' })
+      Toast.fail('购物车是空的')
       router.back()
     }
   }
@@ -511,21 +523,29 @@
 
   /**
    * 提交订单
-   * 验证表单 -> 构建订单数据 -> 调用API -> 跳转支付页面
+   * 验证表单 -> 确认提交 -> 构建订单数据 -> 调用API -> 跳转支付页面
    */
   const submitOrder = async () => {
     if (!canSubmit.value) {
-      showToast({ message: '请填写完整信息', type: 'fail' })
+      Toast.fail('请填写完整信息')
       return
     }
 
-    const userId = userStore.userId
-    if (!userId) {
-      showToast({ message: '用户未登录', type: 'fail' })
+    if (!currentUserId.value) {
+      Toast.fail('用户未登录')
+      router.push({ name: 'UserDashboard' })
+      return
+    }
+
+    // 二次确认
+    try {
+      await Dialog.confirm(`订单金额 ¥${formatPrice(totalAmount.value)}，确认提交？`)
+    } catch {
       return
     }
 
     submitting.value = true
+    Toast.loading('提交订单中...')
 
     try {
       const orderData = {
@@ -552,35 +572,58 @@
         }))
       }
 
-      const response = await authAPI.createOrder(userId, orderData)
-      const data = response.data || response
+      const response = await authAPI.createOrder(currentUserId.value, orderData)
 
-      if (data?.success) {
-        showToast({ message: '订单创建成功', type: 'success' })
+      if (response.success) {
+        Toast.success('订单创建成功')
         router.push({
           name: 'UserPayment',
           query: {
-            orderNumber: data.orderNumber,
+            orderNumber: response.data.orderNumber,
             amount: totalAmount.value.toFixed(2)
           }
         })
       } else {
-        showToast({ message: data?.message || '订单创建失败', type: 'fail' })
+        Toast.fail(response.data?.message || '订单创建失败')
       }
     } catch (error: any) {
-      showToast({ message: error.message || '提交失败，请重试', type: 'fail' })
+      Toast.fail(error.message || '提交失败，请重试')
     } finally {
       submitting.value = false
     }
   }
 
+  // ==================== 初始化 ====================
+
+  /**
+   * 初始化用户ID
+   * 优先从 store 获取，若不存在则调用 initUser 初始化
+   */
+  const init = async (): Promise<void> => {
+    const userId = userStore.userId
+    if (!userId) {
+      Toast.fail('请先登录')
+      router.back()
+      return
+    }
+
+    currentUserId.value = Number(userId)
+    if (isNaN(currentUserId.value) || currentUserId.value <= 0) {
+      Toast.fail('用户信息错误')
+      router.back()
+      return
+    }
+
+    loadCartData()
+  }
+
   // ==================== 生命周期 ====================
 
   onMounted(() => {
-    loadCartData()
+    init()
   })
 </script>
 
 <style scoped>
-@import url("@/static/css/user/预支付页.css");
+  @import url("@/static/css/user/预支付页.css");
 </style>

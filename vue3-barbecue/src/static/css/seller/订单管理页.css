@@ -1,4 +1,4 @@
-/* ==================== 订单管理页 - 大厂规范版 ==================== */
+/* ==================== 订单管理页 - 右侧滚动框规范版 ==================== */
 
 .seller-orders {
   width: 100%;
@@ -88,9 +88,50 @@
   border-color: #e65100;
 }
 
-/* ==================== 订单列表容器 ==================== */
+/* ==================== 订单列表容器 - 右侧滚动框核心设置 ==================== */
 .orders-list {
   width: 100%;
+  /* 关键：设置最大高度，让滚动条出现在右侧且不影响背景色 */
+  max-height: calc(100vh - 140px); /* 动态计算，适配不同屏幕高度 */
+  overflow-y: auto;
+  overflow-x: auto;
+  /* 优雅滚动效果 */
+  scroll-behavior: smooth;
+  /* 内边距保证滚动条与内容有呼吸空间 */
+  padding-right: 4px;
+}
+
+/* ==================== 自定义滚动条 - 大厂规范（右侧滚动条样式） ==================== */
+.orders-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.orders-list::-webkit-scrollbar-track {
+  background: #f0e4d4;
+  border-radius: 4px;
+  /* 让轨道半透明，不干扰背景色 */
+  margin-block: 4px;
+}
+
+.orders-list::-webkit-scrollbar-thumb {
+  background: #c4a882;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.orders-list::-webkit-scrollbar-thumb:hover {
+  background: #e65100;
+}
+
+.orders-list::-webkit-scrollbar-corner {
+  background: #f0e4d4;
+}
+
+/* Firefox 滚动条样式 */
+.orders-list {
+  scrollbar-width: thin;
+  scrollbar-color: #c4a882 #f0e4d4;
 }
 
 /* ==================== 加载状态 ==================== */
@@ -152,9 +193,10 @@
 .orders-table {
   background-color: #ffffff;
   border-radius: 16px;
-  overflow: auto;
+  overflow: auto; /* 表格内部滚动由 .orders-list 控制，这里仅作边框和圆角 */
   border: 1px solid #f0e4d4;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  /* 确保表格内部不产生额外滚动条，避免双滚动条 */
 }
 
 /* 表格基础样式 */
@@ -164,7 +206,7 @@
   min-width: 1000px;
 }
 
-/* 表头样式 */
+/* 表头样式 - 支持粘性定位优化体验 */
 .orders-table thead th {
   position: sticky;
   top: 0;
@@ -226,32 +268,8 @@
   color: #e65100;
 }
 
-/* ==================== 滚动条 - 大厂规范版 ==================== */
-
-/* 表格滚动条 */
-.orders-table::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.orders-table::-webkit-scrollbar-track {
-  background: #f0e4d4;
-  border-radius: 4px;
-}
-
-.orders-table::-webkit-scrollbar-thumb {
-  background: #c4a882;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-.orders-table::-webkit-scrollbar-thumb:hover {
-  background: #e65100;
-}
-
-.orders-table::-webkit-scrollbar-corner {
-  background: #f0e4d4;
-}
+/* 移除之前表格内部的独立滚动条样式，统一由父级 .orders-list 控制 */
+/* ==================== 滚动条 - 已迁移至 .orders-list 实现右侧滚动，此处不再重复定义避免冲突 ==================== */
 
 /* ==================== 状态徽章 ==================== */
 .status-badge {
@@ -341,6 +359,52 @@
   color: #ffffff;
 }
 
+/* 发货按钮样式 */
+.ship-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+  color: white;
+  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+}
+
+.ship-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+}
+
+.ship-btn:active {
+  transform: translateY(0);
+}
+
+/* 核销按钮样式 */
+.complete-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: white;
+  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
+}
+
+.complete-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.complete-btn:active {
+  transform: translateY(0);
+}
+
 /* ==================== 分页 ==================== */
 .pagination {
   display: flex;
@@ -398,6 +462,10 @@
     font-size: 20px;
   }
 
+  .orders-list {
+    max-height: calc(100vh - 180px); /* 移动端适配高度 */
+  }
+
   .orders-table {
     border-radius: 12px;
   }
@@ -412,7 +480,9 @@
   }
 
   .detail-btn,
-  .cancel-btn {
+  .cancel-btn,
+  .ship-btn,
+  .complete-btn {
     padding: 4px 10px;
     font-size: 11px;
   }
@@ -428,12 +498,22 @@
     padding: 6px 12px;
     font-size: 13px;
   }
+  
+  /* 移动端滚动条稍微细一点 */
+  .orders-list::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 }
 
 /* 小屏幕手机优化 */
 @media (max-width: 480px) {
   .seller-orders {
     padding: 12px;
+  }
+  
+  .orders-list {
+    max-height: calc(100vh - 200px);
   }
 
   .orders-table thead th,
@@ -451,7 +531,9 @@
   }
 
   .detail-btn,
-  .cancel-btn {
+  .cancel-btn,
+  .ship-btn,
+  .complete-btn {
     padding: 3px 8px;
     font-size: 10px;
   }
@@ -462,48 +544,389 @@
   }
 }
 
-/* 发货按钮样式 */
-.ship-btn {
+/* ==================== 退款信息列 ==================== */
+.refund-info {
+  text-align: center;
+}
+
+.refund-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.refund-tag.refunding {
+  background: #fff8e1;
+  color: #ffc107;
+}
+
+.refund-tag.refunded {
+  background: #e8f5e9;
+  color: #4caf50;
+}
+
+.refund-tag.refund-failed {
+  background: #ffebee;
+  color: #f44336;
+}
+
+/* ==================== 处理退款按钮 ==================== */
+.handle-refund-btn {
   padding: 6px 14px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
   border: none;
-  background: linear-gradient(135deg, #2196f3, #1976d2);
+  background: linear-gradient(135deg, #ff9800, #fb8c00);
   color: white;
-  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+  box-shadow: 0 2px 4px rgba(255, 152, 0, 0.2);
+  transition: all 0.2s;
 }
 
-.ship-btn:hover {
+.handle-refund-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+  box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
 }
 
-.ship-btn:active {
-  transform: translateY(0);
+/* ==================== 退款状态徽章补充 ==================== */
+.status-badge.refund-failed {
+  background: #ffebee;
+  color: #f44336;
 }
 
-/* 核销按钮样式 */
-.complete-btn {
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 12px;
+/* ==================== 退款弹窗结果选择 ==================== */
+.result-options {
+  display: flex;
+  gap: 12px;
+}
+
+.result-btn {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #e8e0d5;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight: 500;
+  cursor: pointer;
+  background: #fff;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.result-btn.success.active {
+  border-color: #4caf50;
+  background: #e8f5e9;
+  color: #4caf50;
+}
+
+.result-btn.fail.active {
+  border-color: #f44336;
+  background: #ffebee;
+  color: #f44336;
+}
+
+.result-btn:hover {
+  border-color: #b87c4b;
+}
+
+/* ==================== 退款处理弹窗 - 页面中间显示 ==================== */
+.refund-modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.refund-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 440px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 弹窗头部 */
+.refund-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0e4d4;
+  flex-shrink: 0;
+}
+
+.refund-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  background: #fef7e9;
+  border: none;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  color: #b87c4b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: #e65100;
+  color: #ffffff;
+}
+
+/* 弹窗内容 */
+.refund-modal-body {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.refund-info {
+  background: #fef7e9;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  border: 1px solid #f0e4d4;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.info-item .label {
+  width: 80px;
+  color: #8b6b4f;
+  flex-shrink: 0;
+}
+
+.info-item .value {
+  flex: 1;
+  color: #3d2a1a;
+  font-weight: 500;
+}
+
+.info-item .value.highlight {
+  color: #e65100;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* 表单组 */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3d2a1a;
+}
+
+.form-group .required {
+  color: #e65100;
+}
+
+/* 结果选择按钮 */
+.result-options {
+  display: flex;
+  gap: 12px;
+}
+
+.result-btn {
+  flex: 1;
+  padding: 14px 16px;
+  border: 2px solid #f0e4d4;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.result-btn:hover {
+  border-color: #e65100;
+  background: #fef7e9;
+}
+
+.result-btn.success.active {
+  border-color: #4caf50;
+  background: #f1f8e9;
+  color: #2e7d32;
+}
+
+.result-btn.fail.active {
+  border-color: #f44336;
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* 失败原因文本框 */
+.form-group textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #f0e4d4;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #3d2a1a;
+  resize: vertical;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.form-group textarea:focus {
+  border-color: #e65100;
+  box-shadow: 0 0 0 3px rgba(230, 81, 0, 0.08);
+}
+
+.form-group textarea::placeholder {
+  color: #c4a882;
+}
+
+/* 弹窗底部 */
+.refund-modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #f0e4d4;
+  flex-shrink: 0;
+}
+
+.refund-modal-footer button {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
-  background: linear-gradient(135deg, #4caf50, #45a049);
-  color: white;
-  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
 }
 
-.complete-btn:hover {
+.refund-modal-footer .cancel-btn {
+  background: #f5f5f5;
+  color: #8b6b4f;
+  border: 1px solid #e8e0d5;
+}
+
+.refund-modal-footer .cancel-btn:hover {
+  background: #fef7e9;
+  border-color: #e65100;
+  color: #e65100;
+}
+
+.refund-modal-footer .confirm-btn {
+  background: linear-gradient(135deg, #e65100, #bf360c);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(230, 81, 0, 0.25);
+}
+
+.refund-modal-footer .confirm-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+  box-shadow: 0 4px 12px rgba(230, 81, 0, 0.3);
 }
 
-.complete-btn:active {
-  transform: translateY(0);
+.refund-modal-footer .confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 页码样式 */
+.page-num {
+  min-width: 36px;
+  padding: 6px 10px;
+  background: #ffffff;
+  border: 1px solid #e8e0d5;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #5a3e2b;
+}
+
+.page-num.active {
+  background: #e65100;
+  border-color: #e65100;
+  color: white;
+}
+
+.page-num:hover:not(.active) {
+  border-color: #e65100;
+  color: #e65100;
+}
+
+/* 跳转区域 */
+.page-jump {
+  margin-left: 12px;
+  font-size: 13px;
+  color: #8b6b4f;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-jump input {
+  width: 50px;
+  padding: 6px 8px;
+  border: 1px solid #e8e0d5;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 13px;
+  outline: none;
+}
+
+.page-jump input:focus {
+  border-color: #e65100;
 }

@@ -95,6 +95,25 @@
       </div>
     </div>
 
+    <!-- 支付确认弹窗 -->
+    <transition name="fade">
+      <div v-if="showPaymentConfirm" class="result-modal">
+        <div class="modal-content">
+          <div class="modal-icon">💳</div>
+          <h3 class="modal-title">支付确认</h3>
+          <p class="modal-message">请确认您是否已完成支付？</p>
+          <div class="modal-actions" style="margin-top: 20px;">
+            <button class="modal-btn primary" @click="confirmPaymentComplete">
+              已完成支付
+            </button>
+            <button class="modal-btn default" @click="cancelPaymentConfirm">
+              未支付
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- 支付成功弹窗 -->
     <transition name="fade">
       <div v-if="showSuccessModal" class="result-modal">
@@ -113,307 +132,268 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { showToast } from 'vant'
-import 'vant/es/toast/style'
-import { authAPI } from '@/api/authAPI'
+  import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { useRouter, useRoute } from 'vue-router'
+  import { Toast, Dialog } from '@/utils/vant'
+  import { authAPI } from '@/api/authAPI'
 
-// ==================== 路由实例 ====================
-const router = useRouter()
-const route = useRoute()
+  // ==================== 类型定义 ====================
+  type PaymentMethod = 'WECHAT' | 'ALIPAY'
+  type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED'
 
-// ==================== 响应式数据 ====================
-const paying = ref(false)
-const paymentStatus = ref<'PENDING' | 'SUCCESS' | 'FAILED'>('PENDING')
-const selectedMethod = ref<'WECHAT' | 'ALIPAY'>('ALIPAY')
-const showSuccessModal = ref(false)
+  // ==================== 路由实例 ====================
+  const router = useRouter()
+  const route = useRoute()
 
-const orderNumber = ref(route.query.orderNumber as string || '')
-const amount = ref(parseFloat(route.query.amount as string) || 0)
+  // ==================== 常量定义 ====================
+  const PAYMENT_TIMEOUT = 900
 
-const countdown = ref(900)
+  // ==================== 响应式数据 ====================
+  const paying = ref<boolean>(false)
+  const paymentStatus = ref<PaymentStatus>('PENDING')
+  const selectedMethod = ref<PaymentMethod>('ALIPAY')
+  const showSuccessModal = ref<boolean>(false)
+  const showPaymentConfirm = ref<boolean>(false)
 
-// 定时器变量
-let countdownTimer: number | null = null
+  const orderNumber = ref<string>(route.query.orderNumber as string || '')
+  const amount = ref<number>(parseFloat(route.query.amount as string) || 0)
+  const countdown = ref<number>(PAYMENT_TIMEOUT)
 
-// ==================== 计算属性 ====================
-const canPay = computed(() => {
-  return selectedMethod.value && paymentStatus.value === 'PENDING' && !paying.value
-})
+  let countdownTimer: ReturnType<typeof setInterval> | null = null
+  let payWindow: Window | null = null
 
-// ==================== 工具函数 ====================
-const formatPrice = (price: number): string => price.toFixed(2)
-
-const formatTime = (seconds: number): string => {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
-}
-
-// ==================== 查询订单状态 ====================
-/**
- * 查询订单支付状态
- * @returns 是否已支付
- */
-const checkOrderStatus = async (): Promise<boolean> => {
-  try {
-    const response = await authAPI.queryPaymentResult(orderNumber.value)
-    const data = response.data || response
-    
-    if (data.success && data.paid) {
-      return true
-    }
-    return false
-  } catch (error) {
-    console.error('查询订单状态失败:', error)
-    return false
-  }
-}
-
-// ==================== 支付成功处理 ====================
-const handlePaymentSuccess = (): void => {
-  // 清空购物车
-  localStorage.removeItem('cartItems')
-  // 停止倒计时
-  if (countdownTimer) {
-    clearInterval(countdownTimer)
-    countdownTimer = null
-  }
-  // 显示成功弹窗
-  showSuccessModal.value = true
-}
-
-/**
- * 跳转到订单详情
- */
-const goToOrderDetail = (): void => {
-  showSuccessModal.value = false
-  router.push({
-    path: '/order/detail',
-    query: { orderNumber: orderNumber.value }
+  // ==================== 计算属性 ====================
+  const canPay = computed<boolean>(() => {
+    return selectedMethod.value && paymentStatus.value === 'PENDING' && !paying.value
   })
-}
 
-/**
- * 返回首页
- */
-const backToHome = (): void => {
-  showSuccessModal.value = false
-  router.push({ name: 'UserDashboard' })
-}
-
-// ==================== 支付主流程 ====================
-const handlePayment = async (): Promise<void> => {
-  if (!canPay.value) return
-  
-  paying.value = true
-  
-  try {
-    const response = await authAPI.paymentOrder({
-      orderNumber: orderNumber.value,
-      amount: amount.value,
-      paymentMethod: selectedMethod.value
-    })
-    
-    const data = response.data || response
-    
-    if (!data.success) {
-      throw new Error(data.message || '创建支付订单失败')
-    }
-
-    // 支付宝支付：跳转到支付页面
-    if (data.pageHtml) {
-      // 将当前页面跳转到支付宝支付页面
-      document.write(data.pageHtml)
-      document.close()
-    }
-    
-  } catch (error: any) {
-    console.error('支付失败:', error)
-    showToast(error.message || '支付处理失败，请重试')
-  } finally {
-    paying.value = false
+  // ==================== 工具函数 ====================
+  const formatPrice = (price: number): string => {
+    if (typeof price !== 'number' || isNaN(price)) return '0.00'
+    return price.toFixed(2)
   }
-}
 
-// ==================== 倒计时 ====================
-const startCountdown = (): void => {
-  if (countdownTimer) clearInterval(countdownTimer)
-  
-  countdownTimer = setInterval(() => {
-    if (countdown.value > 0) {
-      countdown.value--
-    } else {
-      clearInterval(countdownTimer!)
+  const formatTime = (seconds: number): string => {
+    if (seconds < 0) return '00:00'
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
+  }
+
+  const clearTimer = (): void => {
+    if (countdownTimer) {
+      clearInterval(countdownTimer)
       countdownTimer = null
-      // 超时取消订单
-      authAPI.cancelOrder(orderNumber.value)
-      showToast('支付超时，订单已取消')
-      router.push({ name: 'UserDashboard' })
     }
-  }, 1000)
-}
-
-// ==================== 用户交互方法 ====================
-const copyOrderNumber = (): void => {
-  navigator.clipboard.writeText(orderNumber.value).then(() => {
-    showToast('订单号已复制')
-  }).catch(() => {
-    showToast('复制失败')
-  })
-}
-
-const goBack = (): void => {
-  if (paymentStatus.value === 'PENDING') {
-    authAPI.cancelOrder(orderNumber.value)
-    if (countdownTimer) clearInterval(countdownTimer)
   }
-  router.back()
-}
 
-const cancelPayment = (): void => {
-  authAPI.cancelOrder(orderNumber.value)
-  if (countdownTimer) clearInterval(countdownTimer)
-  router.push({ name: 'UserDashboard' })
-}
-
-// ==================== 生命周期 ====================
-onMounted(async () => {
-  if (!orderNumber.value || !amount.value || amount.value <= 0) {
-    showToast('订单信息不存在')
-    router.back()
-    return
+  // ==================== 查询订单状态 ====================
+  const checkOrderStatus = async (): Promise<boolean> => {
+    try {
+      const response = await authAPI.queryPaymentResult(orderNumber.value)
+      return !!(response.success && response.data.paid)
+    } catch (error: any) {
+      Toast.fail(error.message || '查询订单状态失败')
+      return false
+    }
   }
-  
-  console.log('支付页面加载，订单号:', orderNumber.value, '金额:', amount.value)
-  
-  // 先查询订单是否已支付
-  const isPaid = await checkOrderStatus()
-  
-  if (isPaid) {
-    // 已支付，直接显示成功弹窗
-    handlePaymentSuccess()
-  } else {
-    // 未支付，开始倒计时
+
+  // ==================== 支付成功处理 ====================
+  const handlePaymentSuccess = (): void => {
+    localStorage.removeItem('cartItems')
+    clearTimer()
+    paymentStatus.value = 'SUCCESS'
+    showSuccessModal.value = true
+  }
+
+  // ==================== 页面跳转 ====================
+  const goToOrderDetail = (): void => {
+    showSuccessModal.value = false
+    router.push({
+      name: 'OrderDetail',
+      query: { orderNumber: orderNumber.value }
+    })
+  }
+
+  const backToHome = (): void => {
+    showSuccessModal.value = false
+    router.push({ name: 'UserDashboard' })
+  }
+
+  // ==================== 支付确认弹窗逻辑 ====================
+  const confirmPaymentComplete = async (): Promise<void> => {
+    showPaymentConfirm.value = false
+    Toast.loading('正在确认支付结果...')
+    
+    const isPaid = await checkOrderStatus()
+    Toast.close()
+    
+    if (isPaid) {
+      handlePaymentSuccess()
+    } else {
+      Toast.fail('支付未完成，请继续支付')
+      paymentStatus.value = 'PENDING'
+      startCountdown()
+    }
+  }
+
+  const cancelPaymentConfirm = (): void => {
+    showPaymentConfirm.value = false
+    paymentStatus.value = 'PENDING'
     startCountdown()
   }
-})
 
-onUnmounted(() => {
-  if (countdownTimer) clearInterval(countdownTimer)
-})
+  // ==================== 支付主流程 ====================
+  const handlePayment = async (): Promise<void> => {
+    if (!canPay.value) return
+    
+    paying.value = true
+    Toast.loading('正在处理支付...')
+    
+    try {
+      const response = await authAPI.paymentOrder({
+        orderNumber: orderNumber.value,
+        amount: amount.value,
+        paymentMethod: selectedMethod.value
+      })
+      
+      if (!response.success) {
+        throw new Error(response.message || '创建支付订单失败')
+      }
+
+      Toast.close()
+      
+      // 新窗口打开支付页面
+      payWindow = window.open('', '_blank')
+      if (payWindow) {
+        payWindow.document.write(response.data.paymentResult.pageHtml)
+        payWindow.document.close()
+        
+        // 弹窗确认支付
+        showPaymentConfirm.value = true
+        clearTimer()
+      } else {
+        Toast.fail('弹窗被阻止，请允许弹窗后重试')
+      }
+      
+    } catch (error: any) {
+      Toast.fail(error.message || '支付处理失败，请重试')
+    } finally {
+      paying.value = false
+    }
+  }
+
+  // ==================== 倒计时 ====================
+  const startCountdown = (): void => {
+    clearTimer()
+    
+    countdownTimer = setInterval(() => {
+      if (countdown.value > 0) {
+        countdown.value--
+      } else {
+        clearTimer()
+        handlePaymentTimeout()
+      }
+    }, 1000)
+  }
+
+  const handlePaymentTimeout = async (): Promise<void> => {
+    try {
+      await authAPI.cancelOrder(orderNumber.value)
+      Toast.info('支付超时，订单已取消')
+      router.replace({ name: 'UserDashboard' })
+    } catch (error: any) {
+      Toast.fail(error.message || '取消订单失败')
+      router.replace({ name: 'UserDashboard' })
+    }
+  }
+
+  // ==================== 用户交互方法 ====================
+  const copyOrderNumber = async (): Promise<void> => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(orderNumber.value)
+        Toast.success('订单号已复制')
+        return
+      }
+      throw new Error('Clipboard API not available')
+    } catch {
+      try {
+        const textArea = document.createElement('textarea')
+        textArea.value = orderNumber.value
+        textArea.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;'
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        Toast.success('订单号已复制')
+      } catch {
+        Toast.fail('复制失败，请手动复制')
+      }
+    }
+  }
+
+  const goBack = async (): Promise<void> => {
+    if (paymentStatus.value === 'PENDING') {
+      try {
+        await Dialog.confirm('确定要取消支付吗？')
+        await authAPI.cancelOrder(orderNumber.value)
+        clearTimer()
+        router.back()
+      } catch {
+        // 取消确认，继续支付
+      }
+    } else {
+      router.back()
+    }
+  }
+
+  const cancelPayment = async (): Promise<void> => {
+    try {
+      await Dialog.confirm('确定要取消支付吗？')
+      
+      Toast.loading('取消订单中...')
+      
+      try {
+        await authAPI.cancelOrder(orderNumber.value)
+        Toast.info('已取消支付')
+      } catch (error: any) {
+        Toast.fail(error.message || '取消支付失败')
+      } finally {
+        clearTimer()
+        router.replace({ name: 'UserDashboard' })
+      }
+    } catch {
+      // 取消确认
+    }
+  }
+
+  // ==================== 生命周期 ====================
+  onMounted(async () => {
+    if (!orderNumber.value || !amount.value || amount.value <= 0) {
+      Toast.fail('订单信息不存在')
+      router.replace({ name: 'UserDashboard' })
+      return
+    }
+    
+    Toast.loading('加载订单信息...')
+    
+    const isPaid = await checkOrderStatus()
+    
+    Toast.close()
+    
+    if (isPaid) {
+      handlePaymentSuccess()
+    } else {
+      startCountdown()
+    }
+  })
+
+  onUnmounted(() => {
+    clearTimer()
+  })
 </script>
 
 <style scoped>
-@import url("@/static/css/user/支付页.css");
-
-/* 支付成功弹窗样式 */
-.result-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 24px;
-  padding: 32px 24px;
-  text-align: center;
-  width: 85%;
-  max-width: 320px;
-}
-
-.modal-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-}
-
-.modal-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-  color: #333;
-}
-
-.modal-message {
-  font-size: 14px;
-  color: #666;
-  margin: 0 0 24px 0;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.modal-btn {
-  flex: 1;
-  padding: 12px;
-  border-radius: 12px;
-  font-size: 14px;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s;
-}
-
-.modal-btn.primary {
-  background: #e65100;
-  color: white;
-}
-
-.modal-btn.primary:hover {
-  background: #bf360c;
-}
-
-.modal-btn.default {
-  background: #f5f5f5;
-  color: #666;
-  border: 1px solid #ddd;
-}
-
-.modal-btn.default:hover {
-  background: #eee;
-}
-
-/* 图标样式 */
-.method-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #f5f5f5;
-}
-
-.method-icon.wechat {
-  background: #e8f5e9;
-}
-
-.method-icon.alipay {
-  background: #e8f0fe;
-}
-
-.icon-svg {
-  display: block;
-}
-
-/* 渐隐动画 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
+  @import url("@/static/css/user/支付页.css");
 </style>

@@ -13,6 +13,7 @@
           <option value="CANCELLED">已取消</option>
           <option value="REFUNDING">退款中</option>
           <option value="REFUNDED">已退款</option>
+          <option value="REFUNDFAILED">退款失败</option>
         </select>
         <button class="refresh-btn" @click="refreshOrders">刷新</button>
       </div>
@@ -40,117 +41,191 @@
               <th>支付方式</th>
               <th>配送类型</th>
               <th>订单状态</th>
+              <th>退款信息</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="order in orders" :key="order.id">
-              <td class="order-no">{{ order.orderNumber }}</td>
-              <td>{{ formatDate(order.createdAt) }}</td>
-              <td class="amount">¥{{ formatPrice(order.totalAmount) }}</td>
-              <td>{{ getPaymentMethodText(order.paymentMethod) }}</td>
-              <td>{{ getDeliveryTypeText(order.deliveryType) }}</td>
+            <tr v-for="vo in orders" :key="vo.order.id">
+              <td class="order-no">{{ vo.order.orderNumber }}</td>
+              <td>{{ formatDate(vo.order.createdAt) }}</td>
+              <td class="amount">¥{{ formatPrice(vo.order.totalAmount) }}</td>
+              <td>{{ getPaymentMethodText(vo.order.paymentMethod) }}</td>
+              <td>{{ getDeliveryTypeText(vo.order.deliveryType) }}</td>
               <td>
-                <span class="status-badge" :class="getStatusClass(order.status)">
-                  {{ getStatusText(order.status) }}
+                <span class="status-badge" :class="getStatusClass(vo.order.status)">
+                  {{ getStatusText(vo.order.status) }}
                 </span>
               </td>
+              <td class="refund-info">
+                <span v-if="vo.order.status === 'REFUNDING'" class="refund-tag refunding">退款中</span>
+                <span v-else-if="vo.order.status === 'REFUNDED'" class="refund-tag refunded">
+                  已退款 ¥{{ formatPrice(vo.refundRecord?.refundAmount || 0) }}
+                </span>
+                <span v-else-if="vo.order.status === 'REFUNDFAILED'" class="refund-tag refund-failed">退款失败</span>
+                <span v-else>-</span>
+              </td>
               <td class="actions">
-                <button class="detail-btn" @click="viewDetail(order.orderNumber)">
-                  查看详情
-                </button>
-                <!-- 已支付且为外卖配送：显示发货按钮 -->
+                <button class="detail-btn" @click="viewDetail(vo.order.orderNumber)">查看详情</button>
+                
                 <button 
-                  v-if="order.status === 'PAID' && order.deliveryType === 'delivery'"
+                  v-if="vo.order.status === 'PAID' && vo.order.deliveryType === 'delivery'"
                   class="ship-btn"
-                  @click="shipOrder(order.orderNumber)"
-                >
-                  发货
-                </button>
-                <!-- 已支付且为到店用餐/打包自取：显示核销按钮 -->
+                  @click="shipOrder(vo.order.orderNumber)"
+                >发货</button>
+                
                 <button 
-                  v-if="order.status === 'PAID' && (order.deliveryType === 'dinein' || order.deliveryType === 'takeaway')"
+                  v-if="vo.order.status === 'PAID' && (vo.order.deliveryType === 'dinein' || vo.order.deliveryType === 'takeaway')"
                   class="complete-btn"
-                  @click="completeOrder(order.orderNumber)"
-                >
-                  核销
-                </button>
+                  @click="completeOrder(vo.order.orderNumber)"
+                >核销</button>
+                
+                <button 
+                  v-if="vo.order.status === 'REFUNDING'"
+                  class="handle-refund-btn"
+                  @click="openHandleRefundModal(vo)"
+                >处理退款</button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
       
-      <!-- 分页 -->
       <div class="pagination" v-if="total > pageSize">
         <button @click="prevPage" :disabled="page === 1">上一页</button>
-        <span class="page-info">{{ page }} / {{ totalPages }}</span>
+        
+        <!-- 页码按钮 -->
+        <button 
+          v-for="p in visiblePages" 
+          :key="p"
+          class="page-num"
+          :class="{ active: p === page }"
+          @click="goToPage(p)"
+        >{{ p }}</button>
+        
         <button @click="nextPage" :disabled="page === totalPages">下一页</button>
+        
+        <!-- 跳转 -->
+        <span class="page-jump">
+          跳至
+          <input 
+            type="number" 
+            v-model="jumpPage" 
+            :max="totalPages" 
+            :min="1"
+            @keyup.enter="goToPage(jumpPage)"
+          />
+          页
+        </span>
+      </div>
+    </div>
+
+    <!-- 处理退款弹窗 -->
+    <div v-if="showRefundModal" class="refund-modal-mask" @click.self="closeRefundModal">
+      <div class="refund-modal">
+        <div class="refund-modal-header">
+          <h3>处理退款</h3>
+          <button class="close-btn" @click="closeRefundModal">✕</button>
+        </div>
+        <div class="refund-modal-body">
+          <div class="refund-info">
+            <div class="info-item">
+              <span class="label">订单号：</span>
+              <span class="value">{{ handleOrder?.order?.orderNumber }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">退款金额：</span>
+              <span class="value highlight">¥{{ formatPrice(handleOrder?.refundRecord?.refundAmount || 0) }}</span>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>处理结果 <span class="required">*</span></label>
+            <div class="result-options">
+              <button 
+                class="result-btn success"
+                :class="{ active: refundResult === 'SUCCESS' }"
+                @click="refundResult = 'SUCCESS'"
+              >✅ 退款成功</button>
+              <button 
+                class="result-btn fail"
+                :class="{ active: refundResult === 'FAIL' }"
+                @click="refundResult = 'FAIL'"
+              >❌ 退款失败</button>
+            </div>
+          </div>
+          
+          <div class="form-group" v-if="refundResult === 'FAIL'">
+            <label>失败原因 <span class="required">*</span></label>
+            <textarea 
+              v-model="refundFailReason" 
+              rows="3" 
+              placeholder="请填写退款失败的原因"
+            ></textarea>
+          </div>
+        </div>
+        <div class="refund-modal-footer">
+          <button class="cancel-btn" @click="closeRefundModal">取消</button>
+          <button class="confirm-btn" @click="submitHandleRefund" :disabled="!canSubmitHandle">
+            {{ submitting ? '提交中...' : '确认处理' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
   import { useRouter } from 'vue-router'
-  import { showToast, showConfirmDialog } from 'vant'
+  import Message from '@/utils/message'
   import { authAPI } from '@/api/authAPI'
-  import 'vant/es/dialog/style'
-  'vant/es/toast/style'
-  
+
   // ==================== 类型定义 ====================
   interface Order {
     id: number
     orderNumber: string
     totalAmount: number
-    refundedAmount: number
-    status: string
-    paymentMethod: string
     deliveryType: string
+    paymentMethod: string
+    status: string
     createdAt: string
   }
 
-  // ==================== 订单状态常量 ====================
-  const ORDER_STATUS = {
-    PENDING: 'PENDING',
-    PAID: 'PAID',
-    SHIPPED: 'SHIPPED',
-    COMPLETED: 'COMPLETED',
-    CANCELLED: 'CANCELLED',
-    REFUNDING: 'REFUNDING',
-    REFUNDED: 'REFUNDED'
+  interface RefundRecord {
+    id: number
+    orderNumber: string
+    refundAmount: number
+    refundReason: string
+    status: string
+    failReason: string
+    createdAt: string
   }
 
+  interface OrderVO {
+    order: Order
+    refundRecord: RefundRecord | null
+  }
+
+  // ==================== 常量 ====================
   const ORDER_STATUS_TEXT: Record<string, string> = {
-    [ORDER_STATUS.PENDING]: '待支付',
-    [ORDER_STATUS.PAID]: '已支付',
-    [ORDER_STATUS.SHIPPED]: '已发货',
-    [ORDER_STATUS.COMPLETED]: '已完成',
-    [ORDER_STATUS.CANCELLED]: '已取消',
-    [ORDER_STATUS.REFUNDING]: '退款中',
-    [ORDER_STATUS.REFUNDED]: '已退款'
+    PENDING: '待支付', PAID: '已支付', SHIPPED: '已发货',
+    COMPLETED: '已完成', CANCELLED: '已取消', REFUNDING: '退款中',
+    REFUNDED: '已退款', REFUNDFAILED: '退款失败'
   }
 
   const ORDER_STATUS_CLASS: Record<string, string> = {
-    [ORDER_STATUS.PENDING]: 'pending',
-    [ORDER_STATUS.PAID]: 'paid',
-    [ORDER_STATUS.SHIPPED]: 'shipped',
-    [ORDER_STATUS.COMPLETED]: 'completed',
-    [ORDER_STATUS.CANCELLED]: 'cancelled',
-    [ORDER_STATUS.REFUNDING]: 'refunding',
-    [ORDER_STATUS.REFUNDED]: 'refunded'
+    PENDING: 'pending', PAID: 'paid', SHIPPED: 'shipped',
+    COMPLETED: 'completed', CANCELLED: 'cancelled', REFUNDING: 'refunding',
+    REFUNDED: 'refunded', REFUNDFAILED: 'refund-failed'
   }
 
   const PAYMENT_METHOD_TEXT: Record<string, string> = {
-    WECHAT: '微信支付',
-    ALIPAY: '支付宝'
+    WECHAT: '微信支付', ALIPAY: '支付宝'
   }
 
   const DELIVERY_TYPE_TEXT: Record<string, string> = {
-    dinein: '到店用餐',
-    takeaway: '打包自取',
-    delivery: '外卖配送'
+    dinein: '到店用餐', takeaway: '打包自取', delivery: '外卖配送'
   }
 
   // ==================== 路由 ====================
@@ -158,275 +233,174 @@
 
   // ==================== 响应式数据 ====================
   const loading = ref(false)
-  const orders = ref<Order[]>([])
+  const submitting = ref(false)
+  const orders = ref<OrderVO[]>([])
   const page = ref(1)
   const pageSize = ref(20)
   const total = ref(0)
   const statusFilter = ref('')
 
-  // ==================== WebSocket 相关 ====================
-  let stompClient: any = null
-  let wsConnected = ref(false)
+  const showRefundModal = ref(false)
+  const handleOrder = ref<OrderVO | null>(null)
+  const refundResult = ref<'SUCCESS' | 'FAIL' | ''>('')
+  const refundFailReason = ref('')
 
-  // 音频对象（使用你提供的路径）
-  const notificationAudio = new Audio('/src/static/radio/订单音频.mp3')
+  // 响应式数据新增
+  const jumpPage = ref(1)
 
-  /**
-   * 播放提示音
-   */
-  const playNotificationSound = () => {
-    notificationAudio.play().catch(error => {
-      console.log('音频播放失败:', error)
-    })
-  }
+  // 计算可见页码
+  const visiblePages = computed(() => {
+    const pages: number[] = []
+    const max = totalPages.value
+    const current = page.value
+    
+    let start = Math.max(1, current - 2)
+    let end = Math.min(max, current + 2)
+    
+    if (end - start < 4) {
+      if (start === 1) end = Math.min(max, start + 4)
+      else start = Math.max(1, end - 4)
+    }
+    
+    for (let i = start; i <= end; i++) pages.push(i)
+    return pages
+  })
 
-  /**
-   * 初始化 WebSocket 连接
-   */
-  const initWebSocket = () => {
-    // 动态导入 SockJS 和 Stomp
-    import('sockjs-client').then(({ default: SockJS }) => {
-      import('@stomp/stompjs').then(({ Client }) => {
-        const client = new Client({
-          webSocketFactory: () => new SockJS('/ws'),
-          debug: (str) => console.log(str),
-          reconnectDelay: 5000,
-          onConnect: () => {
-            console.log('WebSocket连接成功')
-            wsConnected.value = true
-
-            // 订阅新订单通知（商家ID固定为1）
-            client.subscribe('/user/1/queue/orders', (message: any) => {
-              const data = JSON.parse(message.body)
-              console.log('收到新订单通知:', data)
-              
-              // 播放提示音
-              playNotificationSound()
-              
-              // 显示提示
-              showToast({
-                message: `新订单！订单号: ${data.orderNumber}`,
-                type: 'success',
-                duration: 5000
-              })
-              
-              // 刷新订单列表
-              refreshOrders()
-            })
-          },
-          onStompError: (frame: any) => {
-            console.error('WebSocket错误:', frame)
-          }
-        })
-
-        client.activate()
-        stompClient = client
-      })
-    }).catch(error => {
-      console.error('WebSocket模块加载失败:', error)
-    })
-  }
-
-  /**
-   * 断开 WebSocket 连接
-   */
-  const disconnectWebSocket = () => {
-    if (stompClient) {
-      stompClient.deactivate()
-      stompClient = null
-      wsConnected.value = false
+  // 跳转到指定页
+  const goToPage = (p: number) => {
+    const target = Math.max(1, Math.min(p, totalPages.value))
+    if (target !== page.value) {
+      page.value = target
+      loadOrders()
     }
   }
-
   // ==================== 计算属性 ====================
   const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
-  // ==================== 工具方法 ====================
+  const canSubmitHandle = computed(() => {
+    // 确保 refundResult 必须是 'SUCCESS' 或 'FAIL'
+    if (refundResult.value !== 'SUCCESS' && refundResult.value !== 'FAIL') {
+      return false
+    }
+    
+    if (refundResult.value === 'FAIL' && !refundFailReason.value.trim()) {
+      return false
+    }
+    
+    if (submitting.value) {
+      return false
+    }
+    
+    return true
+  })
 
-  /**
-   * 格式化日期
-   */
+  // ==================== 工具方法 ====================
   const formatDate = (dateStr: string): string => {
     if (!dateStr) return ''
-    const date = new Date(dateStr)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    return `${year}-${month}-${day} ${hours}:${minutes}`
+    const d = new Date(dateStr)
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
   }
 
-  /**
-   * 格式化价格
-   */
   const formatPrice = (price: number): string => {
-    if (price === undefined || price === null) return '0.00'
-    return price.toFixed(2)
+    if (price == null) return '0.00'
+    return Number(price).toFixed(2)
   }
 
-  /**
-   * 获取订单状态文本
-   */
-  const getStatusText = (status: string): string => {
-    return ORDER_STATUS_TEXT[status] || status
-  }
-
-  /**
-   * 获取订单状态样式类
-   */
-  const getStatusClass = (status: string): string => {
-    return ORDER_STATUS_CLASS[status] || 'pending'
-  }
-
-  /**
-   * 获取支付方式文本
-   */
-  const getPaymentMethodText = (method: string): string => {
-    if (!method) return '未支付'
-    return PAYMENT_METHOD_TEXT[method] || method
-  }
-
-  /**
-   * 获取配送类型文本
-   */
-  const getDeliveryTypeText = (type: string): string => {
-    return DELIVERY_TYPE_TEXT[type] || type
-  }
+  const getStatusText = (s: string) => ORDER_STATUS_TEXT[s] || s
+  const getStatusClass = (s: string) => ORDER_STATUS_CLASS[s] || 'pending'
+  const getPaymentMethodText = (m: string) => m ? (PAYMENT_METHOD_TEXT[m] || m) : '未支付'
+  const getDeliveryTypeText = (t: string) => DELIVERY_TYPE_TEXT[t] || t
 
   // ==================== 业务方法 ====================
-
-  /**
-   * 加载订单列表
-   */
   const loadOrders = async () => {
     loading.value = true
     try {
       const response = await authAPI.getSellerOrders(page.value, pageSize.value, statusFilter.value)
-      
       if (response.success) {
-        orders.value = response.data || []
-        total.value = response.total || 0
+        orders.value = response.data.orders || []
+        total.value = response.data.total || 0
       } else {
-        showToast({
-          message: response.message || '加载失败',
-          type: 'fail'
-        })
+        Message.error(response.message || '加载失败')
       }
-    } catch (error) {
-      showToast({
-        message: '加载失败',
-        type: 'fail'
-      })
+    } catch {
+      Message.error('加载失败')
     } finally {
       loading.value = false
     }
   }
 
-  /**
-   * 刷新订单列表
-   */
-  const refreshOrders = () => {
-    page.value = 1
-    loadOrders()
-  }
+  const refreshOrders = () => { page.value = 1; loadOrders() }
 
-  /**
-   * 查看订单详情
-   */
   const viewDetail = (orderNumber: string) => {
-    router.push({name: 'OrderDetail', query: { orderNumber } })
+    router.push({ name: 'SellerOrderDetail', query: { orderNumber } })
   }
 
-  /**
-   * 发货（外卖配送）
-   */
   const shipOrder = async (orderNumber: string) => {
     try {
-      await showConfirmDialog({
-        title: '确认发货',
-        message: '确定要将该订单标记为已发货吗？',
-        confirmButtonText: '确认发货',
-        cancelButtonText: '再想想'
-      })
-      
+      await Message.confirm('确定要将该订单标记为已发货吗？', '确认发货')
       const response = await authAPI.shipOrder(orderNumber)
-      const data = response.data || response
-      
-      if (data.success) {
-        showToast({ message: '发货成功', type: 'success' })
-        loadOrders()
-      } else {
-        showToast({ message: data.message || '发货失败', type: 'fail' })
-      }
-    } catch (error) {
-      // 用户取消操作，不做任何处理
-    }
+      response.success ? Message.success('发货成功') : Message.error(response.message || '发货失败')
+      loadOrders()
+    } catch {}
   }
 
-  /**
-   * 核销（到店用餐/打包自取）
-   */
   const completeOrder = async (orderNumber: string) => {
     try {
-      await showConfirmDialog({
-        title: '确认核销',
-        message: '确定要将该订单标记为已完成吗？',
-        confirmButtonText: '确认核销',
-        cancelButtonText: '再想想'
-      })
-      
+      await Message.confirm('确定要将该订单标记为已完成吗？', '确认核销')
       const response = await authAPI.completeOrder(orderNumber)
-      const data = response.data || response
-      
-      if (data.success) {
-        showToast({ message: '核销成功', type: 'success' })
+      response.success ? Message.success('核销成功') : Message.error(response.message || '核销失败')
+      loadOrders()
+    } catch {}
+  }
+
+  const openHandleRefundModal = (vo: OrderVO) => {
+    handleOrder.value = vo
+    refundResult.value = ''
+    refundFailReason.value = ''
+    showRefundModal.value = true
+  }
+
+  const closeRefundModal = () => {
+    showRefundModal.value = false
+    handleOrder.value = null
+    refundResult.value = ''
+    refundFailReason.value = ''
+  }
+
+  const submitHandleRefund = async () => {
+    if (!canSubmitHandle.value) return
+    submitting.value = true
+    
+    try {
+      const response = await authAPI.handleRefund({
+        orderNumber: handleOrder.value!.order.orderNumber,
+        result: refundResult.value as 'SUCCESS' | 'FAIL',
+        failReason: refundResult.value === 'FAIL' ? refundFailReason.value : ''
+      })
+      if (response.success) {
+        Message.success(refundResult.value === 'SUCCESS' ? '退款成功' : '已标记退款失败')
+        closeRefundModal()
         loadOrders()
       } else {
-        showToast({ message: data.message || '核销失败', type: 'fail' })
+        Message.error(response.message || '处理失败')
       }
-    } catch (error) {
-      // 用户取消操作，不做任何处理
+    } catch {
+      Message.error('处理失败，请重试')
+    } finally {
+      submitting.value = false
     }
   }
 
-  /**
-   * 上一页
-   */
-  const prevPage = () => {
-    if (page.value > 1) {
-      page.value--
-      loadOrders()
-    }
-  }
-
-  /**
-   * 下一页
-   */
-  const nextPage = () => {
-    if (page.value < totalPages.value) {
-      page.value++
-      loadOrders()
-    }
-  }
+  const prevPage = () => { if (page.value > 1) { page.value--; loadOrders() } }
+  const nextPage = () => { if (page.value < totalPages.value) { page.value++; loadOrders() } }
 
   // ==================== 监听器 ====================
-  watch(statusFilter, () => {
-    page.value = 1
-    loadOrders()
-  })
+  watch(statusFilter, () => { page.value = 1; loadOrders() })
 
   // ==================== 生命周期 ====================
-  onMounted(() => {
-    loadOrders()
-    // 初始化 WebSocket 连接
-    initWebSocket()
-  })
-
-  onUnmounted(() => {
-    // 组件卸载时断开 WebSocket
-    disconnectWebSocket()
-  })
+  onMounted(
+    () => loadOrders()
+  )
 </script>
 
 <style scoped>

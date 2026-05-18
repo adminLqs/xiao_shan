@@ -19,7 +19,7 @@ export default defineConfig({
     host: '0.0.0.0', // 允许外部访问
     port: 5173,
     allowedHosts: [
-      'http://g54eacdf.natappfree.cc',  // natapp 域名
+      'http://d9bd4666.natappfree.cc',  // natapp 域名
       '.natappfree.cc', // natapp 子域名
     ],
     proxy: {

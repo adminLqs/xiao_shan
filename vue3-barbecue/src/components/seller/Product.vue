@@ -44,7 +44,6 @@
               :alt="product.name"
             />
             <span v-else class="image-placeholder">🥩</span>
-            <span v-if="product.stock === 0" class="product-tag soldout">已售罄</span>
           </div>
           
           <div class="product-info">
@@ -202,7 +201,7 @@
 
 <script lang="ts" setup>
   import { ref, reactive, onMounted } from 'vue'
-  import { showSuccessToast, showFailToast } from 'vant'
+  import Message from '@/utils/message'
   import { authAPI } from '@/api/authAPI'
 
   // 商品接口
@@ -239,6 +238,7 @@
   const submitting = ref(false)
   const deleteTarget = ref<Product | null>(null)
   const fileInput = ref<HTMLInputElement | null>(null)
+  let loadingInstance: any = null
 
   // 表单数据
   const formData = reactive<ProductForm>({
@@ -262,7 +262,7 @@
     loading.value = true
     try {
       const response = await authAPI.getAllProducts()
-      const data = response.data || response
+      const data = response.success && response.data && response.data.products ? response.data.products : []
       
       if (Array.isArray(data)) {
         products.value = data.map((item: any) => ({
@@ -277,7 +277,7 @@
         }))
       }
     } catch (error) {
-      showFailToast('获取商品列表失败')
+      Message.error('获取商品列表失败')
     } finally {
       loading.value = false
     }
@@ -300,7 +300,6 @@
     formData.originalPrice = product.originalPrice
     formData.image = product.image
     formData.category = product.category
-    // 编辑时不设置预览图，保持原有图片
     showModal.value = true
   }
 
@@ -335,18 +334,16 @@
     
     if (!file) return
     
-    // 验证文件
     if (file.size > 5 * 1024 * 1024) {
-      showFailToast('图片大小不能超过5MB')
+      Message.error('图片大小不能超过5MB')
       return
     }
     
     if (!file.type.startsWith('image/')) {
-      showFailToast('请选择图片文件')
+      Message.error('请选择图片文件')
       return
     }
     
-    // 创建预览
     const reader = new FileReader()
     reader.onload = (e) => {
       formData.imagePreview = e.target?.result as string
@@ -367,29 +364,27 @@
 
   // 提交表单
   const submitForm = async () => {
-    // 验证表单
     if (!formData.name.trim()) {
-      showFailToast('请输入商品名称')
+      Message.warning('请输入商品名称')
       return
     }
     
     if (!formData.category) {
-      showFailToast('请选择商品分类')
+      Message.warning('请选择商品分类')
       return
     }
     
     if (formData.price <= 0) {
-      showFailToast('请输入有效的价格')
+      Message.warning('请输入有效的价格')
       return
     }
     
     submitting.value = true
+    loadingInstance = Message.loading({ text: isEdit.value ? '更新中...' : '添加中...' })
     
     try {
-      // 构建 FormData
       const form = new FormData()
       
-      // 商品数据（JSON字符串）
       const productData = {
         name: formData.name,
         description: formData.description,
@@ -398,37 +393,34 @@
         category: formData.category
       }
       
-      // 使用 Blob 封装 JSON
       const productBlob = new Blob([JSON.stringify(productData)], {
         type: 'application/json'
       })
       form.append('product', productBlob)
       
-      // ✅ 只有上传新图片时才添加
       if (formData.imageFile) {
         form.append('image', formData.imageFile)
       }
       
       let response
       if (isEdit.value && formData.id) {
-        // 更新商品
         response = await authAPI.updateProduct(formData.id, form)
       } else {
-        // 添加商品
         response = await authAPI.addProduct(form)
       }
       
-      const data = response.data || response
+      loadingInstance.close()
       
-      if (data.success) {
-        showSuccessToast(isEdit.value ? '商品更新成功' : '商品添加成功')
+      if (response.success) {
+        Message.success(isEdit.value ? '商品更新成功' : '商品添加成功')
         closeModal()
         await loadProducts()
       } else {
-        showFailToast(data.message || '操作失败')
+        Message.error(response.message || '操作失败')
       }
     } catch (error) {
-      showFailToast('操作失败，请重试')
+      loadingInstance.close()
+      Message.error('操作失败，请重试')
     } finally {
       submitting.value = false
     }
@@ -446,17 +438,16 @@
     
     try {
       const response = await authAPI.deleteProduct(deleteTarget.value.id)
-      const data = response.data || response
       
-      if (data.success) {
-        showSuccessToast('商品删除成功')
+      if (response.success) {
+        Message.success('商品删除成功')
         closeDeleteConfirm()
         await loadProducts()
       } else {
-        showFailToast(data.message || '删除失败')
+        Message.error(response.message || '删除失败')
       }
     } catch (error) {
-      showFailToast('删除失败，请重试')
+      Message.error('删除失败，请重试')
     }
   }
 

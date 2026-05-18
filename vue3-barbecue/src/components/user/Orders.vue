@@ -1,11 +1,9 @@
 <template>
   <div class="order-page">
-    <!-- 顶部导航 -->
     <div class="order-header">
       <h1 class="page-title">我的订单</h1>
     </div>
 
-    <!-- 订单状态标签 -->
     <div class="order-tabs">
       <div 
         v-for="tab in tabs" 
@@ -19,10 +17,9 @@
       </div>
     </div>
 
-    <!-- 订单列表 -->
-    <div class="order-list">
+    <div class="order-list" ref="scrollContainer">
       <!-- 加载状态 -->
-      <div v-if="loading" class="state-wrapper">
+      <div v-if="loading && orders.length === 0" class="state-wrapper">
         <div class="loading-state">
           <div class="loading-spinner"></div>
           <span>加载中...</span>
@@ -30,7 +27,7 @@
       </div>
       
       <!-- 空状态 -->
-      <div v-else-if="filteredOrders.length === 0" class="state-wrapper">
+      <div v-else-if="!loading && orders.length === 0" class="state-wrapper">
         <div class="empty-state">
           <div class="empty-icon">📦</div>
           <p class="empty-text">暂无订单</p>
@@ -42,109 +39,53 @@
       <!-- 订单列表 -->
       <div v-else class="order-items">
         <div 
-          v-for="order in filteredOrders" 
-          :key="order.id"
+          v-for="vo in orders" 
+          :key="vo.order.id"
           class="order-card"
         >
-          <!-- 订单头部 -->
           <div class="order-card-header">
             <div class="order-info">
-              <span class="order-no">订单号：{{ order.orderNumber }}</span>
-              <span class="order-time">{{ formatDate(order.createdAt) }}</span>
+              <span class="order-no">订单号：{{ vo.order.orderNumber }}</span>
+              <span class="order-time">{{ formatDate(vo.order.createdAt) }}</span>
             </div>
-            <div class="order-status" :class="getStatusClass(order.status)">
-              {{ getStatusText(order.status) }}
+            <div class="order-status" :class="getStatusClass(vo.order.status)">
+              {{ getStatusText(vo.order.status) }}
             </div>
           </div>
           
-          <!-- 退款信息提示（如果已退款） -->
-          <div class="refund-info-tag" v-if="order.refundStatus === 'FULL_REFUND'">
+          <div class="refund-info-tag" v-if="vo.order.status === 'REFUNDED'">
             <span class="refund-icon">💰</span>
-            <span class="refund-text">已全额退款</span>
+            <span class="refund-text">已退款 ¥{{ formatPrice(vo.refundRecord?.refundAmount || 0) }}</span>
           </div>
-          <div class="refund-info-tag partial" v-else-if="order.refundStatus === 'PARTIAL_REFUND'">
-            <span class="refund-icon">💸</span>
-            <span class="refund-text">已退款 ¥{{ formatPrice(order.refundAmount || 0) }}</span>
+          <div class="refund-info-tag fail" v-else-if="vo.order.status === 'REFUNDFAILED'">
+            <span class="refund-icon">❌</span>
+            <span class="refund-text">退款失败</span>
           </div>
           
-          <!-- 订单底部 -->
           <div class="order-card-footer">
             <div class="order-amount">
               <span class="amount-label">实付</span>
-              <span class="amount-value">¥{{ formatPrice(order.totalAmount) }}</span>
+              <span class="amount-value">¥{{ formatPrice(vo.order.totalAmount) }}</span>
             </div>
             <div class="order-actions">
-              <!-- 待支付：显示去支付 -->
-              <button 
-                v-if="order.status === 'PENDING'"
-                class="action-btn pay-btn"
-                @click.stop="goToPay(order.orderNumber, order.totalAmount)"
-              >
-                去支付
-              </button>
-              
-              <!-- 已支付 - 根据退款状态显示不同按钮 -->
-              <template v-else-if="order.status === 'PAID'">
-                <button 
-                  v-if="order.refundStatus === 'FULL_REFUND'"
-                  class="action-btn refunded-btn"
-                  disabled
-                >
-                  ✅ 已退款
-                </button>
-                <button 
-                  v-else-if="order.refundStatus === 'PARTIAL_REFUND'"
-                  class="action-btn refund-partial-btn"
-                  @click.stop="openRefundModal(order)"
-                >
-                  💰 继续退款
-                  <span class="refund-tip">(已退¥{{ formatPrice(order.refundAmount || 0) }})</span>
-                </button>
-                <button 
-                  v-else
-                  class="action-btn refund-btn"
-                  @click.stop="openRefundModal(order)"
-                >
-                  申请退款
-                </button>
-              </template>
-              
-              <!-- 已发货：显示确认收货按钮 -->
-              <button 
-                v-else-if="order.status === 'SHIPPED'"
-                class="action-btn confirm-receipt-btn"
-                @click.stop="confirmReceipt(order.orderNumber)"
-              >
-                确认收货
-              </button>
-              
-              <!-- 已取消：显示已取消 -->
-              <button 
-                v-else-if="order.status === 'CANCELLED'"
-                class="action-btn cancelled-btn"
-                disabled
-              >
-                已取消
-              </button>
-              
-              <!-- 查看详情按钮（始终显示） -->
-              <button 
-                class="action-btn detail-btn"
-                @click.stop="viewOrderDetail(order.orderNumber)"
-              >
-                查看详情
-              </button>
+              <button v-if="vo.order.status === 'PENDING'" class="action-btn pay-btn" @click.stop="goToPay(vo.order.orderNumber, vo.order.totalAmount)">去支付</button>
+              <button v-else-if="vo.order.status === 'PAID'" class="action-btn refund-btn" @click.stop="openRefundModal(vo)">申请退款</button>
+              <button v-else-if="vo.order.status === 'REFUNDING'" class="action-btn refunding-btn" disabled>🔄 退款中</button>
+              <button v-else-if="vo.order.status === 'REFUNDED'" class="action-btn refunded-btn" disabled>✅ 已退款</button>
+              <button v-else-if="vo.order.status === 'REFUNDFAILED'" class="action-btn refund-failed-btn" disabled>❌ 退款失败</button>
+              <button v-else-if="vo.order.status === 'SHIPPED'" class="action-btn confirm-receipt-btn" @click.stop="confirmReceipt(vo.order.orderNumber)">确认收货</button>
+              <button v-else-if="vo.order.status === 'CANCELLED'" class="action-btn cancelled-btn" disabled>已取消</button>
+              <button class="action-btn detail-btn" @click.stop="viewOrderDetail(vo.order.orderNumber)">查看详情</button>
             </div>
           </div>
         </div>
-      </div>
-      
-      <!-- 加载更多 -->
-      <div v-if="hasMore && !loading && filteredOrders.length > 0" class="load-more" @click="loadMore">
-        加载更多
-      </div>
-      <div v-if="!hasMore && filteredOrders.length > 0" class="no-more">
-        没有更多了~
+        
+        <!-- 底部加载状态 -->
+        <div v-if="loading && orders.length > 0" class="loading-more">
+          <div class="loading-spinner-small"></div>
+          <span>加载中...</span>
+        </div>
+        <div v-if="!hasMore && orders.length > 0" class="no-more">没有更多了~</div>
       </div>
     </div>
 
@@ -159,50 +100,28 @@
           <div class="refund-info">
             <div class="info-item">
               <span class="label">订单号：</span>
-              <span class="value">{{ refundOrder?.orderNumber }}</span>
+              <span class="value">{{ refundOrder?.order.orderNumber }}</span>
             </div>
             <div class="info-item">
               <span class="label">订单金额：</span>
-              <span class="value">¥{{ formatPrice(refundOrder?.totalAmount || 0) }}</span>
-            </div>
-            <div class="info-item" v-if="refundOrder?.refundAmount && refundOrder.refundAmount > 0">
-              <span class="label">已退款：</span>
-              <span class="value">¥{{ formatPrice(refundOrder.refundAmount) }}</span>
+              <span class="value">¥{{ formatPrice(refundOrder?.order.totalAmount || 0) }}</span>
             </div>
             <div class="info-item">
               <span class="label">可退款：</span>
               <span class="value highlight">¥{{ formatPrice(maxRefundAmount) }}</span>
             </div>
           </div>
-          
           <div class="form-group">
             <label>退款金额 <span class="required">*</span></label>
             <div class="amount-input">
               <span class="currency">¥</span>
-              <input 
-                type="number" 
-                v-model="refundAmountInput" 
-                :max="maxRefundAmount"
-                :min="0.01"
-                step="0.01"
-                placeholder="请输入退款金额"
-                @input="validateRefundAmount"
-              />
-            </div>
-            <div class="amount-hint" v-if="refundAmountInput > maxRefundAmount">
-              <span class="error">退款金额不能超过可退金额</span>
+              <input type="number" v-model="refundAmountInput" :max="maxRefundAmount" :min="0.01" step="0.01" placeholder="请输入退款金额" />
             </div>
           </div>
-          
           <div class="form-group">
             <label>退款原因 <span class="required">*</span></label>
-            <textarea 
-              v-model="refundReasonInput" 
-              rows="3" 
-              placeholder="请填写退款原因"
-            ></textarea>
+            <textarea v-model="refundReasonInput" rows="3" placeholder="请填写退款原因"></textarea>
           </div>
-          
           <div class="refund-tips">
             <p>💡 退款说明：</p>
             <ul>
@@ -224,54 +143,40 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, computed, onMounted } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
   import { useRouter } from 'vue-router'
-  import { showConfirmDialog, showToast } from 'vant'
+  import { Toast, Dialog } from '@/utils/vant'
   import { authAPI } from '@/api/authAPI'
   import { useUserStore } from '@/stores/auth'
-  import 'vant/es/dialog/style'  
-  import 'vant/es/toast/style'  
 
   const userStore = useUserStore()
 
   // ==================== 类型定义 ====================
-  interface Order {
-    id: number
-    orderNumber: string
-    totalAmount: number
-    status: 'PENDING' | 'PAID' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDING' | 'REFUNDED'
-    createdAt: string
-    paymentMethod?: string
-    refundAmount?: number
-    refundStatus?: string
-  }
+  interface Order { id: number; orderNumber: string; totalAmount: number; status: string; createdAt: string }
+  interface RefundRecord { id: number; refundAmount: number; refundReason: string; status: string; failReason: string }
+  interface OrderVO { order: Order; refundRecord: RefundRecord | null }
 
   // ==================== 路由 ====================
   const router = useRouter()
 
-
   // ==================== 响应式数据 ====================
   const loading = ref(false)
   const submitting = ref(false)
-  const orders = ref<Order[]>([])
+  const orders = ref<OrderVO[]>([])
   const currentTab = ref('all')
   const page = ref(1)
   const pageSize = ref(20)
   const hasMore = ref(true)
   const total = ref(0)
+  const scrollContainer = ref<HTMLElement | null>(null)
 
-  // 退款弹窗
   const showRefundModal = ref(false)
-  const refundOrder = ref<Order | null>(null)
+  const refundOrder = ref<OrderVO | null>(null)
   const refundAmountInput = ref(0)
   const refundReasonInput = ref('')
 
   // ==================== 计算属性 ====================
-
-  const maxRefundAmount = computed(() => {
-    if (!refundOrder.value) return 0
-    return refundOrder.value.totalAmount - (refundOrder.value.refundAmount || 0)
-  })
+  const maxRefundAmount = computed(() => refundOrder.value?.order.totalAmount || 0)
 
   const canSubmitRefund = computed(() => {
     if (refundAmountInput.value <= 0) return false
@@ -283,98 +188,41 @@
 
   const tabs = computed(() => [
     { label: '全部', value: 'all', count: total.value },
-    { label: '待支付', value: 'PENDING', count: orders.value.filter(o => o.status === 'PENDING').length },
-    { label: '已支付', value: 'PAID', count: orders.value.filter(o => o.status === 'PAID').length },
-    { label: '已发货', value: 'SHIPPED', count: orders.value.filter(o => o.status === 'SHIPPED').length },
-    { label: '已完成', value: 'COMPLETED', count: orders.value.filter(o => o.status === 'COMPLETED').length },
-    { label: '已取消', value: 'CANCELLED', count: orders.value.filter(o => o.status === 'CANCELLED').length }
+    { label: '待支付', value: 'PENDING', count: orders.value.filter(o => o.order.status === 'PENDING').length },
+    { label: '已支付', value: 'PAID', count: orders.value.filter(o => o.order.status === 'PAID').length },
+    { label: '已发货', value: 'SHIPPED', count: orders.value.filter(o => o.order.status === 'SHIPPED').length },
+    { label: '已完成', value: 'COMPLETED', count: orders.value.filter(o => o.order.status === 'COMPLETED').length },
+    { label: '已取消', value: 'CANCELLED', count: orders.value.filter(o => o.order.status === 'CANCELLED').length }
   ])
 
-  const filteredOrders = computed(() => {
-    if (currentTab.value === 'all') return orders.value
-    return orders.value.filter(order => order.status === currentTab.value)
-  })
-
   // ==================== 工具方法 ====================
-
-  const formatPrice = (price: number): string => {
-    return price.toFixed(2)
+  const formatPrice = (p: number) => (p ?? 0).toFixed(2)
+  const formatDate = (d: string) => {
+    if (!d) return ''
+    const dt = new Date(d)
+    return `${dt.getMonth() + 1}/${dt.getDate()} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`
   }
 
-  const formatDate = (dateStr: string): string => {
-    if (!dateStr) return ''
-    const date = new Date(dateStr)
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const day = date.getDate().toString().padStart(2, '0')
-    const hours = date.getHours().toString().padStart(2, '0')
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    return `${month}-${day} ${hours}:${minutes}`
+  const STATUS_MAP: Record<string, string> = {
+    PENDING: '待支付', PAID: '已支付', SHIPPED: '已发货', COMPLETED: '已完成',
+    CANCELLED: '已取消', REFUNDING: '退款中', REFUNDED: '已退款', REFUNDFAILED: '退款失败'
   }
-
-  const getStatusText = (status: string): string => {
-    const map: Record<string, string> = {
-      'PENDING': '待支付',
-      'PAID': '已支付',
-      'SHIPPED': '已发货',
-      'COMPLETED': '已完成',
-      'CANCELLED': '已取消',
-      'REFUNDING': '退款中',
-      'REFUNDED': '已退款'
-    }
-    return map[status] || status
-  }
-
-  const getStatusClass = (status: string): string => {
-    const map: Record<string, string> = {
-      'PENDING': 'status-pending',
-      'PAID': 'status-paid',
-      'SHIPPED': 'status-shipped',
-      'COMPLETED': 'status-completed',
-      'CANCELLED': 'status-cancelled',
-      'REFUNDING': 'status-refunding',
-      'REFUNDED': 'status-refunded'
-    }
-    return map[status] || ''
-  }
-
-  const validateRefundAmount = () => {
-    if (refundAmountInput.value > maxRefundAmount.value) {
-      refundAmountInput.value = maxRefundAmount.value
-    }
-    if (refundAmountInput.value < 0) {
-      refundAmountInput.value = 0
-    }
-  }
+  const getStatusText = (s: string) => STATUS_MAP[s] || s
+  const getStatusClass = (s: string) => `status-${s.toLowerCase()}`
 
   // ==================== 页面跳转 ====================
-
-  const goToShop = () => {
-    router.push({ name: 'UserDashboard' })
-  }
-
+  const goToShop = () => router.push({ name: 'UserDashboard' })
   const goToPay = (orderNumber: string, amount: number) => {
-    router.push({
-      name: 'UserPayment',
-      query: {
-        orderNumber: orderNumber,
-        amount: amount.toFixed(2)
-      }
-    })
+    router.push({ name: 'UserPayment', query: { orderNumber, amount: amount.toFixed(2) } })
   }
-
   const viewOrderDetail = (orderNumber: string) => {
-    router.push({
-      name: 'OrderDetail',
-      query: { orderNumber: orderNumber }
-    })
+    router.push({ name: 'OrderDetail', query: { orderNumber } })
   }
-
 
   // ==================== 退款相关 ====================
-
-  const openRefundModal = (order: Order) => {
-    refundOrder.value = order
-    refundAmountInput.value = order.totalAmount - (order.refundAmount || 0)
+  const openRefundModal = (vo: OrderVO) => {
+    refundOrder.value = vo
+    refundAmountInput.value = vo.order.totalAmount
     refundReasonInput.value = ''
     showRefundModal.value = true
   }
@@ -388,124 +236,106 @@
 
   const submitRefund = async () => {
     if (!canSubmitRefund.value) return
+    try { await Dialog.confirm(`确认退款 ¥${formatPrice(refundAmountInput.value)}？`) } catch { return }
     
     submitting.value = true
-    
+    Toast.loading('提交退款申请...')
     try {
       const response = await authAPI.refundOrder({
-        orderNumber: refundOrder.value!.orderNumber,
+        orderNumber: refundOrder.value!.order.orderNumber,
         refundAmount: refundAmountInput.value,
         refundReason: refundReasonInput.value
       })
-      const data = response.data || response
-      
-      if (data.success) {
-        showToast({ message: '退款申请已提交', type: 'success' })
+      if (response.success) {
+        Toast.success('退款申请已提交')
         closeRefundModal()
-        page.value = 1
-        orders.value = []
-        loadOrders()
+        resetAndReload()
       } else {
-        showToast({ message: data.message || '退款失败', type: 'fail' })
+        Toast.fail(response.message || '退款失败')
       }
     } catch (error: any) {
-      console.error('退款失败:', error)
-      showToast({ message: error.message || '退款失败，请重试', type: 'fail' })
+      Toast.fail(error.message || '退款失败，请重试')
     } finally {
       submitting.value = false
     }
   }
 
   // ==================== 确认收货 ====================
-
-  /**
-   * 确认收货
-   */
   const confirmReceipt = async (orderNumber: string) => {
     try {
-      await showConfirmDialog({
-        title: '确认收货',
-        message: '请确认已收到商品，确认后订单将变为已完成状态。',
-        confirmButtonText: '确认收货',
-        cancelButtonText: '再想想'
+      await Dialog.confirm('请确认已收到商品，确认后订单将变为已完成状态。', {
+        confirmButtonText: '确认收货', cancelButtonText: '再想想'
       })
-      
       const response = await authAPI.confirmReceipt(orderNumber)
-      const data = response.data || response
-      
-      if (data.success) {
-        showToast({ message: '收货成功', type: 'success' })
-        // 刷新订单列表
-        page.value = 1
-        orders.value = []
-        loadOrders()
-      } else {
-        showToast({ message: data.message || '操作失败', type: 'fail' })
-      }
-    } catch (error) {
-      // 用户取消操作，不做任何处理
-    }
+      if (response.success) { Toast.success('收货成功'); resetAndReload() }
+      else { Toast.fail(response.message || '操作失败') }
+    } catch {}
   }
 
   // ==================== 切换标签 ====================
-
   const switchTab = (tab: string) => {
+    if (currentTab.value === tab) return
     currentTab.value = tab
+    resetAndReload()
+  }
+
+  const resetAndReload = () => {
     page.value = 1
     orders.value = []
+    hasMore.value = true
+    nextTick(() => scrollContainer.value?.scrollTo(0, 0))
     loadOrders()
   }
 
-  // ==================== 加载订单数据 ====================
-
+  // ==================== 滚动加载 ====================
   const loadOrders = async () => {
-    if (loading.value) return
-    
+    if (loading.value || (!hasMore.value && page.value > 1)) return
     loading.value = true
     
     try {
       const userId = userStore.userId
-      if (!userId){
-        showToast({ message: '未注册，请稍后再试', type: 'fail' })
-        return
-      }
+      if (!userId) { Toast.fail('未登录'); return }
       
-      const response = await authAPI.getUserOrders(userId, page.value, pageSize.value)
-      const data = response.data || response
+      const status = currentTab.value === 'all' ? '' : currentTab.value
+      const response = await authAPI.getUserOrders(userId, page.value, pageSize.value, status)
       
-      if (data.success) {
-        const newOrders = data.orders || []
-        if (page.value === 1) {
-          orders.value = newOrders
-        } else {
-          orders.value = [...orders.value, ...newOrders]
-        }
-        total.value = data.total
-        hasMore.value = data.hasMore
+      if (response.success) {
+        const list = response.data.orders || []
+        orders.value = page.value === 1 ? list : [...orders.value, ...list]
+        total.value = response.data.total
+        hasMore.value = response.data.hasMore
       } else {
-        showToast({ message: data.message || '加载失败', type: 'fail' })
+        Toast.fail(response.message || '加载失败')
       }
-      
-    } catch (error) {
-      showToast({ message: '加载失败，请重试', type: 'fail' })
+    } catch {
+      Toast.fail('加载失败')
     } finally {
       loading.value = false
     }
   }
 
-  const loadMore = () => {
-    if (hasMore.value && !loading.value) {
+  const handleScroll = () => {
+    const el = scrollContainer.value
+    if (!el || loading.value || !hasMore.value) return
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 60) {
       page.value++
       loadOrders()
     }
   }
 
   // ==================== 生命周期 ====================
-  onMounted(() => {
+  onMounted(async () => {
+    await nextTick()
+    scrollContainer.value = document.querySelector('.order-list')
+    scrollContainer.value?.addEventListener('scroll', handleScroll)
     loadOrders()
+  })
+
+  onUnmounted(() => {
+    scrollContainer.value?.removeEventListener('scroll', handleScroll)
   })
 </script>
 
 <style scoped>
-@import url('@/static/css/user/订单页.css');
+@import url('@/static/css/user/订单管理页.css');
 </style>

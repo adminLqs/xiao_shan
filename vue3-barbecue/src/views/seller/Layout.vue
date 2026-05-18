@@ -1,6 +1,5 @@
 <template>
   <div class="bbq-layout">
-    <!-- 左侧导航栏 -->
     <aside class="sidebar">
       <div class="merchant-card">
         <div class="avatar-wrapper">
@@ -17,9 +16,7 @@
             <span class="status-dot" :class="merchantInfo.isOpen ? 'open' : 'closed'"></span>
             <span class="status-text">{{ merchantInfo.isOpen ? '营业中' : '休息中' }}</span>
           </div>
-          <p class="shop-address" v-if="merchantInfo.address">
-            📍 {{ merchantInfo.address }}
-          </p>
+          <p class="shop-address" v-if="merchantInfo.address">📍 {{ merchantInfo.address }}</p>
         </div>
       </div>
 
@@ -27,26 +24,30 @@
         <ul>
           <li>
             <RouterLink :to="{name: 'SellerProducts'}" class="nav-link" active-class="active">
-              <span class="icon">📦</span>
-              <span>商品管理</span>
+              <span class="icon">📦</span><span>商品管理</span>
             </RouterLink>
           </li>
           <li>
             <RouterLink :to="{name: 'SellerAddProduct'}" class="nav-link" active-class="active">
-              <span class="icon">✨</span>
-              <span>商品发布</span>
+              <span class="icon">✨</span><span>商品发布</span>
             </RouterLink>
           </li>
           <li>
             <RouterLink :to="{name: 'SellerOrders'}" class="nav-link" active-class="active">
-              <span class="icon">📋</span>
-              <span>订单管理</span>
+              <span class="icon">📋</span><span>订单管理</span>
             </RouterLink>
           </li>
           <li>
             <RouterLink :to="{name: 'SellerProfile'}" class="nav-link" active-class="active">
-              <span class="icon">⚙️</span>
-              <span>商家信息</span>
+              <span class="icon">⚙️</span><span>商家信息</span>
+            </RouterLink>
+          </li>
+          <li>
+            <RouterLink :to="{name: 'SellerChat'}" class="nav-link" active-class="active">
+              <span class="icon">💬</span><span>客服消息</span>
+              <span v-if="webSocketStore.unreadCount.value > 0" class="unread-badge">
+                {{ webSocketStore.unreadCount.value }}
+              </span>
             </RouterLink>
           </li>
         </ul>
@@ -57,7 +58,6 @@
       </div>
     </aside>
 
-    <!-- 右侧主内容区 -->
     <main class="main-content">
       <RouterView />
     </main>
@@ -65,11 +65,11 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted } from 'vue'
-  import { useRoute } from 'vue-router'
+  import { reactive, onMounted, onUnmounted } from 'vue'
+  import { useWebSocketStore } from '@/stores/websocket'
   import { authAPI } from '@/api/authAPI'
 
-  const route = useRoute()
+  const webSocketStore = useWebSocketStore()
 
   const merchantInfo = reactive({
     storeAvatar: '',
@@ -84,13 +84,14 @@
   const loadMerchantInfo = async () => {
     try {
       const response = await authAPI.getSellerProfile()
-      const data = response.data || response
-      if (data.success && data.profile) {
-        merchantInfo.storeAvatar = data.profile.storeAvatar
-        merchantInfo.storeName = data.profile.storeName
-        merchantInfo.slogan = data.profile.slogan
-        merchantInfo.isOpen = data.profile.isOpen
-        merchantInfo.address = data.profile.address
+ 
+      if (response.success) {
+        const profile = response.data.profile
+        merchantInfo.storeAvatar = profile.storeAvatar
+        merchantInfo.storeName = profile.storeName
+        merchantInfo.slogan = profile.slogan
+        merchantInfo.isOpen = profile.isOpen
+        merchantInfo.address = profile.address
       }
     } catch (error) {
       console.error('加载商家信息失败:', error)
@@ -99,9 +100,14 @@
 
   onMounted(() => {
     loadMerchantInfo()
+    webSocketStore.connectSeller()
+  })
+
+  onUnmounted(() => {
+    webSocketStore.disconnect()
   })
 </script>
 
 <style scoped>
-    @import url('@/static/css/seller/商家布局页.css');
+  @import url('@/static/css/seller/商家布局页.css');
 </style>

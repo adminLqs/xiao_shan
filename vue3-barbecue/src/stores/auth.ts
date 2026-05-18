@@ -1,7 +1,7 @@
 // stores/user.ts
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { authAPI } from '@/api/authAPI'
+import { authAPI } from '../api/authAPI'
 
 export const useUserStore = defineStore('user', () => {
   // ========== State ==========
@@ -25,7 +25,6 @@ export const useUserStore = defineStore('user', () => {
 
   /**
    * 初始化用户信息
-   * <p>
    * 优先从本地存储读取用户ID，若不存在则生成设备标识并调用后端接口获取。
    *
    * @returns 用户ID，初始化失败返回 null
@@ -53,9 +52,9 @@ export const useUserStore = defineStore('user', () => {
 
       const response = await authAPI.getUserId(deviceIdValue)
       
-      if (response.success && response.data) {
-        userId.value = response.data
-        localStorage.setItem('userId', String(response.data))
+      if (response.success && response.data && response.data.userId) {
+        userId.value = response.data.userId
+        localStorage.setItem('userId', String(response.data.userId))
         return userId.value
       }
 
