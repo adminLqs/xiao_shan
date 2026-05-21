@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vite App</title>
+    <style>
+      * { 
+          padding: 0; 
+          margin: 0;
+        }      
+      /* 基础滚动条设置 - 保留滚动功能，仅美化外观 */
+      body {
+        overflow-y: auto;                /* 保留垂直滚动功能 */
+        overflow-x: hidden;             /* 隐藏水平滚动条，避免横向滚动 */
+      }
+
+      /* WebKit 浏览器滚动条样式 (Chrome, Safari, Edge) */
+      ::-webkit-scrollbar {
+        width: 8px;                     /* 垂直滚动条宽度 */
+        height: 6px;                    /* 水平滚动条高度 */
+      }
+
+      /* 滚动条轨道 - 背景区域 */
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9;            /* 浅灰背景，不刺眼 */
+        border-radius: 4px;             /* 圆角 */
+      }
+
+      /* 滚动条滑块 - 可拖动的部分 */
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;            /* 灰蓝色，与电商主题匹配 */
+        border-radius: 4px;             /* 圆角，更圆润 */
+        transition: background 0.3s ease;  /* 平滑过渡 */
+      }
+
+      /* 滚动条滑块悬浮效果 */
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;            /* 悬浮时颜色加深 */
+        cursor: pointer;                /* 鼠标手型 */
+      }
+
+      /* 滚动条滑块激活效果（点击拖动时） */
+      ::-webkit-scrollbar-thumb:active {
+        background: #64748b;            /* 激活时更深色 */
+      }
+
+      /* Firefox 浏览器滚动条样式 */
+      * {
+        scrollbar-width: thin;          /* 细滚动条：auto / thin / none */
+        scrollbar-color: #cbd5e1 #f1f5f9;  /* 滑块颜色 轨道颜色 */
+      }
+
+      /* 针对移动端的优化 - 保留滚动功能，不隐藏 */
+      @media (max-width: 768px) {
+        body {
+          overflow-y: auto;             /* 移动端必须保留滚动 */
+          -webkit-overflow-scrolling: touch;  /* iOS 平滑滚动 */
+        }
+        
+        /* 移动端滚动条稍微细一点，但不隐藏 */
+        ::-webkit-scrollbar {
+          width: 4px;                   /* 移动端更细，节省空间 */
+        }
+      }
+    </style>
+
+    <script src="https://kit.fontawesome.com/b2a20a9d63.js" crossorigin="anonymous"></script>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>
