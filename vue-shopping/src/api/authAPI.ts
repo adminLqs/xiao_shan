@@ -562,8 +562,9 @@ export const authAPI = {
      * @param data - 请求参数
      * @param data.productId - 商品ID
      * @param data.quantity - 购买数量
+     * @param data.skuId - SKU ID（可选）
      */
-    getCheckoutItemsFromProduct: (data: { productId: number; quantity: number }) => {
+    getCheckoutItemsFromProduct: (data: { productId: number; quantity: number; skuId?: number }) => {
         return api.post('/checkout/product', data)
     },
 
@@ -583,6 +584,14 @@ export const authAPI = {
      */
     getProduct: (productId: number) => {
         return api.get(`/products/${productId}`)
+    },
+
+    /**
+     * 获取商品SKU列表
+     * @param productId - 商品ID
+     */
+    getProductSkus: (productId: number) => {
+        return api.get(`/products/${productId}/skus`)
     },
 
     /**
@@ -679,6 +688,74 @@ export const authAPI = {
      */
     getSellerProfile: () => {
         return api.get('/seller/profile')
+    },
+
+    /**
+     * 根据商品ID查询商家信息
+     * GET /api/v1/products/{productId}/seller
+     * @param productId - 商品ID
+     */
+    getSellerByProduct: (productId: number) => {
+        return api.get(`/products/${productId}/seller`)
+    },
+
+    /**
+     * 获取商品优惠券列表
+     * GET /api/v1/products/{productId}/coupons
+     * @param productId - 商品ID
+     */
+    getProductCoupons: (productId: number) => {
+        return api.get(`/products/${productId}/coupons`)
+    },
+
+    /**
+     * 关注商家
+     * POST /api/v1/seller/{sellerId}/follow
+     * @param sellerId - 商家ID
+     */
+    followSeller: (sellerId: number) => {
+        return api.post(`/seller/${sellerId}/follow`)
+    },
+
+    /**
+     * 取消关注商家
+     * DELETE /api/v1/seller/{sellerId}/follow
+     * @param sellerId - 商家ID
+     */
+    unfollowSeller: (sellerId: number) => {
+        return api.delete(`/seller/${sellerId}/follow`)
+    },
+
+    /**
+     * 检查是否已关注商家
+     * GET /api/v1/seller/{sellerId}/follow/check
+     * @param sellerId - 商家ID
+     */
+    checkFollowSeller: (sellerId: number) => {
+        return api.get(`/seller/${sellerId}/follow/check`)
+    },
+
+    /**
+     * 根据商家ID获取商家信息（公开访问）
+     * GET /api/v1/seller/info/{sellerId}
+     * @param sellerId - 商家ID
+     */
+    getSellerInfoById: (sellerId: number) => {
+        return api.get(`/seller/info/${sellerId}`)
+    },
+
+    /**
+     * 获取商家评价列表（公开访问）
+     * GET /api/v1/seller/{sellerId}/reviews?page=1&pageSize=10
+     * @param params - 参数对象
+     * @param params.sellerId - 商家ID
+     * @param params.page - 页码
+     * @param params.pageSize - 每页数量
+     */
+    getSellerReviews: (params: { sellerId: number; page: number; pageSize: number }) => {
+        return api.get(`/seller/${params.sellerId}/reviews`, {
+            params: { page: params.page, pageSize: params.pageSize }
+        })
     },
 
     /**

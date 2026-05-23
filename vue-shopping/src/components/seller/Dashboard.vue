@@ -281,6 +281,11 @@ const updateTime = (): void => {
 const drawChart = () => {
   if (!canvasRef.value || !chartContainer.value) return
 
+  // ========== 添加数据验证 ==========
+  if (!chartData.value.length || !chartLabels.value.length) {
+    return
+  }
+
   const canvas = canvasRef.value
   const containerWidth = chartContainer.value.clientWidth
   
@@ -454,7 +459,7 @@ const loadStoreInfo = async (): Promise<void> => {
       storeName.value = response.data.profile.storeName || '商家用户'
     }
   } catch (error) {
-    console.error('加载商家信息失败:', error)
+    Message.error('加载商家信息失败')
   }
 }
 

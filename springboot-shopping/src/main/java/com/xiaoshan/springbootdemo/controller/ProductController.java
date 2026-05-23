@@ -2,8 +2,10 @@ package com.xiaoshan.springbootdemo.controller;
 
 import com.xiaoshan.springbootdemo.entity.Category;
 import com.xiaoshan.springbootdemo.entity.Product;
+import com.xiaoshan.springbootdemo.entity.ProductSku;
 import com.xiaoshan.springbootdemo.entity.dto.ProductDTO;
 import com.xiaoshan.springbootdemo.mapper.ProductMapper;
+import com.xiaoshan.springbootdemo.mapper.ProductSkuMapper;
 import com.xiaoshan.springbootdemo.service.CategoryService;
 import com.xiaoshan.springbootdemo.service.ProductService;
 import com.xiaoshan.springbootdemo.service.SellerProfileService;
@@ -30,6 +32,7 @@ public class ProductController {
     private final UserService userService;
     private final SellerProfileService sellerProfileService;
     private final ProductMapper productMapper;
+    private final ProductSkuMapper productSkuMapper;
     private final ProductService productService;
     private final CategoryService categoryService;
 
@@ -38,31 +41,23 @@ public class ProductController {
     @PreAuthorize("hasAnyAuthority('ROLE_SELLER','ROLE_ADMIN')")
     public ResponseEntity<?> addProduct(
             Authentication authentication,
-            @RequestPart("products") @Valid ProductDTO productDTO, // 接收Json数据
-            @RequestPart("images") List<MultipartFile> files // 接收Multipart数据
+            @RequestPart("products") @Valid ProductDTO productDTO,
+            @RequestPart("images") List<MultipartFile> files,
+            @RequestPart(value = "skuImages", required = false) List<MultipartFile> skuImages
     ) {
-        long startTime = System.currentTimeMillis(); // 开始计算时间
-
         try {
-            // 获取商家id
             Long id = userService.getCurrentUserId(authentication);
-
-            // 商品添加逻辑处理
-            productService.addProduct(id, productDTO, files);
-
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime; // 逻辑处理时间
-
-            log.info("商品添加处理时间:{} 毫秒",duration);
+            productService.addProduct(id, productDTO, files, skuImages);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "商品添加成功"
             ));
         } catch (Exception e) {
+            log.error("商品添加失败", e);
             return ResponseEntity.ok(Map.of(
                     "success", false,
-                    "message", "商品添加失败"
+                    "message", "商品添加失败: " + e.getMessage()
             ));
         }
     }
@@ -290,6 +285,90 @@ public class ProductController {
                     "success", false,
                     "message", "获取分类失败: " + e.getMessage()
             ));
+        }
+    }
+
+    /**
+     * 根据商品ID查询商家信息（公开访问）
+     * GET /api/v1/products/{productId}/seller
+     */
+    @GetMapping("/products/{productId}/seller")
+    public ResponseEntity<?> getSellerByProductId(@PathVariable Long productId) {
+        try {
+            // 查询商品
+            Product product = productMapper.findById(productId).orElse(null);
+            if (product == null) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "商品不存在"));
+            }
+
+            Long sellerId = product.getSellerId();
+            if (sellerId == null) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "商家信息不存在"));
+            }
+
+            // 查询商家信息
+            var seller = sellerProfileService.getUserProfile(sellerId);
+            if (seller == null) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "商家信息不存在"));
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of("seller", seller)
+            ));
+        } catch (Exception e) {
+            log.error("获取商家信息失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取商品优惠券列表（公开访问）
+     * GET /api/v1/products/{productId}/coupons
+     */
+    @GetMapping("/products/{productId}/coupons")
+    public ResponseEntity<?> getProductCoupons(@PathVariable Long productId) {
+        try {
+            // 查询商品是否存在
+            Product product = productMapper.findById(productId).orElse(null);
+            if (product == null) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "商品不存在"));
+            }
+
+            // 返回空数组（如果没有优惠券服务）
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of("coupons", List.of())
+            ));
+        } catch (Exception e) {
+            log.error("获取优惠券失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取商品SKU列表（公开访问）
+     * GET /api/v1/products/{productId}/skus
+     */
+    @GetMapping("/products/{productId}/skus")
+    public ResponseEntity<?> getProductSkus(@PathVariable Long productId) {
+        try {
+            // 查询商品是否存在
+            Product product = productMapper.findById(productId).orElse(null);
+            if (product == null) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "商品不存在"));
+            }
+
+            // 查询SKU列表
+            List<ProductSku> skus = productSkuMapper.findByProductId(productId);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of("skus", skus)
+            ));
+        } catch (Exception e) {
+            log.error("获取SKU列表失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
         }
     }
 }

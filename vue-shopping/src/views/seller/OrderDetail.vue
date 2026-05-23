@@ -441,12 +441,10 @@
           totalPrice: item.price * item.quantity
         }))
         addressData.value = data.address
-        console.log(orderData.value)
       } else {
         Message.error(response.message || '获取订单详情失败')
       }
     } catch (error: any) {
-      console.error('加载订单详情失败:', error)
       Message.error(error.message || '加载失败')
     } finally {
       loading.value = false

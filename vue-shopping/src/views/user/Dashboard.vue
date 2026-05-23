@@ -1,41 +1,33 @@
 <template>
   <div class="outer-container">
-    <!-- ========== 顶部导航栏 - 移动端样式 ========== -->
-    <div class="top-navigation">
-      <div class="nav-container">
-        <!-- 汉堡菜单按钮 -->
-        <button class="hamburger-btn" @click="toggleDrawer">
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-
-        <!-- 品牌Logo居中 -->
-        <RouterLink to="/" class="brand-logo">
-          <i class="fas fa-shopping-bag"></i>
-          <span>精品商城</span>
-        </RouterLink>
-
-        <!-- 右侧购物车图标 -->
-        <RouterLink :to="{name: 'Cart'}" class="cart-btn">
-          <i class="fas fa-shopping-cart"></i>
-          <span v-if="cartCount > 0" class="cart-count">{{ cartCount }}</span>
-        </RouterLink>
-      </div>
-    </div>
-
-    <!-- ========== 移动端搜索栏 ========== -->
-    <div class="mobile-search-section">
+    <!-- ========== 顶部搜索栏（正常流，滚动时渐隐） ========== -->
+    <div class="mobile-search-section" :style="{ opacity: showSearchBar ? 0 : 1 }">
       <div class="search-box">
-        <i class="fas fa-search search-icon"></i>
+        <i class="fas fa-search search-icon" @click="router.push({name:'UserSearch'})"></i>
         <input
           type="text"
           class="search-input"
           placeholder="搜索商品..."
-          v-model="searchKeyword"
-          @keyup.enter="performSearch"
+          @focus="router.push({name:'UserSearch'})"
+          readonly
         >
       </div>
+      <i class="fas fa-sync-alt refresh-icon" @click="handleRefresh" :class="{ rotating: loading }"></i>
+    </div>
+
+    <!-- ========== 固定搜索栏（滚动时渐隐出现） ========== -->
+    <div class="mobile-search-fixed" :style="{ opacity: showSearchBar ? 1 : 0, pointerEvents: showSearchBar ? 'auto' : 'none' }">
+      <div class="search-box">
+        <i class="fas fa-search search-icon" @click="router.push({name:'UserSearch'})"></i>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="搜索商品..."
+          @focus="router.push({name:'UserSearch'})"
+          readonly
+        >
+      </div>
+      <i class="fas fa-sync-alt refresh-icon" @click="handleRefresh" :class="{ rotating: loading }"></i>
     </div>
 
     <!-- ========== 一级分类导航 ========== -->
@@ -47,7 +39,7 @@
             :class="{ active: activeLevel1Id === null }"
             @click="selectLevel1Category(null)"
           >
-            <i class="fas fa-th-large"></i>
+            <i class="fas fa-fire"></i>
             <span>全部</span>
           </div>
           <div
@@ -128,13 +120,6 @@
     <!-- ========== 商品展示区 ========== -->
     <div class="products-section">
       <div class="products-container">
-        <div class="section-header">
-          <h2 class="section-title">
-            <i class="fas fa-fire" style="color: #ff6b6b; margin-right: 8px;"></i>
-            {{ currentCategoryName }}
-          </h2>
-        </div>
-
         <!-- 加载状态 -->
         <div v-if="loading" class="loading-container">
           <i class="fas fa-spinner fa-spin"></i>
@@ -168,126 +153,14 @@
           </div>
         </div>
 
-        <!-- 分页组件 -->
-        <div class="pagination" v-if="totalPages > 1">
-          <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <button v-for="page in visiblePages" :key="page" class="page-btn" :class="{ active: currentPage === page }" @click="changePage(page)">
-            {{ page }}
-          </button>
-          <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
-            <i class="fas fa-chevron-right"></i>
-          </button>
+        <div v-if="loadingMore" class="loading-more">
+          <i class="fas fa-spinner fa-spin"></i> 加载中...
+        </div>
+        <div v-else-if="!hasMore && products.length > 0" class="no-more">
+          没有更多了
         </div>
       </div>
     </div>
-
-    <!-- ========== 页脚 ========== -->
-    <div class="footer">
-      <div class="footer-container">
-        <div class="footer-content">
-          <div class="links-section">
-            <div class="link-items">
-              <a href="#" @click.prevent="goToMerchantApply">商家入驻</a>
-              <a href="#">关于我们</a>
-              <a href="#">帮助中心</a>
-              <a href="#">联系我们</a>
-            </div>
-            <div class="service-info">
-              <i class="fas fa-headset"></i>
-              <span>客服热线：400-888-6666</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="copyright">
-        <p>© 2026 精品购物商城 版权所有</p>
-      </div>
-    </div>
-
-    <!-- ========== 底部导航栏 ========== -->
-    <div class="tab-bar">
-      <RouterLink :to="{name: 'UserDashboard'}" class="tab-bar-item active">
-        <i class="fas fa-home"></i>
-        <span>首页</span>
-      </RouterLink>
-      <RouterLink to="/category" class="tab-bar-item">
-        <i class="fas fa-th-large"></i>
-        <span>分类</span>
-      </RouterLink>
-      <RouterLink :to="{name: 'Cart'}" class="tab-bar-item">
-        <i class="fas fa-shopping-cart"></i>
-        <span>购物车</span>
-        <span v-if="cartCount > 0" class="badge">{{ cartCount }}</span>
-      </RouterLink>
-      <RouterLink :to="{name: 'UserCenter'}" class="tab-bar-item">
-        <i class="fas fa-user"></i>
-        <span>我的</span>
-      </RouterLink>
-    </div>
-
-    <!-- ========== 用户抽屉菜单 ========== -->
-    <div class="user-dropdown" :class="{ show: showDrawer }" @click.self="closeDrawer">
-      <div class="drawer-handle"></div>
-
-      <!-- 未登录状态 -->
-      <template v-if="!isLoggedIn">
-        <div class="drawer-header">
-          <RouterLink to="/login" class="dropdown-item login-register-btn" @click="closeDrawer">
-            <i class="fas fa-user-circle"></i>
-            <div class="btn-content">
-              <span class="btn-title">登录/注册</span>
-              <span class="btn-subtitle">登录后享受更多权益</span>
-            </div>
-          </RouterLink>
-        </div>
-      </template>
-
-      <!-- 已登录状态 -->
-      <template v-else>
-        <div class="drawer-header">
-          <img :src="userProfile.avatar || defaultAvatar" class="dropdown-avatar" alt="用户头像" />
-          <div class="dropdown-info">
-            <div class="dropdown-name">{{ userProfile.nickname || '用户' }}</div>
-            <div class="dropdown-role" v-if="isSeller">商家账号</div>
-            <div class="dropdown-role" v-if="isAdmin">管理员</div>
-          </div>
-        </div>
-        <div class="dropdown-divider"></div>
-
-        <RouterLink :to="{name:'UserCenter'}" class="dropdown-item" @click="closeDrawer">
-          <i class="fas fa-user-circle"></i>
-          <span>个人中心</span>
-        </RouterLink>
-        <RouterLink :to="{name:'UserOrders'}" class="dropdown-item" @click="closeDrawer">
-          <i class="fas fa-clipboard-list"></i>
-          <span>我的订单</span>
-        </RouterLink>
-        <RouterLink :to="{name: 'UserFavorites'}" class="dropdown-item" @click="closeDrawer">
-          <i class="fas fa-heart"></i>
-          <span>我的收藏</span>
-        </RouterLink>
-
-        <RouterLink v-if="isSeller || isAdmin" :to="{name: 'SellerDashboard'}" class="dropdown-item" @click="closeDrawer">
-          <i class="fas fa-store"></i>
-          <span>商家中心</span>
-        </RouterLink>
-        <RouterLink v-if="isAdmin" :to="{name: 'AdminDashboard'}" class="dropdown-item" @click="closeDrawer">
-          <i class="fas fa-chart-line"></i>
-          <span>管理后台</span>
-        </RouterLink>
-
-        <div class="dropdown-divider"></div>
-        <a href="#" class="dropdown-item logout-btn" @click.prevent="handleLogout">
-          <i class="fas fa-sign-out-alt"></i>
-          <span>退出登录</span>
-        </a>
-      </template>
-    </div>
-
-    <!-- 抽屉遮罩层 -->
-    <div v-if="showDrawer" class="drawer-overlay" @click="closeDrawer"></div>
 
     <!-- ========== 快速查看模态框 ========== -->
     <div v-if="showQuickView" class="modal-overlay" @click="closeQuickView">
@@ -313,390 +186,413 @@
         </div>
       </div>
     </div>
+
+    <!-- 悬浮购物车按钮 -->
+    <RouterLink :to="{name: 'Cart'}" class="float-cart-btn">
+      <i class="fas fa-shopping-cart"></i>
+      <span v-if="cartCount > 0" class="float-cart-badge">{{ cartCount }}</span>
+    </RouterLink>
+
+    <!-- 回到顶部按钮 -->
+    <div class="back-to-top" :class="{ show: showBackTop }" @click="scrollToTop">
+      <i class="fas fa-arrow-up"></i>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, onUnmounted } from 'vue'
-  import { useRouter } from 'vue-router'
-  import defaultAvatar from '@/static/images/user-avatar.jpg'
-  import { authAPI } from '@/api/authAPI'
-  import Message from '@/utils/message'
-  import { useAuthStore } from '@/stores/auth'
-  import { storeToRefs } from 'pinia'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { authAPI } from '@/api/authAPI'
+import Message from '@/utils/message'
+import { useAuthStore } from '@/stores/auth'
+import { storeToRefs } from 'pinia'
 
-  const router = useRouter()
-  const authStore = useAuthStore()
-  const { isLoggedIn, role, status, isUser, isSeller, isAdmin } = storeToRefs(authStore)
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
+const { isLoggedIn, isSeller, isAdmin } = storeToRefs(authStore)
 
-  // ==================== 类型定义 ====================
+// ==================== 类型定义 ====================
 
-  interface Category {
-    id: number
-    name: string
-    parentId: number | null
-    icon?: string
-    isActive: boolean
+interface Category {
+  id: number
+  name: string
+  parentId: number | null
+  icon?: string
+  isActive: boolean
+}
+
+interface Product {
+  id: number
+  name: string
+  brand: string
+  price: number
+  originalPrice?: number
+  stock: number
+  images?: string
+  salesCount?: number
+  description?: string
+  badge?: string
+  badgeColor?: string
+}
+
+interface Banner {
+  id: number
+  image: string
+  title: string
+  subtitle: string
+  link: string
+}
+
+// ==================== 用户相关状态 ====================
+
+const cartCount = ref(0)
+
+// ==================== 分类相关状态 ====================
+
+const allCategories = ref<Category[]>([])
+const level1Categories = ref<Category[]>([])
+const level2Categories = ref<Category[]>([])
+const activeLevel1Id = ref<number | null>(null)
+const activeLevel2Id = ref<number | null>(null)
+
+// ==================== 商品相关状态 ====================
+
+const products = ref<Product[]>([])
+const loading = ref(false)
+const loadingMore = ref(false)
+const hasMore = ref(true)
+const searchKeyword = ref('')
+const currentPage = ref(1)
+const pageSize = ref(20)
+
+// ==================== UI 状态 ====================
+
+const showQuickView = ref(false)
+const selectedProduct = ref<Product | null>(null)
+const showBackTop = ref(false)
+const showSearchBar = ref(false)
+
+// ==================== 轮播图数据 ====================
+
+const banners = ref<Banner[]>([
+  { id: 1, image: 'https://picsum.photos/id/20/800/400', title: '限时秒杀', subtitle: '全场商品低至5折', link: '/user/dashboard?promotion=spring' },
+  { id: 2, image: 'https://picsum.photos/id/26/800/400', title: '新品上市', subtitle: '潮流新品抢先购', link: '/user/dashboard?isNew=true' },
+  { id: 3, image: 'https://picsum.photos/id/0/800/400', title: '品牌特卖', subtitle: '大牌好物限时抢购', link: '/user/dashboard?brandSale=true' },
+  { id: 4, image: 'https://picsum.photos/id/1/800/400', title: '开学季大促', subtitle: '学生专享优惠券免费领', link: '/user/dashboard?promotion=backToSchool' },
+  { id: 5, image: 'https://picsum.photos/id/15/800/400', title: '数码狂欢节', subtitle: '爆款数码产品直降1000元', link: '/user/dashboard?promotion=digital' }
+])
+
+const currentSlide = ref(0)
+let carouselTimer: ReturnType<typeof setInterval> | null = null
+
+// ==================== 计算属性 ====================
+
+const currentCategoryName = computed(() => {
+  if (activeLevel2Id.value) {
+    const category = level2Categories.value.find(c => c.id === activeLevel2Id.value)
+    return category ? category.name : '全部商品'
   }
-
-  interface Product {
-    id: number
-    name: string
-    brand: string
-    price: number
-    originalPrice?: number
-    stock: number
-    images?: string
-    salesCount?: number
-    description?: string
-    badge?: string
-    badgeColor?: string
+  if (activeLevel1Id.value) {
+    const category = level1Categories.value.find(c => c.id === activeLevel1Id.value)
+    return category ? category.name : '全部商品'
   }
+  return '全部商品'
+})
 
-  interface Banner {
-    id: number
-    image: string
-    title: string
-    subtitle: string
-    link: string
+
+
+// ==================== 用户相关函数 ====================
+
+const loadCartCount = async () => {
+  if (!isLoggedIn.value) return
+
+  try {
+    const response = await authAPI.getCartCount()
+    if (response.success) {
+      cartCount.value = response.data || 0
+    }
+  } catch (error) {
+    Message.error('加载购物车数量失败:' + error)
+    cartCount.value = 0
   }
+}
 
-  // ==================== 用户相关状态 ====================
+// ==================== 分类相关函数 ====================
 
-  const userProfile = ref({
-    avatar: '',
-    nickname: ''
-  })
-
-  const cartCount = ref(0)
-  const favoriteCount = ref(0)
-  const notificationCount = ref(0)
-
-  // ==================== 分类相关状态 ====================
-
-  const allCategories = ref<Category[]>([])
-  const level1Categories = ref<Category[]>([])
-  const level2Categories = ref<Category[]>([])
-  const activeLevel1Id = ref<number | null>(null)
-  const activeLevel2Id = ref<number | null>(null)
-
-  // ==================== 商品相关状态 ====================
-
-  const products = ref<Product[]>([])
-  const loading = ref(false)
-  const searchKeyword = ref('')
-  const currentPage = ref(1)
-  const pageSize = ref(20)
-  const totalPages = ref(1)
-
-  // ==================== UI 状态 ====================
-
-  const showDrawer = ref(false)
-  const showQuickView = ref(false)
-  const selectedProduct = ref<Product | null>(null)
-
-  // ==================== 轮播图数据 ====================
-
-  const banners = ref<Banner[]>([
-    { id: 1, image: 'https://picsum.photos/id/20/800/400', title: '限时秒杀', subtitle: '全场商品低至5折', link: '/products?promotion=spring' },
-    { id: 2, image: 'https://picsum.photos/id/26/800/400', title: '新品上市', subtitle: '潮流新品抢先购', link: '/products?isNew=true' },
-    { id: 3, image: 'https://picsum.photos/id/0/800/400', title: '品牌特卖', subtitle: '大牌好物限时抢购', link: '/products?brandSale=true' },
-    { id: 4, image: 'https://picsum.photos/id/1/800/400', title: '开学季大促', subtitle: '学生专享优惠券免费领', link: '/products?promotion=backToSchool' },
-    { id: 5, image: 'https://picsum.photos/id/15/800/400', title: '数码狂欢节', subtitle: '爆款数码产品直降1000元', link: '/products?promotion=digital' }
-  ])
-
-  const currentSlide = ref(0)
-  let carouselTimer: ReturnType<typeof setInterval> | null = null
-
-  // ==================== 计算属性 ====================
-
-  const currentCategoryName = computed(() => {
-    if (activeLevel2Id.value) {
-      const category = level2Categories.value.find(c => c.id === activeLevel2Id.value)
-      return category ? category.name : '全部商品'
-    }
-    if (activeLevel1Id.value) {
-      const category = level1Categories.value.find(c => c.id === activeLevel1Id.value)
-      return category ? category.name : '全部商品'
-    }
-    return '全部商品'
-  })
-
-  const visiblePages = computed(() => {
-    const delta = 2
-    const range: number[] = []
-    const rangeWithDots: (number | string)[] = []
-    let l: number
-
-    for (let i = 1; i <= totalPages.value; i++) {
-      if (i === 1 || i === totalPages.value || (i >= currentPage.value - delta && i <= currentPage.value + delta)) {
-        range.push(i)
-      }
-    }
-
-    for (const i of range) {
-      if (l) {
-        if (i - l === 2) {
-          rangeWithDots.push(l + 1)
-        } else if (i - l !== 1) {
-          rangeWithDots.push('...')
-        }
-      }
-      rangeWithDots.push(i)
-      l = i
-    }
-
-    return rangeWithDots
-  })
-
-  // ==================== 用户相关函数 ====================
-
-  const loadUserProfile = async () => {
-    if (!isLoggedIn.value) return
-
-    try {
-      const response = await authAPI.getUserProfile()
-      if (response.success && response.data?.profile) {
-        userProfile.value.avatar = response.data.profile.avatar || ''
-        userProfile.value.nickname = response.data.profile.nickname || response.data.profile.username || '用户'
-      }
-    } catch (error) {
-      console.error('加载用户信息失败:', error)
-    }
-  }
-
-  const loadCartCount = async () => {
-    if (!isLoggedIn.value) return
-
-    try {
-      const response = await authAPI.getCartCount()
-      if (response.success) {
-        cartCount.value = response.data || 0
-      }
-    } catch (error) {
-      console.error('加载购物车数量失败:', error)
-      cartCount.value = 0
-    }
-  }
-
-  // ==================== 分类相关函数 ====================
-
-  const loadCategories = async () => {
-    try {
-      const response = await authAPI.getAllCategories()
-      if (response.success && response.data?.categories) {
-        allCategories.value = response.data.categories
-        level1Categories.value = allCategories.value.filter(
-          cat => cat.parentId === null && cat.isActive
-        )
-      }
-    } catch (error) {
-      console.error('加载分类失败:', error)
-    }
-  }
-
-  const loadLevel2Categories = () => {
-    if (activeLevel1Id.value) {
-      level2Categories.value = allCategories.value.filter(
-        cat => cat.parentId === activeLevel1Id.value && cat.isActive
+const loadCategories = async () => {
+  try {
+    const response = await authAPI.getAllCategories()
+    if (response.success && response.data?.categories) {
+      allCategories.value = response.data.categories
+      level1Categories.value = allCategories.value.filter(
+        cat => cat.parentId === null && cat.isActive
       )
-    } else {
-      level2Categories.value = []
     }
+  } catch (error) {
+    Message.error('加载分类失败:' + error)
   }
+}
 
-  const selectLevel1Category = (categoryId: number | null) => {
-    activeLevel1Id.value = categoryId
-    activeLevel2Id.value = null
-    loadLevel2Categories()
-    currentPage.value = 1
-    loadProducts()
+const loadLevel2Categories = () => {
+  if (activeLevel1Id.value) {
+    level2Categories.value = allCategories.value.filter(
+      cat => cat.parentId === activeLevel1Id.value && cat.isActive
+    )
+  } else {
+    level2Categories.value = []
   }
+}
 
-  const selectLevel2Category = (categoryId: number | null) => {
-    activeLevel2Id.value = categoryId
-    currentPage.value = 1
-    loadProducts()
-  }
+const selectLevel1Category = (categoryId: number | null) => {
+  activeLevel1Id.value = categoryId
+  activeLevel2Id.value = null
+  loadLevel2Categories()
+  currentPage.value = 1
+  hasMore.value = true
+  loadProducts()
+}
 
-  // ==================== 商品相关函数 ====================
+const selectLevel2Category = (categoryId: number | null) => {
+  activeLevel2Id.value = categoryId
+  currentPage.value = 1
+  hasMore.value = true
+  loadProducts()
+}
 
-  const loadProducts = async () => {
-    loading.value = true
+// ==================== 商品相关函数 ====================
 
-    try {
-      const params: any = {
-        page: currentPage.value,
-        pageSize: pageSize.value
-      }
+const loadProducts = async () => {
+  loading.value = true
 
-      if (searchKeyword.value) {
-        params.keyword = searchKeyword.value
-      }
+  try {
+    const params: any = {
+      page: currentPage.value,
+      pageSize: pageSize.value
+    }
 
-      if (activeLevel2Id.value) {
-        params.level2CategoryId = activeLevel2Id.value
-      } else if (activeLevel1Id.value) {
-        params.level1CategoryId = activeLevel1Id.value
-      }
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
+    }
 
-      const response = await authAPI.getProducts(params)
+    if (activeLevel2Id.value) {
+      params.level2CategoryId = activeLevel2Id.value
+    } else if (activeLevel1Id.value) {
+      params.level1CategoryId = activeLevel1Id.value
+    }
 
-      if (response.success) {
+    const response = await authAPI.getProducts(params)
+
+    if (response.success) {
+      if (currentPage.value === 1) {
         products.value = response.data?.records || []
-        totalPages.value = response.data?.totalPages || 1
       } else {
-        throw new Error(response.message || '加载商品失败')
+        products.value.push(...(response.data?.records || []))
       }
-    } catch (error: any) {
-      console.error('加载商品失败:', error)
+      hasMore.value = (response.data?.records || []).length >= pageSize.value
+    } else {
+      throw new Error(response.message || '加载商品失败')
+    }
+  } catch (error: any) {
+    Message.error('加载商品失败:', error)
+    if (currentPage.value === 1) {
       products.value = []
-    } finally {
-      loading.value = false
     }
+  } finally {
+    loading.value = false
   }
+}
 
-  const changePage = (page: number) => {
-    if (page < 1 || page > totalPages.value) return
-    currentPage.value = page
+const handleScroll = () => {
+  showBackTop.value = window.scrollY > 300
+  showSearchBar.value = window.scrollY > 150
+
+  if (loadingMore.value || !hasMore.value || loading.value) return
+  const { scrollTop, scrollHeight, clientHeight } = document.documentElement
+  if (scrollTop + clientHeight >= scrollHeight - 150) {
+    loadMore()
+  }
+}
+
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const loadMore = async () => {
+  if (loadingMore.value || !hasMore.value) return
+  loadingMore.value = true
+  currentPage.value++
+  await loadProducts()
+  loadingMore.value = false
+}
+
+const performSearch = () => {
+  if (searchKeyword.value.trim()) {
+    currentPage.value = 1
     loadProducts()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+// ==================== UI 交互函数 ====================
+
+const viewProductDetail = (productId: number) => {
+  router.push({
+    name: 'ProductDetail',
+    params: { productId }
+  })
+}
+
+const quickView = (product: Product) => {
+  selectedProduct.value = product
+  showQuickView.value = true
+}
+
+const closeQuickView = () => {
+  showQuickView.value = false
+  selectedProduct.value = null
+}
+
+const addToCart = async (product: Product) => {
+  if (!isLoggedIn.value) {
+    Message.error('请先登录后再添加')
+    router.push('/login')
+    return
   }
 
-  const performSearch = () => {
-    if (searchKeyword.value.trim()) {
-      currentPage.value = 1
-      loadProducts()
-    }
-  }
-
-  // ==================== UI 交互函数 ====================
-
-  const toggleDrawer = () => {
-    showDrawer.value = !showDrawer.value
-  }
-
-  const closeDrawer = () => {
-    showDrawer.value = false
-  }
-
-  const viewProductDetail = (productId: number) => {
-    router.push({
-      name: 'ProductDetail',
-      params: { productId }
-    })
-  }
-
-  const quickView = (product: Product) => {
-    selectedProduct.value = product
-    showQuickView.value = true
-  }
-
-  const closeQuickView = () => {
-    showQuickView.value = false
-    selectedProduct.value = null
-  }
-
-  const addToCart = async (product: Product) => {
-    if (!isLoggedIn.value) {
-      Message.error('请先登录后再添加')
-      router.push('/login')
-      return
-    }
-
-    try {
-      const response = await authAPI.addToCart({ productId: product.id, quantity: 1 })
-      if (response.success) {
-        Message.success('已添加到购物车')
-        await loadCartCount()
-      }
-    } catch (error) {
-      Message.error('添加失败')
-    }
-  }
-
-  const buyNow = (product: Product) => {
-    router.push({
-      name: 'Checkout',
-      query: {
-        'productId': `${product.id}`,
-        'quantity': 1
-      }
-    })
-  }
-
-  const goToMerchantApply = () => {
-    router.push('/merchant/apply')
-  }
-
-  const handleLogout = async () => {
-    try {
-      await authAPI.logout()
-      authStore.clear()
-      Message.success('退出成功')
-      closeDrawer()
-      router.replace({ name: 'UserDashboard' })
-    } catch (error) {
-      Message.error('退出失败')
-    }
-  }
-
-  // ==================== 轮播图控制函数 ====================
-
-  const nextSlide = () => {
-    currentSlide.value = (currentSlide.value + 1) % banners.value.length
-  }
-
-  const prevSlide = () => {
-    currentSlide.value = currentSlide.value === 0 ? banners.value.length - 1 : currentSlide.value - 1
-  }
-
-  const goToSlide = (index: number) => {
-    currentSlide.value = index
-  }
-
-  const startCarousel = () => {
-    if (carouselTimer) clearInterval(carouselTimer)
-    carouselTimer = setInterval(nextSlide, 5000)
-  }
-
-  const pauseCarousel = () => {
-    if (carouselTimer) clearInterval(carouselTimer)
-  }
-
-  const handleBannerClick = (banner: Banner) => {
-    if (banner.link) {
-      router.push(banner.link)
-    }
-  }
-
-  // ==================== 工具函数 ====================
-
-  const formatPrice = (price: number): string => {
-    return price.toFixed(2)
-  }
-
-  // ==================== 生命周期 ====================
-
-  onMounted(async () => {
-    if (!authStore.validateAccountStatus()) {
-      return
-    }
-
-    if (isLoggedIn.value) {
-      await loadUserProfile()
+  try {
+    const response = await authAPI.addToCart({ productId: product.id, quantity: 1 })
+    if (response.success) {
+      Message.success('已添加到购物车')
       await loadCartCount()
     }
+  } catch (error) {
+    Message.error('添加失败')
+  }
+}
 
-    await loadCategories()
-    await loadProducts()
-
-    startCarousel()
+const buyNow = (product: Product) => {
+  router.push({
+    name: 'Checkout',
+    query: {
+      'productId': `${product.id}`,
+      'quantity': 1
+    }
   })
+}
 
-  onUnmounted(() => {
-    if (carouselTimer) clearInterval(carouselTimer)
-  })
+const goToMerchantApply = () => {
+  router.push('/merchant/apply')
+}
+
+// ==================== 刷新函数 ====================
+
+const handleRefresh = async () => {
+  currentPage.value = 1
+  hasMore.value = true
+  await loadProducts()
+  Message.success('已刷新')
+}
+
+// ==================== 轮播图控制函数 ====================
+
+const nextSlide = () => {
+  currentSlide.value = (currentSlide.value + 1) % banners.value.length
+}
+
+const prevSlide = () => {
+  currentSlide.value = currentSlide.value === 0 ? banners.value.length - 1 : currentSlide.value - 1
+}
+
+const goToSlide = (index: number) => {
+  currentSlide.value = index
+}
+
+const startCarousel = () => {
+  if (carouselTimer) clearInterval(carouselTimer)
+  carouselTimer = setInterval(nextSlide, 5000)
+}
+
+const pauseCarousel = () => {
+  if (carouselTimer) clearInterval(carouselTimer)
+}
+
+const handleBannerClick = (banner: Banner) => {
+  if (!banner.link) return
+
+  // 解析链接中的活动参数
+  const url = new URL(banner.link, window.location.origin)
+  const params = url.searchParams
+
+  // 清空分类选择，确保只按关键词搜索
+  activeLevel1Id.value = null
+  activeLevel2Id.value = null
+  level2Categories.value = []
+
+  // 根据活动类型设置搜索关键词
+  if (params.get('promotion') === 'spring') {
+    // 春季促销
+    searchKeyword.value = '春季促销'
+  } else if (params.get('isNew') === 'true') {
+    // 新品上市
+    searchKeyword.value = '新品'
+  } else if (params.get('brandSale') === 'true') {
+    // 品牌特卖
+    searchKeyword.value = '品牌'
+  } else if (params.get('promotion') === 'backToSchool') {
+    // 开学季大促
+    searchKeyword.value = '开学季'
+  } else if (params.get('promotion') === 'digital') {
+    // 数码狂欢节
+    searchKeyword.value = '数码'
+  } else {
+    // 默认行为：跳转到链接
+    router.push(banner.link)
+    return
+  }
+
+  // 重置分页并刷新商品列表
+  currentPage.value = 1
+  hasMore.value = true
+  loadProducts()
+}
+
+// ==================== 工具函数 ====================
+
+const formatPrice = (price: number): string => {
+  if (price == null || isNaN(price)) return '0.00'
+  return price.toFixed(2)
+}
+
+// ==================== 生命周期 ====================
+
+onMounted(async () => {
+  if (!authStore.validateAccountStatus()) {
+    return
+  }
+
+  if (isLoggedIn.value) {
+    await loadCartCount()
+  }
+
+  await loadCategories()
+
+  const queryKeyword = route.query.keyword as string
+  if (queryKeyword) {
+    searchKeyword.value = queryKeyword
+  }
+
+  await loadProducts()
+
+  startCarousel()
+
+  window.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  if (carouselTimer) clearInterval(carouselTimer)
+  window.removeEventListener('scroll', handleScroll)
+})
 </script>
 
 <style scoped>

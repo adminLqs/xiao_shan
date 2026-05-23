@@ -3,6 +3,7 @@ package com.xiaoshan.springbootdemo.service;
 import com.xiaoshan.springbootdemo.entity.Order;
 import com.xiaoshan.springbootdemo.entity.OrderItem;
 import com.xiaoshan.springbootdemo.entity.Product;
+import com.xiaoshan.springbootdemo.entity.ProductSku;
 import com.xiaoshan.springbootdemo.entity.dto.OrderDTO;
 import com.xiaoshan.springbootdemo.entity.vo.OrderWithItemsVO;
 import com.xiaoshan.springbootdemo.mapper.*;
@@ -28,6 +29,7 @@ public class OrderService {
     private final OrderMapper orderMapper;  // 订单数据库操作
     private final OrderItemMapper orderItemMapper;  // 订单项数据库操作
     private final ProductMapper productMapper;  // 商品数据库操作
+    private final ProductSkuMapper productSkuMapper;  // SKU数据库操作
     private final CartItemMapper cartItemMapper; // 购物车数据库操作
     private final LogisticsService logisticsService;
     private final ProductImageMapper productImageMapper;  // 商品图片数据库操作
@@ -56,7 +58,9 @@ public class OrderService {
                     .orElseThrow(() -> new RuntimeException("商品不存在: " + item.getProductId()));
 
             // 检查库存
-            if (product.getStock() < item.getQuantity()) {
+            Integer productStock = product.getStock();
+            int safeStock = productStock != null ? productStock : 0;
+            if (safeStock < item.getQuantity()) {
                 throw new RuntimeException("商品「" + product.getName() + "」库存不足");
             }
 
@@ -90,8 +94,23 @@ public class OrderService {
             item.setSellerId(product.getSellerId()); // 商家ID
             item.setProductName(product.getName()); // 商品名称快照
             item.setProductImage(getProductMainImage(item.getProductId())); // 商品图片快照
-            item.setPrice(product.getPrice()); // 下单时单价
-            item.setTotalPrice(product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()))); // 小计
+            
+            // 如果指定了 SKU，使用 SKU 的价格和信息
+            if (item.getSkuId() != null) {
+                productSkuMapper.findById(item.getSkuId()).ifPresent(sku -> {
+                    item.setSkuName(sku.getSkuName());
+                    item.setPrice(sku.getPrice() != null ? sku.getPrice() : BigDecimal.ZERO);
+                    if (sku.getSkuImage() != null) {
+                        item.setProductImage(sku.getSkuImage());
+                    }
+                });
+            } else {
+                BigDecimal productPrice = product.getPrice() != null ? product.getPrice() : BigDecimal.ZERO;
+                item.setPrice(productPrice);
+            }
+            
+            BigDecimal itemPrice = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;
+            item.setTotalPrice(itemPrice.multiply(BigDecimal.valueOf(item.getQuantity())));
             item.setCreatedAt(LocalDateTime.now()); // 创建时间
 
             // 累加总金额
@@ -151,14 +170,25 @@ public class OrderService {
 
         // 扣减库存 + 增加销量
         for (OrderItem item : orderItems) {
-            // 扣减库存
-            int affected = productMapper.deductStock(item.getProductId(), item.getQuantity());
+            Long skuId = item.getSkuId();
+            
+            // 如果没有指定 SKU，查找库存充足的 SKU
+            if (skuId == null) {
+                skuId = productMapper.findAvailableSkuId(item.getProductId(), item.getQuantity());
+                if (skuId == null) {
+                    throw new RuntimeException("商品库存不足: " + item.getProductName());
+                }
+            }
+            
+            // 扣减 SKU 库存
+            int affected = productMapper.deductSkuStock(skuId, item.getQuantity());
             if (affected == 0) {
                 throw new RuntimeException("商品库存不足: " + item.getProductName());
             }
+            
             // 增加销量
             productMapper.incrementSalesCount(item.getProductId(), item.getQuantity());
-            log.info("商品处理成功: productId={}, quantity={}", item.getProductId(), item.getQuantity());
+            log.info("商品处理成功: productId={}, skuId={}, quantity={}", item.getProductId(), skuId, item.getQuantity());
         }
 
         // 更新订单状态

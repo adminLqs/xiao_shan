@@ -1,18 +1,5 @@
 <template>
   <div class="cart-container">
-    <!-- 页面标题区域 -->
-    <div class="page-header">
-      <h1 class="page-title">
-        <i class="fas fa-shopping-cart"></i>
-        购物车
-      </h1>
-      <div class="breadcrumb">
-        <RouterLink to="/">首页</RouterLink>
-        <i class="fas fa-chevron-right"></i>
-        <span class="current">购物车</span>
-      </div>
-    </div>
-
     <!-- 加载状态，数据加载时显示 -->
     <div v-if="loading" class="loading-container">
       <div class="loading-spinner"></div>
@@ -28,108 +15,80 @@
 
     <!-- 购物车内容，有商品时显示 -->
     <div v-else class="cart-content">
-      <div class="cart-main">
-        <!-- 全选操作栏 -->
-        <div class="cart-actions">
-          <label class="select-all">
+      <!-- 全选操作栏 -->
+      <div class="cart-actions">
+        <label class="select-all">
+          <input
+            type="checkbox"
+            :checked="isAllSelected"
+            @change="toggleSelectAll"
+          />
+          <span>全选</span>
+          <!-- 显示缺货商品数量提示 -->
+          <span v-if="outOfStockCount > 0" class="stock-tip">
+            （缺货{{ outOfStockCount }}件商品不可选）
+          </span>
+        </label>
+        <button class="delete-btn" @click="batchDelete" :disabled="selectedIds.length === 0">
+          <i class="fas fa-trash-alt"></i>
+          删除选中
+        </button>
+      </div>
+
+      <!-- 购物车商品列表 -->
+      <div class="cart-list">
+        <div v-for="item in cartItems" :key="item.id" class="cart-item" :class="{ 'out-of-stock': item.stock <= 0 }">
+          <!-- 商品复选框，缺货时禁用勾选 -->
+          <div class="item-checkbox">
             <input
               type="checkbox"
-              :checked="isAllSelected"
-              @change="toggleSelectAll"
+              :value="item.id"
+              v-model="selectedIds"
+              :disabled="item.stock <= 0"
             />
-            <span>全选</span>
-            <!-- 显示缺货商品数量提示 -->
-            <span v-if="outOfStockCount > 0" class="stock-tip">
-              （缺货{{ outOfStockCount }}件商品不可选）
-            </span>
-          </label>
-          <button class="delete-btn" @click="batchDelete" :disabled="selectedIds.length === 0">
-            <i class="fas fa-trash-alt"></i>
-            删除选中
-          </button>
-        </div>
+          </div>
 
-        <!-- 购物车商品列表 -->
-        <div class="cart-list">
-          <div v-for="item in cartItems" :key="item.id" class="cart-item" :class="{ 'out-of-stock': item.stock <= 0 }">
-            <!-- 商品复选框，缺货时禁用勾选 -->
-            <div class="item-checkbox">
-              <input
-                type="checkbox"
-                :value="item.id"
-                v-model="selectedIds"
-                :disabled="item.stock <= 0"
-              />
-            </div>
+          <!-- 商品图片，点击跳转商品详情 -->
+          <div class="item-image" @click="goToProduct(item.productId)">
+            <img :src="item.productImage" :alt="item.productName" />
+          </div>
 
-            <!-- 商品图片，点击跳转商品详情 -->
-            <div class="item-image" @click="goToProduct(item.productId)">
-              <img :src="item.productImage" :alt="item.productName" />
-            </div>
+          <!-- 商品信息区域 -->
+          <div class="item-info" @click="goToProduct(item.productId)">
+            <div class="item-name">{{ item.productName }}</div>
+            <div v-if="item.skuName" class="item-sku">{{ item.skuName }}</div>
+            <span v-if="item.stock <= 0" class="out-of-stock-tag">缺货</span>
+          </div>
 
-            <!-- 商品信息区域 -->
-            <div class="item-info" @click="goToProduct(item.productId)">
-              <div class="item-name">{{ item.productName }}</div>
-              <div class="item-brand">{{ item.brand || '官方旗舰店' }}</div>
-              <!-- 缺货标签 -->
-              <span v-if="item.stock <= 0" class="out-of-stock-tag">缺货</span>
-            </div>
-
-            <!-- 商品价格区域 -->
-            <div class="item-price">
-              <div class="current-price">¥{{ formatPrice(item.price) }}</div>
-              <div v-if="item.originalPrice" class="original-price">¥{{ formatPrice(item.originalPrice) }}</div>
-            </div>
-
+          <!-- 商品价格区域 -->
+          <div class="item-price-row">
+            <div class="item-price">¥{{ formatPrice(item.price) }}</div>
             <!-- 数量控制器，缺货时禁用 -->
             <div class="item-quantity">
-              <button class="quantity-btn" @click="decreaseQuantity(item)" :disabled="item.quantity <= 1 || item.stock <= 0">
-                <i class="fas fa-minus"></i>
-              </button>
-              <input
-                type="number"
-                class="quantity-input"
-                v-model.number="item.quantity"
-                @change="updateQuantity(item)"
-                min="1"
-                :max="item.stock"
-                :disabled="item.stock <= 0"
-              />
-              <button class="quantity-btn" @click="increaseQuantity(item)" :disabled="item.quantity >= item.stock || item.stock <= 0">
-                <i class="fas fa-plus"></i>
-              </button>
-            </div>
-
-            <!-- 商品小计金额 -->
-            <div class="item-subtotal">
-              ¥{{ formatPrice(item.price * item.quantity) }}
-            </div>
-
-            <!-- 操作按钮 -->
-            <div class="item-actions">
-              <button class="action-btn" @click="removeItem(item.id)" title="删除">
-                <i class="fas fa-trash-alt"></i>
-              </button>
+              <button @click="decreaseQuantity(item)" :disabled="item.quantity <= 1 || item.stock <= 0">-</button>
+              <span>{{ item.quantity }}</span>
+              <button @click="increaseQuantity(item)" :disabled="item.quantity >= item.stock || item.stock <= 0">+</button>
             </div>
           </div>
+
+          <!-- 商品小计金额 -->
+          <div class="item-subtotal">
+            小计：¥{{ formatPrice(item.price * item.quantity) }}
+          </div>
+
+          <!-- 操作按钮 -->
+          <button class="action-btn" @click="removeItem(item.id)" title="删除">
+            <i class="fas fa-trash-alt"></i>
+          </button>
         </div>
       </div>
 
       <!-- 结算栏 -->
       <div class="cart-summary">
-        <div class="summary-info">
-          <div class="summary-row">
-            <span>已选商品</span>
-            <span class="selected-count">{{ selectedCount }} 件</span>
-          </div>
-          <div class="summary-row total">
-            <span>合计</span>
-            <span class="total-amount">¥{{ formatPrice(totalAmount) }}</span>
-          </div>
-          <div class="summary-tip">
-            <i class="fas fa-info-circle"></i>
-            不含运费，运费将在下单时计算
-          </div>
+        <div class="summary-left">
+          <span class="summary-text">合计：</span>
+          <span class="total-amount">¥{{ formatPrice(totalAmount) }}</span>
+          <span class="selected-count">({{ selectedCount }}件)</span>
         </div>
         <!-- 去结算按钮，无选中商品时禁用 -->
         <button class="checkout-btn" @click="goToCheckout" :disabled="selectedCount === 0">
@@ -160,8 +119,10 @@
     id: number           // 购物车项ID
     userId: number       // 用户ID
     productId: number    // 商品ID
+    skuId?: number       // SKU ID（可选）
     quantity: number     // 购买数量
     productName: string  // 商品名称
+    skuName?: string     // SKU 规格名称
     brand: string        // 品牌
     price: number        // 单价
     originalPrice?: number  // 原价
@@ -241,7 +202,6 @@
         throw new Error(response.message || '加载购物车失败')
       }
     } catch (error: any) {
-      console.error('[Cart] 加载购物车失败:', error)
       Message.error(error.message || '加载购物车失败')
     } finally {
       loading.value = false
@@ -293,7 +253,6 @@
         throw new Error(response.message || '更新失败')
       }
     } catch (error: any) {
-      console.error('[Cart] 更新数量失败:', error)
       Message.error(error.message || '更新失败')
       await loadCartList() // 回滚数据
     }
@@ -390,7 +349,10 @@
 
   // ========== 工具函数 ==========
   /** 格式化金额（保留两位小数） */
-  const formatPrice = (price: number) => price.toFixed(2)
+  const formatPrice = (price: number): string => {
+    if (price == null || isNaN(price)) return '0.00'
+    return price.toFixed(2)
+  }
 
   // ========== 生命周期 ==========
   onMounted(async () => {

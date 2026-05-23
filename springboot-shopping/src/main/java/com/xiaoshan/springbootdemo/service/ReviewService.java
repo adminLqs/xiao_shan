@@ -317,7 +317,76 @@ public class ReviewService {
         return result;
     }
 
-// ==================== 我的评价查询（滚动加载） ====================
+// ==================== 商家评价查询（滚动加载） ====================
+
+    /**
+     * 获取商家评价列表（包含用户信息、商品信息）
+     * 支持滚动加载：page从1开始，size默认10条
+     *
+     * @param sellerId 商家ID
+     * @param page     页码（从1开始）
+     * @param size     每页数量
+     * @return 包含评价列表和分页信息的Map
+     */
+    public Map<String, Object> getSellerReviewsWithUserAndProduct(Long sellerId, int page, int size) {
+        // 计算偏移量
+        int offset = (page - 1) * size;
+
+        // 查询商家评价列表
+        List<Review> reviews = reviewMapper.findBySellerId(sellerId, offset, size);
+
+        // 查询总数量
+        long total = reviewMapper.countBySellerId(sellerId);
+
+        // 计算总页数
+        int totalPages = (int) Math.ceil((double) total / size);
+
+        // 判断是否还有更多数据
+        boolean hasMore = (long) page * size < total;
+
+        // 如果评论为空，直接返回空列表
+        if (reviews.isEmpty()) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("reviews", Collections.emptyList());
+            result.put("total", total);
+            result.put("totalPages", totalPages);
+            result.put("hasMore", hasMore);
+            return result;
+        }
+
+        // 批量查询用户资料
+        List<Long> userIds = reviews.stream()
+                .map(Review::getUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<UserProfile> userProfiles = userProfileMapper.findByUserIds(userIds);
+        Map<Long, UserProfile> userProfileMap = userProfiles.stream()
+                .collect(Collectors.toMap(UserProfile::getUserId, Function.identity()));
+
+        // 组装VO
+        List<UserReviewVO> reviewList = reviews.stream()
+                .map(review -> {
+                    UserProfile userProfile = userProfileMap.get(review.getUserId());
+                    return new UserReviewVO(review, Collections.emptyList(), userProfile);
+                })
+                .collect(Collectors.toList());
+
+        // 返回结果
+        Map<String, Object> result = new HashMap<>();
+        result.put("reviews", reviewList);
+        result.put("total", total);
+        result.put("totalPages", totalPages);
+        result.put("hasMore", hasMore);
+
+        log.debug("查询商家评价: sellerId={}, page={}, size={}, total={}, hasMore={}",
+                sellerId, page, size, total, hasMore);
+
+        return result;
+    }
+
+    // ==================== 我的评价查询（滚动加载） ====================
 
     /**
      * 获取当前用户的评价列表（包含商品信息、评论图片）

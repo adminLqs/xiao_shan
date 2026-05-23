@@ -94,6 +94,32 @@ public interface ReviewMapper {
     long countByUserId(Long userId);
 
     /**
+     * 查询商家评价列表（分页）
+     * @param sellerId 商家ID
+     * @param offset 偏移量
+     * @param limit 每页数量
+     * @return 评论列表
+     */
+    @Select("SELECT r.id, r.user_id, r.product_id, r.order_item_id, r.rating, r.comment, r.created_at " +
+            "FROM reviews r " +
+            "JOIN products p ON r.product_id = p.id " +
+            "WHERE p.seller_id = #{sellerId} " +
+            "ORDER BY r.created_at DESC LIMIT #{limit} OFFSET #{offset}")
+    List<Review> findBySellerId(@Param("sellerId") Long sellerId,
+                                @Param("offset") int offset,
+                                @Param("limit") int limit);
+
+    /**
+     * 统计商家评价数量
+     * @param sellerId 商家ID
+     * @return 评价数量
+     */
+    @Select("SELECT COUNT(*) FROM reviews r " +
+            "JOIN products p ON r.product_id = p.id " +
+            "WHERE p.seller_id = #{sellerId}")
+    long countBySellerId(Long sellerId);
+
+    /**
      * 更新评论
      * @param review 评论实体
      * @return 影响行数

@@ -15,6 +15,10 @@ public class CheckoutItemVO {
     /** 关联商品信息 */
     private Long productId;          // 商品ID
 
+    private Long skuId;              // SKU ID（指定规格购买时有值）
+
+    private String skuName;          // SKU 规格名称（如"500g"、"红色/M码"）
+
     private String productName;      // 商品名称
 
     private String productImage;     // 商品主图URL

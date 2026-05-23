@@ -70,7 +70,7 @@ public class ReviewController {
      *
      * @param productId 商品ID
      * @param page 页码（从1开始）
-     * @param size 每页数量（默认10）
+     * @param pageSize 每页数量（默认10）
      * @param rating 评分筛选（可选，1-5）
      * @return 评论列表 + 分页信息
      */
@@ -78,12 +78,12 @@ public class ReviewController {
     public ResponseEntity<?> getProductReviews(
             @PathVariable Long productId,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) Integer rating
     ) {
         try {
             // 调用服务层查询评论（包含用户信息）
-            Map<String, Object> result = reviewService.getProductReviewsWithUser(productId, page, size, rating);
+            Map<String, Object> result = reviewService.getProductReviewsWithUser(productId, page, pageSize, rating);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -91,7 +91,7 @@ public class ReviewController {
                             "records", result.get("reviews"),
                             "total", result.get("total"),
                             "page", page,
-                            "size", size,
+                            "pageSize", pageSize,
                             "totalPages", result.get("totalPages"),
                             "hasMore", result.get("hasMore")
                     )
@@ -106,19 +106,17 @@ public class ReviewController {
     }
 
     /**
-     * 获取我的评价列表
-     * GET /api/v1/users/reviews?page=1&size=10
+     * 获取商家评价列表
+     * GET /api/v1/seller/{sellerId}/reviews?page=1&pageSize=10
      */
-    @GetMapping("/users/reviews")
-    @PreAuthorize("hasAnyAuthority('ROLE_USER','ROLE_SELLER','ROLE_ADMIN')")
-    public ResponseEntity<?> getMyReviews(
-            Authentication authentication,
+    @GetMapping("/seller/{sellerId}/reviews")
+    public ResponseEntity<?> getSellerReviews(
+            @PathVariable Long sellerId,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int pageSize
     ) {
         try {
-            Long userId = userService.getCurrentUserId(authentication);
-            Map<String, Object> result = reviewService.getUserReviewsWithProduct(userId, page, size);
+            Map<String, Object> result = reviewService.getSellerReviewsWithUserAndProduct(sellerId, page, pageSize);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -126,7 +124,42 @@ public class ReviewController {
                             "records", result.get("reviews"),
                             "total", result.get("total"),
                             "page", page,
-                            "size", size,
+                            "pageSize", pageSize,
+                            "totalPages", result.get("totalPages"),
+                            "hasMore", result.get("hasMore")
+                    )
+            ));
+        } catch (Exception e) {
+            log.error("获取商家评价失败: {}", e.getMessage());
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * 获取我的评价列表
+     * GET /api/v1/users/reviews?page=1&pageSize=10
+     */
+    @GetMapping("/users/reviews")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER','ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> getMyReviews(
+            Authentication authentication,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        try {
+            Long userId = userService.getCurrentUserId(authentication);
+            Map<String, Object> result = reviewService.getUserReviewsWithProduct(userId, page, pageSize);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of(
+                            "records", result.get("reviews"),
+                            "total", result.get("total"),
+                            "page", page,
+                            "pageSize", pageSize,
                             "totalPages", result.get("totalPages"),
                             "hasMore", result.get("hasMore")
                     )

@@ -18,6 +18,9 @@ public class CartItem {
     // 商品id
     private Long productId;
 
+    // SKU ID（可选）
+    private Long skuId;
+
     // 数量
     private Integer quantity;
 

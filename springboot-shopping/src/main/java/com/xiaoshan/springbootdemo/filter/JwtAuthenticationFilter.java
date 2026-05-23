@@ -40,7 +40,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 // 解析Token获取用户ID
                 Long userId = jwtUtil.getUserIdFromToken(token);
-                log.debug("开始处理用户认证，用户ID: {}", userId);
 
                 // 查询数据库验证用户存在性
                 User user = userMapper.findById(userId)
@@ -74,7 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                log.debug("用户: {} 认证成功，角色: {}", userId, user.getRole().name());
+                log.info("用户: {} 认证成功，角色: {}", userId, user.getRole().name());
 
             } catch (RuntimeException e) {
                 // 认证失败处理：清除Cookie并返回错误

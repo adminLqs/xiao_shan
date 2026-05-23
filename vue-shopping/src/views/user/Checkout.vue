@@ -1,186 +1,177 @@
 <template>
   <div class="checkout-container">
-    <!-- 页面头部区域：显示页面标题和面包屑导航 -->
-    <div class="page-header">
-      <h1 class="page-title">
-        <i class="fas fa-credit-card"></i>
-        订单结算
-      </h1>
-      <div class="breadcrumb">
-        <RouterLink to="/">首页</RouterLink>
-        <i class="fas fa-chevron-right"></i>
-        <RouterLink to="/cart">购物车</RouterLink>
-        <i class="fas fa-chevron-right"></i>
-        <span class="current">订单结算</span>
-      </div>
-    </div>
-
-    <!-- 加载状态：数据加载时显示旋转动画 -->
+    <!-- 加载状态 -->
     <div v-if="loading" class="loading-container">
       <div class="loading-spinner"></div>
       <p>加载中...</p>
     </div>
 
+    <!-- 结算内容 -->
     <div v-else class="checkout-content">
-      <!-- 左侧：订单信息区域 -->
-      <div class="checkout-main">
-        <!-- 收货地址区域 -->
-        <div class="address-section">
-          <div class="section-header">
-            <h3><i class="fas fa-map-marker-alt"></i> 收货地址</h3>
-            <button class="add-address-btn" @click="openAddressModal()">
-              <i class="fas fa-plus"></i> 新增地址
-            </button>
+      <!-- ========== 收货地址卡片 ========== -->
+      <div class="address-card" @click="showAddressPanel = true">
+        <div class="address-icon">📍</div>
+        <div class="address-info" v-if="selectedAddress">
+          <div class="address-recipient">
+            <span class="name">{{ selectedAddress.recipientName }}</span>
+            <span class="phone">{{ selectedAddress.recipientPhone }}</span>
+            <span v-if="selectedAddress.isDefault" class="default-badge">默认</span>
           </div>
-
-          <!-- 地址列表：有地址时显示 -->
-          <div class="address-list" v-if="addresses.length > 0">
-            <div
-              v-for="address in addresses"
-              :key="address.id"
-              class="address-card"
-              :class="{ active: selectedAddressId === address.id }"
-              @click="selectAddress(address.id)"
-            >
-              <!-- 地址信息区域 -->
-              <div class="address-info">
-                <div class="address-recipient">
-                  <span class="name">{{ address.recipientName }}</span>
-                  <span class="phone">{{ address.recipientPhone }}</span>
-                  <!-- 默认地址标签：只有默认地址才显示 -->
-                  <span v-if="address.isDefault" class="default-badge">默认</span>
-                </div>
-                <div class="address-detail">
-                  {{ address.province }} {{ address.city }} {{ address.district }} {{ address.detailAddress }}
-                </div>
-                <!-- 地址标签（家/公司/学校） -->
-                <div class="address-label" v-if="address.label">
-                  <i class="fas fa-tag"></i>
-                  <span>{{ address.label }}</span>
-                </div>
-              </div>
-              <!-- 地址操作按钮 -->
-              <div class="address-actions">
-                <button class="edit-address" @click.stop="openAddressModal(address)">编辑</button>
-                <button class="delete-address" @click.stop="deleteAddress(address.id)">删除</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 空地址状态：没有地址时显示 -->
-          <div v-else class="empty-address">
-            <i class="fas fa-map-marker-alt"></i>
-            <p>暂无收货地址，请添加</p>
-            <button class="btn-primary" @click="openAddressModal()">立即添加</button>
+          <div class="address-detail">
+            {{ selectedAddress.province }} {{ selectedAddress.city }} {{ selectedAddress.district }} {{ selectedAddress.detailAddress }}
           </div>
         </div>
+        <div v-else class="address-empty">
+          <p>请选择收货地址</p>
+        </div>
+        <i class="fas fa-chevron-right"></i>
+      </div>
 
-        <!-- 商品列表区域 -->
-        <div class="product-section">
-          <div class="section-header">
-            <h3><i class="fas fa-box"></i> 商品信息</h3>
-          </div>
+      <!-- 灰色间隔 -->
+      <div class="gray-divider"></div>
 
-          <div class="product-list">
-            <!-- 遍历订单商品列表 -->
-            <div v-for="item in orderItems" :key="item.productId" class="product-item">
-              <!-- 商品图片 -->
-              <div class="product-image">
-                <img :src="item.productImage || '/images/default-product.jpg'" :alt="item.productName">
+      <!-- ========== 商品信息区域 ========== -->
+      <div class="product-section">
+        <div class="section-header">
+          <h3><i class="fas fa-box"></i> 商品信息</h3>
+        </div>
+
+        <div class="product-list">
+          <div v-for="item in orderItems" :key="item.productId + (item.skuId || '')" class="product-item">
+            <img :src="item.productImage" class="product-image" :alt="item.productName">
+            <div class="product-info">
+              <div class="product-name">{{ item.productName }}</div>
+              <div class="product-spec" v-if="item.skuName">
+                规格：{{ item.skuName }}
               </div>
-              <!-- 商品信息 -->
-              <div class="product-info">
-                <div class="product-name">{{ item.productName }}</div>
-                <div class="product-brand">{{ item.brand || '官方旗舰店' }}</div>
-              </div>
-              <!-- 商品单价 -->
-              <div class="product-price">¥{{ formatPrice(item.price) }}</div>
-              <!-- 商品数量 -->
-              <div class="product-quantity">x{{ item.quantity }}</div>
-              <!-- 商品小计 -->
-              <div class="product-subtotal">¥{{ formatPrice(item.price * item.quantity) }}</div>
+              <div class="product-price">¥{{ formatPrice(item.price) }} x{{ item.quantity }}</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 右侧：结算信息区域 -->
-      <div class="checkout-sidebar">
-        <div class="order-summary">
-          <h3>订单信息</h3>
+      <!-- 灰色间隔 -->
+      <div class="gray-divider"></div>
 
-          <!-- 商品总价 -->
-          <div class="summary-row">
+      <!-- ========== 支付方式选择 ========== -->
+      <div class="payment-section">
+        <div class="section-header">
+          <h3><i class="fas fa-credit-card"></i> 支付方式</h3>
+        </div>
+
+        <div class="payment-options">
+          <div
+            class="payment-option"
+            :class="{ active: paymentMethod === 'ALIPAY' }"
+            @click="paymentMethod = 'ALIPAY'"
+          >
+              <svg class="icon-svg" viewBox="0 0 1024 1024" width="28" height="28">
+                <path d="M789.333333 298.666667H234.666667c-25.6 0-46.933333 21.333333-46.933334 46.933333v332.8c0 25.6 21.333333 46.933333 46.933334 46.933333h213.333333l-64 106.666667 128-106.666667h277.333334c25.6 0 46.933333-21.333333 46.933333-46.933333V345.6c0-25.6-21.333333-46.933333-46.933333-46.933333z m-345.6 256h-128v-42.666667h128v42.666667z m170.667334 0h-128v-42.666667h128v42.666667z m170.666666 0h-128v-42.666667h128v42.666667z" fill="#1677FF"/>
+              </svg>
+            <span>支付宝</span>
+            <i v-if="paymentMethod === 'ALIPAY'" class="fas fa-check-circle check-icon"></i>
+          </div>
+          <div
+            class="payment-option"
+            :class="{ active: paymentMethod === 'WECHAT' }"
+            @click="paymentMethod = 'WECHAT'"
+          >
+              <svg class="icon-svg" viewBox="0 0 1024 1024" width="28" height="28">
+                <path d="M864.32 465.28c-64.32-45.12-147.52-68.48-239.36-68.48-104.96 0-198.72 28.8-263.36 81.92-58.88 48-92.16 114.56-92.16 188.16 0 76.8 36.48 147.2 100.48 196.48 58.24 44.8 135.36 68.8 219.84 68.8 41.28 0 81.6-5.76 119.36-16.96l95.68 32.96-22.72-79.68c53.44-45.12 85.12-104.96 85.12-170.88 0-60.16-24-116.8-67.84-162.56z m-271.36 179.2c-19.2 0-34.56-15.36-34.56-34.56 0-19.2 15.36-34.56 34.56-34.56s34.56 15.36 34.56 34.56-15.36 34.56-34.56 34.56z m125.44 0c-19.2 0-34.56-15.36-34.56-34.56 0-19.2 15.36-34.56 34.56-34.56s34.56 15.36 34.56 34.56-15.36 34.56-34.56 34.56z m174.72-355.84c-49.92-40.96-117.76-63.36-190.4-63.36-86.4 0-164.48 27.52-221.44 76.8-63.36 54.4-98.56 128-98.56 208 0 83.2 39.04 158.72 107.52 212.48 59.52 46.72 136.96 71.68 220.16 71.68 32.64 0 64.64-4.48 94.72-13.44l91.2 30.08-20.48-74.88c42.88-43.52 67.84-99.84 67.84-157.44 0-69.12-28.16-134.4-78.72-184.32z m-177.92 114.56c-14.72 0-26.56-11.84-26.56-26.56s11.84-26.56 26.56-26.56 26.56 11.84 26.56 26.56-11.84 26.56-26.56 26.56z m124.8 0c-14.72 0-26.56-11.84-26.56-26.56s11.84-26.56 26.56-26.56 26.56 11.84 26.56 26.56-11.84 26.56-26.56 26.56z" fill="#07C160"/>
+              </svg>
+            <span>微信支付</span>
+            <i v-if="paymentMethod === 'WECHAT'" class="fas fa-check-circle check-icon"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 灰色间隔 -->
+      <div class="gray-divider"></div>
+
+      <!-- ========== 订单信息 ========== -->
+      <div class="order-info-section">
+        <div class="section-header">
+          <h3><i class="fas fa-file-text"></i> 订单信息</h3>
+        </div>
+
+        <div class="order-info-list">
+          <div class="info-row">
             <span>商品总价</span>
             <span>¥{{ formatPrice(totalAmount) }}</span>
           </div>
-          <!-- 运费 -->
-          <div class="summary-row">
+          <div class="info-row">
             <span>运费</span>
             <span>¥{{ formatPrice(shippingFee) }}</span>
           </div>
-          <!-- 实付款 -->
-          <div class="summary-row total">
-            <span>实付款</span>
+          <div class="info-row total">
+            <span>合计</span>
             <span class="total-amount">¥{{ formatPrice(payAmount) }}</span>
           </div>
+        </div>
+      </div>
 
-          <!-- 支付方式选择区域 -->
-          <div class="payment-section">
-            <div class="payment-title">支付方式</div>
-            <div class="payment-options">
-              <!-- 支付宝支付选项 -->
-              <div
-                class="payment-option"
-                :class="{ active: paymentMethod === 'ALIPAY' }"
-                @click="paymentMethod = 'ALIPAY'"
-              >
-                <svg class="payment-icon alipay-icon" viewBox="0 0 1024 1024" width="28" height="28">
-                  <path fill="#1677FF" d="M873.6 313.6c-25.6-51.2-64-96-108.8-128-44.8-32-96-51.2-153.6-57.6-57.6-6.4-115.2 0-166.4 19.2-51.2 19.2-96 51.2-128 96-32 44.8-51.2 96-51.2 153.6 0 57.6 12.8 108.8 38.4 153.6 25.6 44.8 64 83.2 108.8 108.8 44.8 25.6 96 38.4 153.6 38.4 57.6 0 108.8-12.8 153.6-38.4 44.8-25.6 83.2-64 108.8-108.8 25.6-44.8 38.4-96 38.4-153.6 0-57.6-12.8-108.8-38.4-153.6z"/>
-                  <path fill="#FFFFFF" d="M512 768c-140.8 0-256-115.2-256-256s115.2-256 256-256 256 115.2 256 256-115.2 256-256 256z"/>
-                  <text x="512" y="520" text-anchor="middle" fill="#1677FF" font-size="40" font-weight="bold">支</text>
-                </svg>
-                <span>支付宝支付</span>
-                <i v-if="paymentMethod === 'ALIPAY'" class="fas fa-check-circle check-icon"></i>
+      <!-- 底部留空 -->
+      <div class="bottom-space"></div>
+    </div>
+
+    <!-- ========== 底部固定提交按钮 ========== -->
+    <div class="bottom-bar">
+      <div class="total-info">
+        <span class="total-label">合计:</span>
+        <span class="total-price">¥{{ formatPrice(payAmount) }}</span>
+      </div>
+      <button
+        class="submit-btn"
+        @click="submitOrder"
+        :disabled="submitting || !selectedAddressId"
+        :class="{ 'is-loading': submitting }"
+      >
+        <i v-if="submitting" class="fas fa-spinner fa-spin"></i>
+        {{ submitting ? '提交中...' : '提交订单' }}
+      </button>
+    </div>
+
+    <!-- ========== 地址选择面板（底部弹出） ========== -->
+    <div class="address-panel" :class="{ show: showAddressPanel }">
+      <div class="panel-overlay" @click="showAddressPanel = false"></div>
+      <div class="panel-content">
+        <div class="panel-header">
+          <span>选择收货地址</span>
+          <i class="fas fa-times" @click="showAddressPanel = false"></i>
+        </div>
+        <div class="panel-body">
+          <div v-if="addresses.length > 0">
+            <div
+              v-for="addr in addresses"
+              :key="addr.id"
+              class="addr-item"
+              :class="{ active: selectedAddressId === addr.id }"
+              @click="selectAddress(addr.id); showAddressPanel = false"
+            >
+              <div class="addr-info">
+                <div class="addr-recipient">
+                  <span class="name">{{ addr.recipientName }}</span>
+                  <span class="phone">{{ addr.recipientPhone }}</span>
+                  <span v-if="addr.isDefault" class="default-tag">默认</span>
+                </div>
+                <div class="addr-detail">
+                  {{ addr.province }} {{ addr.city }} {{ addr.district }} {{ addr.detailAddress }}
+                </div>
               </div>
-              <!-- 微信支付选项 -->
-              <div
-                class="payment-option"
-                :class="{ active: paymentMethod === 'WECHAT' }"
-                @click="paymentMethod = 'WECHAT'"
-              >
-                <svg class="payment-icon wechat-icon" viewBox="0 0 1024 1024" width="28" height="28">
-                  <path fill="#07C160" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z"/>
-                  <path fill="#FFFFFF" d="M512 384c-70.4 0-128 57.6-128 128s57.6 128 128 128 128-57.6 128-128-57.6-128-128-128z"/>
-                  <circle fill="#07C160" cx="384" cy="512" r="32"/>
-                  <circle fill="#07C160" cx="640" cy="512" r="32"/>
-                </svg>
-                <span>微信支付</span>
-                <i v-if="paymentMethod === 'WECHAT'" class="fas fa-check-circle check-icon"></i>
+              <div v-if="selectedAddressId === addr.id" class="addr-check">
+                <i class="fas fa-check"></i>
               </div>
             </div>
           </div>
-
-          <!-- 提交订单按钮 -->
-          <button
-            class="submit-btn"
-            @click="submitOrder"
-            :disabled="submitting || !selectedAddressId"
-          >
-            <i v-if="submitting" class="fas fa-spinner fa-spin"></i>
-            <i v-else class="fas fa-check"></i>
-            {{ submitting ? '提交中...' : `提交订单 · ¥${formatPrice(payAmount)}` }}
-          </button>
-          <!-- 未选择地址的警告提示 -->
-          <p v-if="!selectedAddressId" class="warning-tip">
-            <i class="fas fa-exclamation-circle"></i>
-            请选择收货地址
-          </p>
+          <div v-else class="empty-addr">
+            <p>暂无收货地址</p>
+          </div>
         </div>
+        <button class="add-addr-btn" @click="openAddressModal(); showAddressPanel = false">+ 新增地址</button>
       </div>
     </div>
 
-    <!-- 新增/编辑地址弹窗 -->
+    <!-- ========== 新增/编辑地址弹窗 ========== -->
     <div v-if="showAddressModal" class="modal-overlay" @click="closeAddressModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
@@ -190,17 +181,14 @@
           </button>
         </div>
         <div class="modal-body">
-          <!-- 收件人姓名 -->
           <div class="form-group">
             <label>收件人姓名</label>
             <input type="text" v-model="addressForm.recipientName" placeholder="请输入收件人姓名">
           </div>
-          <!-- 联系电话 -->
           <div class="form-group">
             <label>联系电话</label>
             <input type="tel" v-model="addressForm.recipientPhone" placeholder="请输入联系电话">
           </div>
-          <!-- 地区选择（省/市/区） -->
           <div class="form-row">
             <div class="form-group">
               <label>省份</label>
@@ -215,12 +203,10 @@
               <input type="text" v-model="addressForm.district" placeholder="区县">
             </div>
           </div>
-          <!-- 详细地址 -->
           <div class="form-group">
             <label>详细地址</label>
             <input type="text" v-model="addressForm.detailAddress" placeholder="街道、小区、门牌号">
           </div>
-          <!-- 地址标签 -->
           <div class="form-group">
             <label>地址标签</label>
             <div class="label-options">
@@ -246,7 +232,6 @@
               >📍 其他</span>
             </div>
           </div>
-          <!-- 设为默认地址复选框 -->
           <div class="form-group">
             <label class="checkbox-label">
               <span>设为默认地址</span>
@@ -260,25 +245,37 @@
         </div>
       </div>
     </div>
+
+    <!-- ========== 支付状态确认弹窗 ========== -->
+    <div v-if="showPayConfirm" class="pay-confirm-overlay">
+      <div class="pay-confirm-dialog">
+        <i class="fas fa-check-circle pay-icon"></i>
+        <h3>订单已创建</h3>
+        <p>订单号：{{ createdOrderNumber }}</p>
+        <p class="pay-tip">请在新窗口中完成支付</p>
+        <div class="pay-actions">
+          <button class="btn-pay-done" @click="checkPayStatus" :disabled="checkingPay">
+            {{ checkingPay ? '查询中...' : '已完成支付' }}
+          </button>
+          <button class="btn-pay-later" @click="handlePayLater">稍后支付</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue'
-  import { useRouter, useRoute } from 'vue-router'
+  import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
   import { authAPI } from '@/api/authAPI'
   import Message from '@/utils/message'
   import { useAuthStore } from '@/stores/auth'
-  import { storeToRefs } from 'pinia'
 
   const authStore = useAuthStore()
-  const { isLoggedIn, role, status } = storeToRefs(authStore)
-
   const router = useRouter()
   const route = useRoute()
 
   // ==================== 类型定义 ====================
-
   interface Address {
     id: number
     userId: number
@@ -290,20 +287,20 @@
     detailAddress: string
     label: string
     isDefault: boolean
-    createdAt?: string
-    updatedAt?: string
   }
 
   interface OrderItem {
-    cartItemId?: number    // 购物车项ID（从购物车结算时有值，立即购买时为undefined）
+    cartItemId?: number
     productId: number
+    skuId?: number
     productName: string
     brand: string
+    skuName?: string
     price: number
-    originalPrice?: number // 商品原价
+    originalPrice?: number
     quantity: number
     productImage: string
-    stock: number          // 商品库存
+    stock: number
   }
 
   interface AddressForm {
@@ -318,7 +315,6 @@
   }
 
   // ==================== 响应式数据 ====================
-
   const loading = ref(false)
   const submitting = ref(false)
   const orderItems = ref<OrderItem[]>([])
@@ -327,6 +323,7 @@
   const paymentMethod = ref('ALIPAY')
 
   const showAddressModal = ref(false)
+  const showAddressPanel = ref(false)
   const isEditingAddress = ref(false)
   const editingAddressId = ref<number | null>(null)
 
@@ -341,42 +338,32 @@
     isDefault: false
   })
 
-  // ==================== 计算属性 ====================
+  // 支付相关状态
+  const showPayConfirm = ref(false)
+  const createdOrderId = ref<number | null>(null)
+  const createdOrderNumber = ref('')
+  const checkingPay = ref(false)
 
-  /**
-   * 商品总价
-   * @description 所有商品单价 × 数量的总和
-   */
+  // ==================== 计算属性 ====================
   const totalAmount = computed(() => {
     return orderItems.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   })
 
-  /**
-   * 运费
-   * @description 满99元包邮，否则10元
-   */
   const shippingFee = computed(() => {
     return totalAmount.value >= 99 ? 0 : 10
   })
 
-  /**
-   * 实付款
-   * @description 商品总价 + 运费
-   */
   const payAmount = computed(() => {
     return totalAmount.value + shippingFee.value
   })
 
-  // ==================== 数据加载 ====================
+  const selectedAddress = computed(() => {
+    return addresses.value.find(addr => addr.id === selectedAddressId.value)
+  })
 
-  /**
-   * 加载订单数据
-   * @description 根据来源（购物车/商品详情）调用不同接口获取订单商品信息
-   * @returns {Promise<void>}
-   */
+  // ==================== 数据加载 ====================
   const loadOrderData = async () => {
     loading.value = true
-
     try {
       const source = route.query.source as string
 
@@ -399,23 +386,61 @@
 
       } else if (source === 'product') {
         const productId = route.query.productId as string
+        const skuIds = route.query.skuIds as string
         const quantity = route.query.quantity as string
+        const skuId = route.query.skuId as string
 
-        if (!productId || !quantity) {
+        if (!productId) {
           Message.error('商品信息错误')
           router.push('/')
           return
         }
 
-        const response = await authAPI.getCheckoutItemsFromProduct({
-          productId: Number(productId),
-          quantity: Number(quantity)
-        })
+        // 处理新的 skuIds 格式（多个 SKU）
+        if (skuIds) {
+          const skuList = skuIds.split(',').map(item => {
+            const [id, qty] = item.split(':')
+            return { skuId: Number(id), quantity: Number(qty) || 1 }
+          })
 
-        if (response.success) {
-          orderItems.value = response.data?.items || []
+          orderItems.value = []
+          for (const item of skuList) {
+            const response = await authAPI.getCheckoutItemsFromProduct({
+              productId: Number(productId),
+              quantity: item.quantity,
+              skuId: item.skuId
+            })
+            if (response.success && response.data?.items) {
+              orderItems.value.push(...response.data.items)
+            }
+          }
+        } else if (skuId && quantity) {
+          // 兼容旧的单个 skuId 格式
+          const response = await authAPI.getCheckoutItemsFromProduct({
+            productId: Number(productId),
+            quantity: Number(quantity),
+            skuId: Number(skuId)
+          })
+          if (response.success) {
+            orderItems.value = response.data?.items || []
+          } else {
+            throw new Error(response.message || '获取商品信息失败')
+          }
+        } else if (quantity) {
+          // 没有 SKU 的商品
+          const response = await authAPI.getCheckoutItemsFromProduct({
+            productId: Number(productId),
+            quantity: Number(quantity)
+          })
+          if (response.success) {
+            orderItems.value = response.data?.items || []
+          } else {
+            throw new Error(response.message || '获取商品信息失败')
+          }
         } else {
-          throw new Error(response.message || '获取商品信息失败')
+          Message.error('请选择规格')
+          router.push({ name: 'ProductDetail', params: { productId } })
+          return
         }
 
       } else {
@@ -425,18 +450,12 @@
       }
 
     } catch (error: any) {
-      console.error('加载订单数据失败:', error)
       Message.error(error.message || '加载失败')
     } finally {
       loading.value = false
     }
   }
 
-  /**
-   * 加载地址列表
-   * @description 获取用户地址列表，并自动选中默认地址或第一个地址
-   * @returns {Promise<void>}
-   */
   const loadAddresses = async () => {
     try {
       const response = await authAPI.getAddresses()
@@ -451,24 +470,15 @@
         }
       }
     } catch (error) {
-      console.error('加载地址失败:', error)
+      Message.error('加载地址失败')
     }
   }
 
   // ==================== 地址管理 ====================
-
-  /**
-   * 选择收货地址
-   * @param {number} addressId - 地址ID
-   */
   const selectAddress = (addressId: number) => {
     selectedAddressId.value = addressId
   }
 
-  /**
-   * 打开地址弹窗
-   * @param {Address} [address] - 编辑时传入的地址对象，新增时不传
-   */
   const openAddressModal = (address?: Address) => {
     if (address) {
       isEditingAddress.value = true
@@ -506,11 +516,6 @@
     editingAddressId.value = null
   }
 
-  /**
-   * 保存地址
-   * @description 校验表单后调用新增或更新接口
-   * @returns {Promise<void>}
-   */
   const saveAddress = async () => {
     if (!addressForm.value.recipientName) {
       Message.error('请输入收件人姓名')
@@ -552,39 +557,21 @@
     }
   }
 
-  /**
-   * 删除地址
-   * @param {number} addressId - 地址ID
-   * @returns {Promise<void>}
-   */
-  const deleteAddress = async (addressId: number) => {
-    try {
-      await Message.confirm('确定要删除该地址吗？', '删除确认')
-
-      const response = await authAPI.deleteAddress(addressId)
-      if (response.success) {
-        Message.success('删除成功')
-        await loadAddresses()
-      }
-    } catch (error: any) {
-      // 用户取消删除时静默处理
-      if (error !== 'cancel') {
-        Message.error(error.message || '删除失败')
-      }
-    }
-  }
-
   // ==================== 订单提交 ====================
-
-  /**
-   * 提交订单
-   * @description 校验地址后创建订单，并跳转支付宝支付
-   * @returns {Promise<void>}
-   */
   const submitOrder = async () => {
     if (!selectedAddressId.value) {
       Message.error('请选择收货地址')
       return
+    }
+
+    // 防重复提交
+    if (submitting.value) return
+
+    // 二次确认
+    try {
+      await Message.confirm('确认提交订单？', '确认订单')
+    } catch {
+      return  // 用户取消
     }
 
     submitting.value = true
@@ -598,53 +585,92 @@
         paymentMethod: paymentMethod.value,
         orderItems: orderItems.value.map(item => ({
           productId: item.productId,
-          quantity: item.quantity
+          quantity: item.quantity,
+          skuId: item.skuId
         }))
       }
 
       const response = await authAPI.createOrder(orderData)
 
       if (response.success) {
-        Message.success('订单创建成功')
+        createdOrderId.value = response.data?.orderId
+        createdOrderNumber.value = response.data?.orderNumber || ''
 
+        // 使用 window.open 打开支付页面
         const paymentHtml = response.data.paymentHtml
-
-        const div = document.createElement('div')
-        div.innerHTML = paymentHtml
-        document.body.appendChild(div)
-
-        const form = document.querySelector('form')
-        if (form) {
-          form.submit()
+        const payWindow = window.open('', '_blank')
+        if (payWindow) {
+          payWindow.document.write(paymentHtml)
+          payWindow.document.close()
         }
+
+        // 显示支付确认弹窗
+        showPayConfirm.value = true
       } else {
         throw new Error(response.message || '创建订单失败')
       }
     } catch (error: any) {
-      console.error('提交订单失败:', error)
       Message.error(error.message || '提交订单失败')
     } finally {
       submitting.value = false
     }
   }
 
-  // ==================== 工具函数 ====================
+  // 查询支付状态
+  const checkPayStatus = async () => {
+    if (!createdOrderId.value || checkingPay.value) return
+    checkingPay.value = true
 
-  /**
-   * 格式化价格
-   * @param {number} price - 原始价格
-   * @returns {string} 保留两位小数的价格字符串
-   */
+    try {
+      const response = await authAPI.getOrderDetail(createdOrderId.value)
+
+      // 兼容两种返回格式
+      const order = response.data?.order || response.data?.orderDetail?.order
+      const status = order?.status
+
+      if (status === 'PAID' || status === 'PROCESSING' || status === 'SHIPPED') {
+        showPayConfirm.value = false
+        Message.success('支付成功')
+        router.replace({ name: 'OrderDetail', params: { orderId: createdOrderId.value } })
+      } else if (status === 'PENDING') {
+        Message.warning('暂未收到支付通知，请确认是否已完成支付')
+      } else {
+        Message.error(`订单状态异常：${status || '未知'}`)
+      }
+    } catch (error: any) {
+      Message.error(error.message || '查询失败')
+    } finally {
+      checkingPay.value = false
+    }
+  }
+
+  // 稍后支付
+  const handlePayLater = () => {
+    showPayConfirm.value = false
+    router.replace({ name: 'UserOrders' })
+  }
+
+  // ==================== 工具函数 ====================
   const formatPrice = (price: number): string => {
+    if (price == null || isNaN(price)) return '0.00'
     return price.toFixed(2)
   }
 
   // ==================== 生命周期 ====================
-
   onMounted(() => {
     if (!authStore.validateUserPermission()) return
     loadOrderData()
     loadAddresses()
+  })
+
+  // 离开页面时的拦截
+  onBeforeRouteLeave((to, from, next) => {
+    if (submitting.value) {
+      Message.warning('订单正在提交中，请稍候')
+      next(false)  // 阻止离开
+    } else {
+      next()  // 允许离开
+    }
   })
 </script>
 

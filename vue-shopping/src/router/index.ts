@@ -34,14 +34,4 @@ router.beforeEach(async () => {
   await authStore.checkAndUpdate()
 })
 
-
-// ========== 后置守卫：页面标题 ==========
-// 在路由切换完成后执行，用于设置页面标题
-router.afterEach((to) => {
-  // 设置页面标题
-  const defaultTitle = '精品商城'
-  const title = to.meta.title ? `${to.meta.title} - ${defaultTitle}` : defaultTitle
-  document.title = title
-})
-
 export default router

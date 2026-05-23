@@ -27,7 +27,6 @@ http.interceptors.request.use(
 
     // 错误处理函数(请求失败时执行)
     error => {
-        console.log("请求发送失败:",error)
         return Promise.reject(error)
     }
 )

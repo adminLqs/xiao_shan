@@ -16,12 +16,16 @@ public class CartItemVO {
 
     private Long productId;             // 商品ID
 
+    private Long skuId;                 // SKU ID（可选）
+
     private Integer quantity;           // 数量
 
     private LocalDateTime addedAt;      // 添加时间
 
     // 关联商品信息
     private String productName;         // 商品名称
+
+    private String skuName;             // SKU 规格名称
 
     private String brand;               // 商品品牌
 

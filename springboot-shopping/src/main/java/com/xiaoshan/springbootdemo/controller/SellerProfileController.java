@@ -57,6 +57,25 @@ public class SellerProfileController {
     }
 
     /**
+     * 根据商家ID获取商家信息（公开访问）
+     * GET /api/v1/seller/info/{sellerId}
+     */
+    @GetMapping("/seller/info/{sellerId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER','ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> getSellerInfoById(@PathVariable Long sellerId) {
+        try {
+            SellerProfile profile = sellerProfileService.getUserProfile(sellerId);
+            if (profile == null) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "商家不存在"));
+            }
+            return ResponseEntity.ok(Map.of("success", true, "data", profile));
+        } catch (Exception e) {
+            log.error("获取商家信息失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
      * 更新商家信息（包含基本信息、头像、横幅）
      * PUT /api/v1/seller/profile
      *

@@ -16,8 +16,10 @@ public interface CartItemMapper {
     /**
      * 添加购物车项
      */
-    @Insert("INSERT INTO cart_items (user_id, product_id, quantity, added_at) " +
-            "VALUES (#{userId}, #{productId}, #{quantity}, #{addedAt})")
+    @Insert("<script>" +
+            "INSERT INTO cart_items (user_id, product_id, sku_id, quantity, added_at) " +
+            "VALUES (#{userId}, #{productId}, #{skuId}, #{quantity}, #{addedAt})" +
+            "</script>")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(CartItem cartItem);
 
@@ -26,20 +28,25 @@ public interface CartItemMapper {
     /**
      * 根据ID查询购物车项
      */
-    @Select("SELECT id, user_id, product_id, quantity, added_at " +
+    @Select("SELECT id, user_id, product_id, sku_id, quantity, added_at " +
             "FROM cart_items WHERE id = #{id}")
     Optional<CartItem> findById(Long id);
 
     /**
-     * 根据用户ID查询购物车列表（关联商品信息）
-     * 返回包含商品名称、价格、图片等完整信息
+     * 根据用户ID查询购物车列表（关联商品和SKU信息）
+     * 返回包含商品名称、价格、图片、SKU信息等完整信息
      */
     @Select("SELECT " +
-            "ci.id, ci.user_id, ci.product_id, ci.quantity, ci.added_at, " +
-            "p.name as product_name, p.brand, p.price, p.original_price, p.stock, " +
-            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as product_image " +
+            "ci.id, ci.user_id, ci.product_id, ci.sku_id, ci.quantity, ci.added_at, " +
+            "p.name as product_name, p.brand, " +
+            "COALESCE(s.sku_name, '') as sku_name, " +
+            "COALESCE(s.price, p.price, 0) as price, " +
+            "COALESCE(s.original_price, p.original_price, 0) as original_price, " +
+            "COALESCE(s.stock, p.stock, 0) as stock, " +
+            "COALESCE(s.sku_image, (SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1)) as product_image " +
             "FROM cart_items ci " +
             "LEFT JOIN products p ON ci.product_id = p.id " +
+            "LEFT JOIN product_skus s ON ci.sku_id = s.id " +
             "WHERE ci.user_id = #{userId} " +
             "ORDER BY ci.added_at DESC")
     List<CartItemVO> findCartItemsWithProduct(Long userId);
@@ -47,22 +54,35 @@ public interface CartItemMapper {
     /**
      * 根据用户ID查询购物车列表（基础信息）
      */
-    @Select("SELECT id, user_id, product_id, quantity, added_at " +
+    @Select("SELECT id, user_id, product_id, sku_id, quantity, added_at " +
             "FROM cart_items WHERE user_id = #{userId} ORDER BY added_at DESC")
     List<CartItem> findByUserId(Long userId);
 
     /**
-     * 根据用户ID和商品ID查询购物车项
+     * 根据用户ID和商品ID查询购物车项（兼容旧版本）
      */
-    @Select("SELECT id, user_id, product_id, quantity, added_at " +
+    @Select("SELECT id, user_id, product_id, sku_id, quantity, added_at " +
             "FROM cart_items WHERE user_id = #{userId} AND product_id = #{productId}")
     Optional<CartItem> findByUserIdAndProductId(@Param("userId") Long userId,
                                                 @Param("productId") Long productId);
 
     /**
+     * 根据用户ID、商品ID和SKU ID查询购物车项（新增）
+     */
+    @Select("<script>" +
+            "SELECT id, user_id, product_id, sku_id, quantity, added_at " +
+            "FROM cart_items WHERE user_id = #{userId} AND product_id = #{productId} " +
+            "<if test='skuId != null'> AND sku_id = #{skuId} </if>" +
+            "<if test='skuId == null'> AND sku_id IS NULL </if>" +
+            "</script>")
+    Optional<CartItem> findByUserIdAndProductIdAndSkuId(@Param("userId") Long userId,
+                                                        @Param("productId") Long productId,
+                                                        @Param("skuId") Long skuId);
+
+    /**
      * 根据ID和用户ID查询购物车项（用于权限校验）
      */
-    @Select("SELECT id, user_id, product_id, quantity, added_at " +
+    @Select("SELECT id, user_id, product_id, sku_id, quantity, added_at " +
             "FROM cart_items WHERE id = #{id} AND user_id = #{userId}")
     Optional<CartItem> findByIdAndUserId(@Param("id") Long id,
                                          @Param("userId") Long userId);
@@ -76,30 +96,28 @@ public interface CartItemMapper {
     Integer countQuantityByUserId(Long userId);
 
     /**
-     * 获取购物车结算项（联表查询）
+     * 获取购物车结算项（联表查询，支持SKU）
      *
-     * SQL查询逻辑：
-     * 1. 从购物车表（cart_items）获取用户选中的商品
-     * 2. 左连接商品表（products）获取商品详细信息（名称、品牌、价格）
-     * 3. 子查询商品图片表（product_images）获取第一张图片作为主图
-     *
-     * @param userId 用户ID，用于权限校验（确保只能查询自己的购物车）
+     * @param userId 用户ID，用于权限校验
      * @param cartItemIds 购物车项ID列表，使用 IN 查询
      * @return 结算商品信息列表
      */
     @Select("SELECT " +
-            "ci.id as cartItemId, " +                    // 购物车项ID
-            "ci.product_id as productId, " +             // 商品ID
-            "ci.quantity, " +                            // 购买数量（来自购物车）
-            "p.name as productName, " +                  // 商品名称
-            "p.brand, " +                                // 商品品牌
-            "p.price, " +                                // 商品价格
-            "p.original_price as originalPrice, " +      // 商品原价
-            "p.stock, " +                                // 商品库存
-            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as productImage " +  // 商品主图
-            "FROM cart_items ci " +                      // 购物车表
-            "LEFT JOIN products p ON ci.product_id = p.id " +  // 左连接商品表
-            "WHERE ci.id IN (${cartItemIds}) AND ci.user_id = #{userId}")  // 条件：ID在列表中且属于当前用户
+            "ci.id as cartItemId, " +
+            "ci.product_id as productId, " +
+            "ci.sku_id as skuId, " +
+            "ci.quantity, " +
+            "p.name as productName, " +
+            "s.sku_name as skuName, " +
+            "p.brand, " +
+            "COALESCE(s.price, p.price, 0) as price, " +
+            "COALESCE(s.original_price, p.original_price, 0) as originalPrice, " +
+            "COALESCE(s.stock, p.stock, 0) as stock, " +
+            "COALESCE(s.sku_image, (SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1)) as productImage " +
+            "FROM cart_items ci " +
+            "LEFT JOIN products p ON ci.product_id = p.id " +
+            "LEFT JOIN product_skus s ON ci.sku_id = s.id " +
+            "WHERE ci.id IN (${cartItemIds}) AND ci.user_id = #{userId}")
     List<CheckoutItemVO> getCheckoutItems(@Param("userId") Long userId,
                                           @Param("cartItemIds") String cartItemIds);
 

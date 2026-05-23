@@ -258,11 +258,6 @@ public class UserService {
             return;
         }
 
-        // 默认头像不删除
-        if (oldAvatarUrl.contains("user-avatar.jpg")) {
-            return;
-        }
-
         try {
             // 提取文件名
             String oldFileName = oldAvatarUrl.substring(oldAvatarUrl.lastIndexOf("/") + 1);

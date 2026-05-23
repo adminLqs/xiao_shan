@@ -358,7 +358,6 @@ const loadAnalyticsData = async () => {
     initOrderStatusChart()
     
   } catch (error) {
-    console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败，请刷新页面重试')
   } finally {
     loading.value = false

@@ -19,9 +19,9 @@ public interface ProductMapper {
     /**
      * 插入商品
      */
-    @Insert("INSERT INTO products (name, brand, description, price, original_price, stock, sales_count, " +
+    @Insert("INSERT INTO products (name, brand, description, sales_count, " +
             "category_id, seller_id, status, created_at, updated_at) " +
-            "VALUES (#{name}, #{brand}, #{description}, #{price}, #{originalPrice}, #{stock}, #{salesCount}, " +
+            "VALUES (#{name}, #{brand}, #{description}, #{salesCount}, " +
             "#{categoryId}, #{sellerId}, #{status}, #{createdAt}, #{updatedAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Product product);
@@ -54,9 +54,6 @@ public interface ProductMapper {
             "name = #{name}, " +
             "brand = #{brand}, " +
             "description = #{description}, " +
-            "price = #{price}, " +
-            "original_price = #{originalPrice}, " +
-            "stock = #{stock}, " +
             "category_id = #{categoryId}, " +
             "status = #{status}, " +
             "updated_at = NOW() " +
@@ -70,31 +67,45 @@ public interface ProductMapper {
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
 
     /**
-     * 扣减库存
-     */
-    @Update("UPDATE products SET stock = stock - #{quantity}, updated_at = NOW() " +
-            "WHERE id = #{id} AND stock >= #{quantity}")
-    int deductStock(@Param("id") Long id, @Param("quantity") Integer quantity);
-
-    /**
      * 增加销量（支付成功后调用）
      */
     @Update("UPDATE products SET sales_count = sales_count + #{quantity} WHERE id = #{productId}")
     int incrementSalesCount(@Param("productId") Long productId, @Param("quantity") Integer quantity);
+
+    // ========== SKU 库存操作 ==========
+
+    /**
+     * 查询商品下库存充足的 SKU（用于扣减库存）
+     */
+    @Select("SELECT id FROM product_skus WHERE product_id = #{productId} AND stock >= #{quantity} ORDER BY stock DESC LIMIT 1")
+    Long findAvailableSkuId(@Param("productId") Long productId, @Param("quantity") Integer quantity);
+
+    /**
+     * 扣减指定 SKU 的库存
+     */
+    @Update("UPDATE product_skus SET stock = stock - #{quantity} WHERE id = #{skuId}")
+    int deductSkuStock(@Param("skuId") Long skuId, @Param("quantity") Integer quantity);
 
     // ========== 查（Select）- 基础查询 ==========
 
     /**
      * 根据ID查询商品
      */
-    @Select("SELECT id, name, brand, description, price, original_price, stock, sales_count, " +
-            "category_id, seller_id, status, created_at, updated_at " +
-            "FROM products WHERE id = #{id}")
+    @Select("SELECT p.id, p.name, p.brand, p.description, p.sales_count, " +
+            "p.category_id, p.seller_id, p.status, p.created_at, p.updated_at, " +
+            "(SELECT MIN(price) FROM product_skus WHERE product_id = p.id) as price, " +
+            "(SELECT SUM(stock) FROM product_skus WHERE product_id = p.id) as stock, " +
+            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as images " +
+            "FROM products p WHERE p.id = #{id}")
     Optional<Product> findById(Long id);
 
     // 查询所有商品的信息
-    @Select("SELECT id, name, brand, description, price, original_price, stock, sales_count," +
-            "category_id, seller_id, status, created_at, updated_at FROM products")
+    @Select("SELECT p.id, p.name, p.brand, p.description, p.sales_count, " +
+            "p.category_id, p.seller_id, p.status, p.created_at, p.updated_at, " +
+            "(SELECT MIN(price) FROM product_skus WHERE product_id = p.id) as price, " +
+            "(SELECT SUM(stock) FROM product_skus WHERE product_id = p.id) as stock, " +
+            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as images " +
+            "FROM products p")
     List<Product> findAll();
 
     // ========== 查（Select）- 商家管理 ==========
@@ -103,10 +114,12 @@ public interface ProductMapper {
      * 分页查询商家商品列表
      */
     @Select("<script>" +
-            "SELECT p.id, p.name, p.brand, p.description, p.price, p.original_price, " +
-            "p.stock, p.sales_count, p.category_id, p.seller_id, p.status, p.created_at, p.updated_at, " +
+            "SELECT p.id, p.name, p.brand, p.description, " +
+            "p.sales_count, p.category_id, p.seller_id, p.status, p.created_at, p.updated_at, " +
             "c.name as category_name, " +
-            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as images " +
+            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as images, " +
+            "(SELECT MIN(price) FROM product_skus WHERE product_id = p.id) as price, " +
+            "(SELECT SUM(stock) FROM product_skus WHERE product_id = p.id) as stock " +
             "FROM products p " +
             "LEFT JOIN categories c ON p.category_id = c.id " +
             "WHERE p.seller_id = #{sellerId} " +
@@ -150,10 +163,12 @@ public interface ProductMapper {
      * 首页商品列表（分页 + 筛选）
      */
     @Select("<script>" +
-            "SELECT p.id, p.name, p.brand, p.description, p.price, p.original_price, " +
-            "p.stock, p.sales_count, p.category_id, p.seller_id, p.status, " +
+            "SELECT p.id, p.name, p.brand, p.description, " +
+            "p.sales_count, p.category_id, p.seller_id, p.status, " +
             "c.name as category_name, " +
-            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as images " +
+            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as images, " +
+            "(SELECT MIN(price) FROM product_skus WHERE product_id = p.id) as price, " +
+            "(SELECT SUM(stock) FROM product_skus WHERE product_id = p.id) as stock " +
             "FROM products p " +
             "LEFT JOIN categories c ON p.category_id = c.id " +
             "WHERE p.status = 1 " +
@@ -200,8 +215,10 @@ public interface ProductMapper {
     /**
      * 根据商品ID查询详情（带分类名和所有图片）
      */
-    @Select("SELECT p.id, p.name, p.brand, p.description, p.price, p.original_price, " +
-            "p.stock, p.sales_count, p.category_id, p.seller_id, p.status, p.created_at, p.updated_at, " +
+    @Select("SELECT p.id, p.name, p.brand, p.description, p.sales_count, " +
+            "p.category_id, p.seller_id, p.status, p.created_at, p.updated_at, " +
+            "(SELECT MIN(price) FROM product_skus WHERE product_id = p.id) as price, " +
+            "(SELECT SUM(stock) FROM product_skus WHERE product_id = p.id) as stock, " +
             "c.name as category_name, " +
             "GROUP_CONCAT(pi.image ORDER BY pi.sort_order ASC SEPARATOR ',') as images " +
             "FROM products p " +

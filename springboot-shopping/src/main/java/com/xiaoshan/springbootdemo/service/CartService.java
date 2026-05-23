@@ -32,23 +32,27 @@ public class CartService {
      */
     @Transactional
     public void addCartItem(Long userId, CartAddDTO dto) {
-        // 1. 查询购物车中是否已有该商品
-        Optional<CartItem> existingItem = cartItemMapper.findByUserIdAndProductId(userId, dto.getProductId());
+        // 1. 查询购物车中是否已有该商品（同时考虑 skuId）
+        Optional<CartItem> existingItem = cartItemMapper.findByUserIdAndProductIdAndSkuId(
+                userId, dto.getProductId(), dto.getSkuId());
 
         if (existingItem.isPresent()) {
             // 2. 已存在：增加数量
             CartItem cartItem = existingItem.get();
             int newQuantity = cartItem.getQuantity() + dto.getQuantity();
             cartItemMapper.updateQuantity(cartItem.getId(), newQuantity);
-            log.info("购物车商品数量增加: userId={}, productId={}, newQuantity={}", userId, dto.getProductId(), newQuantity);
+            log.info("购物车商品数量增加: userId={}, productId={}, skuId={}, newQuantity={}", 
+                    userId, dto.getProductId(), dto.getSkuId(), newQuantity);
         } else {
             // 3. 不存在：新增记录
             CartItem cartItem = new CartItem();
             cartItem.setUserId(userId);
             cartItem.setProductId(dto.getProductId());
+            cartItem.setSkuId(dto.getSkuId());
             cartItem.setQuantity(dto.getQuantity());
             cartItemMapper.insert(cartItem);
-            log.info("添加商品到购物车: userId={}, productId={}, quantity={}", userId, dto.getProductId(), dto.getQuantity());
+            log.info("添加商品到购物车: userId={}, productId={}, skuId={}, quantity={}", 
+                    userId, dto.getProductId(), dto.getSkuId(), dto.getQuantity());
         }
     }
 

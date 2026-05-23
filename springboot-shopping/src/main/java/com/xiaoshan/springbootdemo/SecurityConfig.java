@@ -47,7 +47,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
-                "http://*.natappfree.cc",
+                "http://ff2ad6bc.natappfree.cc",
                 "http://62.234.79.156"   // 你的云服务器 IP（前端访问地址）
 
         ));

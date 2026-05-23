@@ -56,9 +56,10 @@ public class CheckoutController {
     ) {
         Long productId = Long.valueOf(request.get("productId").toString());
         Integer quantity = (Integer) request.getOrDefault("quantity", 1);
+        Long skuId = request.containsKey("skuId") && request.get("skuId") != null 
+                     ? Long.valueOf(request.get("skuId").toString()) : null;
 
-        // 直接查询：商品表 + 图片表
-        CheckoutItemVO item = productService.getCheckoutItem(productId, quantity);
+        CheckoutItemVO item = productService.getCheckoutItem(productId, quantity, skuId);
 
         return ResponseEntity.ok(Map.of("success", true, "data", Map.of("items", List.of(item))));
     }

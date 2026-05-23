@@ -530,19 +530,16 @@ const toggleUserMenu = () => {
 }
 
 const showNotifications = () => {
-  console.log('显示通知')
   // 可以跳转到通知页面或显示通知弹窗
   router.push('/store/admin/notifications')
 }
 
 const showMessages = () => {
-  console.log('显示消息')
   // 可以跳转到消息页面
 }
 
 const handleSearch = () => {
   if (searchKeyword.value.trim()) {
-    console.log('搜索关键词:', searchKeyword.value)
     // 执行搜索逻辑
   }
 }
@@ -562,12 +559,10 @@ const refreshUserChart = () => {
 }
 
 const showChartOptions = (chartType) => {
-  console.log(`显示 ${chartType} 图表选项`)
   // 显示图表选项菜单
 }
 
 const exportData = () => {
-  console.log('导出数据')
   // 实现数据导出逻辑
 }
 
@@ -581,20 +576,17 @@ const getStatusText = (status) => {
 }
 
 const editOrder = (order) => {
-  console.log('编辑订单:', order.id)
   // 跳转到编辑页面或打开编辑模态框
 }
 
 const deleteOrder = (order) => {
   if (confirm(`确定要删除订单 ${order.id} 吗？`)) {
-    console.log('删除订单:', order.id)
     // 执行删除逻辑
   }
 }
 
 const logout = () => {
   if (confirm('确定要退出登录吗？')) {
-    console.log('退出登录')
     // 执行退出逻辑
     router.push('/login')
   }

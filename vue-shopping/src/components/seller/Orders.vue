@@ -268,7 +268,6 @@
         updateTabCounts(data.counts)
       }
     } catch (error: any) {
-      console.error('加载订单失败:', error)
       Message.error(error.message || '加载失败')
     } finally {
       loading.value = false
@@ -386,7 +385,6 @@
       }
     } catch (error: any) {
       if (error !== 'cancel') {
-        console.error('取消订单失败:', error)
         Message.error(error.message || '操作失败')
       }
     }

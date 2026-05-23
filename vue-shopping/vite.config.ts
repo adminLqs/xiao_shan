@@ -19,7 +19,7 @@ export default defineConfig({
     host: '0.0.0.0',  // 监听所有网络接口，允许外部访问
     port: 5173,       // Vite 服务端口
     allowedHosts: [
-      'http://v884e9c7.natappfree.cc',  // 允许这个域名访问
+      'http://ff2ad6bc.natappfree.cc',  // 允许这个域名访问
       '.natappfree.cc',           // 允许所有 natapp 子域名
     ],
     proxy: {

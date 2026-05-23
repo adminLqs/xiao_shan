@@ -2,8 +2,10 @@ package com.xiaoshan.springbootdemo.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xiaoshan.springbootdemo.entity.Address;
 import com.xiaoshan.springbootdemo.entity.Order;
 import com.xiaoshan.springbootdemo.entity.vo.LogisticsVO;
+import com.xiaoshan.springbootdemo.mapper.OrderMapper;
 import com.xiaoshan.springbootdemo.service.LogisticsService;
 import com.xiaoshan.springbootdemo.service.OrderService;
 import com.xiaoshan.springbootdemo.service.UserService;
@@ -34,6 +36,7 @@ public class LogisticsController {
     private final OrderService orderService;
     private final LogisticsService logisticsService;
     private final ObjectMapper objectMapper;
+    private final OrderMapper orderMapper;
 
     // 用户ID（EBusinessID）
     @Value("${kdniao.app.key:}")
@@ -178,7 +181,7 @@ public class LogisticsController {
             Long userId = userService.getCurrentUserId(authentication);
 
             // 查询订单信息（校验订单属于当前用户）
-            Order order = orderService.getOrderDetail(userId, orderId);
+           Order order = orderService.getOrderDetail(userId, orderId);
 
             // 订单不存在时返回错误
             if (order == null) {
@@ -204,11 +207,48 @@ public class LogisticsController {
                     orderId
             );
 
+            // 查询地址信息获取收件人信息
+            final Map<String, Object> orderData = new HashMap<>();
+            // 将order对象转换为Map
+            // 使用ObjectMapper将对象转为Map
+            try {
+                JsonNode orderNode = objectMapper.valueToTree(order);
+                // 将JsonNode转为Map
+                Map<String, Object> tempData = objectMapper.convertValue(orderNode, Map.class);
+                orderData.putAll(tempData);
+            } catch (Exception e) {
+                // 如果转换失败，手动设置必要字段
+                orderData.put("id", order.getId());
+                orderData.put("orderNumber", order.getOrderNumber());
+                orderData.put("status", order.getStatus());
+                orderData.put("totalAmount", order.getTotalAmount());
+                orderData.put("shippedAt", order.getShippedAt());
+                orderData.put("trackingNumber", order.getTrackingNumber());
+                orderData.put("logisticsCode", order.getLogisticsCode());
+                orderData.put("logisticsName", order.getLogisticsName());
+            }
+
+            // 查询收件人地址信息
+            if (order.getAddressId() != null) {
+                // 使用orderMapper查询地址
+                orderMapper.findAddressByOrderId(orderId).ifPresent(address -> {
+                    // 设置收件人信息
+                    orderData.put("receiverName", address.getRecipientName());
+                    orderData.put("receiverPhone", address.getRecipientPhone());
+                    // 拼接完整地址
+                    String fullAddress = address.getProvince() + 
+                            (address.getCity() != null ? address.getCity() : "") + 
+                            (address.getDistrict() != null ? address.getDistrict() : "") + 
+                            (address.getDetailAddress() != null ? address.getDetailAddress() : "");
+                    orderData.put("receiverAddress", fullAddress);
+                });
+            }
+
             // 返回订单信息和物流信息
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "data", Map.of(
-                            "order", order,
+                            "order", orderData,
                             "logistics", logistics
                     )
             ));
@@ -241,7 +281,7 @@ public class LogisticsController {
             Long userId = userService.getCurrentUserId(authentication);
 
             // 查询订单信息（校验订单属于当前用户）
-            Order order = orderService.getOrderDetail(userId, orderId);
+           Order order = orderService.getOrderDetail(userId, orderId);
 
             // 订单不存在时返回错误
             if (order == null) {

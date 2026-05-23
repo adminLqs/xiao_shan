@@ -1,6 +1,5 @@
 <template>
   <div class="edit-product-container">
-    <!-- 页面头部 -->
     <div class="page-header">
       <h1 class="page-title">
         <i class="fas fa-edit"></i>
@@ -18,13 +17,11 @@
       </div>
     </div>
 
-    <!-- 加载状态 -->
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner"></div>
       <p>加载中...</p>
     </div>
 
-    <!-- 商品编辑表单 -->
     <div v-else class="card">
       <div class="card-header">
         <h3 class="card-title">
@@ -34,7 +31,6 @@
       </div>
       <div class="card-body">
         <form @submit.prevent="submitForm">
-          <!-- 商品名称 -->
           <div class="form-group">
             <label class="form-label required">商品名称</label>
             <input
@@ -48,20 +44,17 @@
             <small class="form-hint">{{ formData.name.length }}/100</small>
           </div>
 
-          <!-- 商品品牌 -->
           <div class="form-group">
-            <label class="form-label required">商品品牌</label>
+            <label class="form-label">商品品牌</label>
             <input
               type="text"
               class="form-control"
               placeholder="请输入商品品牌"
               v-model="formData.brand"
               maxlength="50"
-              required
             />
           </div>
 
-          <!-- 商品描述 -->
           <div class="form-group">
             <label class="form-label">商品描述</label>
             <textarea
@@ -74,58 +67,6 @@
             <small class="form-hint">{{ formData.description.length }}/500</small>
           </div>
 
-          <!-- 价格信息 -->
-          <div class="form-row">
-            <div class="form-col">
-              <div class="form-group">
-                <label class="form-label required">商品价格</label>
-                <div class="price-input">
-                  <span class="price-symbol">¥</span>
-                  <input
-                    type="number"
-                    class="form-control"
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    v-model="formData.price"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-            <div class="form-col">
-              <div class="form-group">
-                <label class="form-label">原价（选填）</label>
-                <div class="price-input">
-                  <span class="price-symbol">¥</span>
-                  <input
-                    type="number"
-                    class="form-control"
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    v-model="formData.originalPrice"
-                  />
-                </div>
-                <small class="form-hint">原价必须大于现价，用于显示折扣</small>
-              </div>
-            </div>
-          </div>
-
-          <!-- 库存 -->
-          <div class="form-group">
-            <label class="form-label required">库存数量</label>
-            <input
-              type="number"
-              class="form-control"
-              placeholder="0"
-              min="0"
-              v-model="formData.stock"
-              required
-            />
-          </div>
-
-          <!-- 商品分类 -->
           <div class="form-group">
             <label class="form-label required">商品分类</label>
             <div class="category-selector">
@@ -155,7 +96,6 @@
             </div>
           </div>
 
-          <!-- 商品状态 -->
           <div class="form-group">
             <label class="form-label">商品状态</label>
             <div class="status-selector">
@@ -170,7 +110,6 @@
             </div>
           </div>
 
-          <!-- 商品图片 -->
           <div class="form-group">
             <label class="form-label required">商品图片</label>
             <div
@@ -194,8 +133,6 @@
               style="display: none"
               @change="handleFileSelect"
             />
-
-            <!-- 图片预览列表 -->
             <div class="image-preview-list" v-if="imageList.length > 0">
               <div
                 v-for="(image, index) in imageList"
@@ -213,357 +150,374 @@
         </form>
       </div>
     </div>
+
+    <div v-if="!isLoading" class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-list"></i>
+          SKU规格
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="sku-edit-section">
+          <div class="sku-table">
+            <div class="sku-table-header">
+              <span class="sku-col-name">规格组合</span>
+              <span class="sku-col-price">价格</span>
+              <span class="sku-col-original">原价</span>
+              <span class="sku-col-stock">库存</span>
+            </div>
+            <div v-for="(sku, index) in skuList" :key="sku.id || index" class="sku-table-row">
+              <span class="sku-name">{{ sku.skuName }}</span>
+              <div class="sku-col-price">
+                <input type="number" v-model="sku.price" min="0" step="0.01" placeholder="¥" />
+              </div>
+              <div class="sku-col-original">
+                <input type="number" v-model="sku.originalPrice" min="0" step="0.01" placeholder="¥" />
+              </div>
+              <div class="sku-col-stock">
+                <input type="number" v-model="sku.stock" min="0" placeholder="库存" />
+              </div>
+            </div>
+            <div v-if="skuList.length === 0" class="sku-empty">
+              暂无规格信息
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
-  import { authAPI } from '@/api/authAPI'
-  import Message from '@/utils/message'
-  import { useAuthStore } from '@/stores/auth'
-  import { storeToRefs } from 'pinia'
+import { ref, reactive, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { authAPI } from '@/api/authAPI'
+import Message from '@/utils/message'
+import { useAuthStore } from '@/stores/auth'
 
-  // ============ Pinia 权限状态 ============
-  const authStore = useAuthStore()
-  const { isLoggedIn, role, status } = storeToRefs(authStore)
+const authStore = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 
-  // ============ 类型定义 ============
-  interface Category {
-    id: number
-    name: string
-    parentId: number | null
-    isActive: boolean
-  }
+interface Category {
+  id: number
+  name: string
+  parentId: number | null
+  isActive: boolean
+}
 
-  interface ProductImage {
-    id: number
-    url: string
-    file?: File
-    isNew?: boolean
-  }
+interface ProductImage {
+  id: number
+  url: string
+  file?: File
+  isNew?: boolean
+}
 
-  // ============ 路由 ============
-  const route = useRoute()
-  const router = useRouter()
+interface SkuItem {
+  id?: number
+  skuName: string
+  specInfo?: Record<string, string>
+  price: number | null
+  originalPrice: number | null
+  stock: number | null
+  skuImage?: string
+  sortOrder?: number
+}
 
-  // ============ 商品ID ============
-  const productId = ref<number>(0)
+const productId = ref<number>(0)
 
-  // ============ 表单数据 ============
-  const formData = reactive({
-    name: '',
-    brand: '',
-    description: '',
-    price: '',
-    originalPrice: '',
-    stock: '',
-    categoryId: '',
-    status: 1
-  })
+const formData = reactive({
+  name: '',
+  brand: '',
+  description: '',
+  categoryId: '',
+  status: 1
+})
 
-  // ============ 分类数据 ============
-  const allCategories = ref<Category[]>([])
-  const level1Categories = ref<Category[]>([])
-  const level2Categories = ref<Category[]>([])
-  const selectedLevel1 = ref('')
-  const selectedLevel2 = ref('')
+const allCategories = ref<Category[]>([])
+const level1Categories = ref<Category[]>([])
+const level2Categories = ref<Category[]>([])
+const selectedLevel1 = ref('')
+const selectedLevel2 = ref('')
 
-  // ============ 图片相关 ============
-  const imageList = ref<ProductImage[]>([])
-  const fileInput = ref<HTMLInputElement | null>(null)
-  const isDragOver = ref(false)
+const imageList = ref<ProductImage[]>([])
+const fileInput = ref<HTMLInputElement | null>(null)
+const isDragOver = ref(false)
 
-  // ============ 状态 ============
-  const isSubmitting = ref(false)
-  const isLoading = ref(true)
+const skuList = ref<SkuItem[]>([])
 
+const isSubmitting = ref(false)
+const isLoading = ref(true)
 
-  // ============ 加载所有分类 ============
-  const loadAllCategories = async () => {
-    try {
-      const response = await authAPI.getAllCategories()
-      if (response.success && response.data?.categories) {
-        allCategories.value = response.data.categories
-
-        // 提取一级分类（parentId为null）
-        level1Categories.value = allCategories.value.filter(
-          cat => cat.parentId === null && cat.isActive
-        )
-      }
-    } catch (error) {
-      console.error('加载分类失败:', error)
-      Message.error('加载分类失败')
+const loadAllCategories = async () => {
+  try {
+    const response = await authAPI.getAllCategories()
+    if (response.success && response.data?.categories) {
+      allCategories.value = response.data.categories
+      level1Categories.value = allCategories.value.filter(
+        cat => cat.parentId === null && cat.isActive
+      )
     }
+  } catch (error) {
+    Message.error('加载分类失败')
+  }
+}
+
+const setCategoryByLevel2Id = (categoryId: number) => {
+  const level2Cat = allCategories.value.find(cat => cat.id === categoryId)
+  if (level2Cat && level2Cat.parentId) {
+    selectedLevel1.value = String(level2Cat.parentId)
+    loadLevel2Categories()
+    selectedLevel2.value = String(categoryId)
+    formData.categoryId = String(categoryId)
+  }
+}
+
+const loadLevel2Categories = () => {
+  if (!selectedLevel1.value) {
+    level2Categories.value = []
+    return
   }
 
-  // ============ 根据二级分类ID设置一级分类 ============
-  const setCategoryByLevel2Id = (categoryId: number) => {
-    // 查找二级分类
-    const level2Cat = allCategories.value.find(cat => cat.id === categoryId)
-    if (level2Cat && level2Cat.parentId) {
-      // 设置一级分类
-      selectedLevel1.value = String(level2Cat.parentId)
-      // 加载二级分类列表
-      loadLevel2Categories()
-      // 设置二级分类
-      selectedLevel2.value = String(categoryId)
-      // 更新表单分类ID
-      formData.categoryId = String(categoryId)
-    }
-  }
+  level2Categories.value = allCategories.value.filter(
+    cat => cat.parentId === Number(selectedLevel1.value) && cat.isActive
+  )
+}
 
-  // ============ 加载二级分类 ============
-  const loadLevel2Categories = () => {
-    if (!selectedLevel1.value) {
-      level2Categories.value = []
-      return
-    }
+const loadProductDetail = async () => {
+  isLoading.value = true
 
-    level2Categories.value = allCategories.value.filter(
-      cat => cat.parentId === Number(selectedLevel1.value) && cat.isActive
-    )
-  }
+  try {
+    productId.value = Number(route.params.productId)
 
-  // ============ 加载商品详情 ============
-  const loadProductDetail = async () => {
-    isLoading.value = true
-
-    try {
-      // 从路由参数获取商品ID
-      productId.value = Number(route.params.productId)
-
-      if (!productId.value) {
-        Message.error('商品ID不存在')
-        router.push('/seller/products')
-        return
-      }
-
-      // 1. 先加载所有分类
-      await loadAllCategories()
-
-      // 2. 调用API获取商品详情
-      const response = await authAPI.getProduct(productId.value)
-
-      if (response.success && response.data?.product) {
-        const product = response.data.product
-
-        // 填充表单数据
-        formData.name = product.name || ''
-        formData.brand = product.brand || ''
-        formData.description = product.description || ''
-        formData.price = product.price || ''
-        formData.originalPrice = product.originalPrice || ''
-        formData.stock = product.stock || ''
-        formData.status = product.status ?? 1
-        formData.categoryId = product.categoryId || ''
-
-        // 设置分类默认值
-        if (product.categoryId) {
-          setCategoryByLevel2Id(Number(product.categoryId))
-        }
-
-        // 处理图片（后端返回的是逗号分隔的字符串）
-        if (product.images && product.images !== 'null') {
-          const imageUrls = product.images.split(',')
-          imageList.value = imageUrls.map((url, index) => ({
-            id: Date.now() + index,
-            url: url,
-            isNew: false
-          }))
-        }
-
-      } else {
-        throw new Error(response.message || '加载商品失败')
-      }
-    } catch (error: any) {
-      console.error('加载商品失败:', error)
-      Message.error(error.message || '加载商品失败')
+    if (!productId.value) {
+      Message.error('商品ID不存在')
       router.push('/seller/products')
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  // ============ 分类联动 ============
-  const onLevel1Change = () => {
-    // 清空二级分类选择
-    selectedLevel2.value = ''
-    formData.categoryId = ''
-
-    if (!selectedLevel1.value) {
-      level2Categories.value = []
       return
     }
 
-    // 加载对应的二级分类
-    level2Categories.value = allCategories.value.filter(
-      cat => cat.parentId === Number(selectedLevel1.value) && cat.isActive
-    )
-  }
+    await loadAllCategories()
 
-  const onLevel2Change = () => {
-    if (selectedLevel2.value) {
-      formData.categoryId = selectedLevel2.value
+    const productResponse = await authAPI.getProduct(productId.value)
+    if (productResponse.success && productResponse.data?.product) {
+      const product = productResponse.data.product
+
+      formData.name = product.name || ''
+      formData.brand = product.brand || ''
+      formData.description = product.description || ''
+      formData.status = product.status ?? 1
+      formData.categoryId = product.categoryId || ''
+
+      if (product.categoryId) {
+        setCategoryByLevel2Id(Number(product.categoryId))
+      }
+
+      if (product.images && product.images !== 'null') {
+        const imageUrls = product.images.split(',')
+        imageList.value = imageUrls.map((url, index) => ({
+          id: Date.now() + index,
+          url: url,
+          isNew: false
+        }))
+      }
     } else {
-      formData.categoryId = ''
-    }
-  }
-
-  // ============ 图片上传 ============
-  const triggerFileInput = () => {
-    fileInput.value?.click()
-  }
-
-  const onDragOver = () => {
-    isDragOver.value = true
-  }
-
-  const onDragLeave = () => {
-    isDragOver.value = false
-  }
-
-  const onFileDrop = (e: DragEvent) => {
-    isDragOver.value = false
-    const files = e.dataTransfer?.files
-    if (files && files.length > 0) {
-      handleFiles(Array.from(files))
-    }
-  }
-
-  const handleFileSelect = (e: Event) => {
-    const input = e.target as HTMLInputElement
-    const files = input.files
-    if (files && files.length > 0) {
-      handleFiles(Array.from(files))
-    }
-    input.value = ''
-  }
-
-  const handleFiles = (files: File[]) => {
-    if (imageList.value.length + files.length > 5) {
-      Message.error('最多只能上传5张图片！')
-      return
+      throw new Error(productResponse.message || '加载商品失败')
     }
 
-    for (const file of files) {
-      if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
-        Message.error(`文件 ${file.name} 格式不支持`)
-        continue
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        Message.error(`文件 ${file.name} 超过5MB`)
-        continue
-      }
-
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        imageList.value.push({
-          id: Date.now() + Math.random(),
-          url: e.target?.result as string,
-          file: file,
-          isNew: true
-        })
-      }
-      reader.readAsDataURL(file)
+    const skuResponse = await authAPI.getProductSkus(productId.value)
+    if (skuResponse.success && skuResponse.data?.skus) {
+      skuList.value = skuResponse.data.skus.map((sku: any) => ({
+        id: sku.id,
+        skuName: sku.skuName,
+        specInfo: sku.specInfo ? JSON.parse(sku.specInfo) : {},
+        price: sku.price,
+        originalPrice: sku.originalPrice,
+        stock: sku.stock,
+        skuImage: sku.skuImage,
+        sortOrder: sku.sortOrder
+      }))
     }
-  }
 
-  const removeImage = (index: number) => {
-    imageList.value.splice(index, 1)
-  }
-
-  // ============ 表单验证 ============
-  const validateForm = (): boolean => {
-    if (!formData.name.trim()) {
-      Message.error('请输入商品名称')
-      return false
-    }
-    if (!formData.brand.trim()) {
-      Message.error('请输入商品品牌')
-      return false
-    }
-    if (!formData.price || parseFloat(formData.price) <= 0) {
-      Message.error('请输入有效的商品价格')
-      return false
-    }
-    if (!formData.stock || parseInt(formData.stock) < 0) {
-      Message.error('请输入有效的库存数量')
-      return false
-    }
-    if (!formData.categoryId) {
-      Message.error('请选择商品分类')
-      return false
-    }
-    if (imageList.value.length === 0) {
-      Message.error('请至少上传一张商品图片')
-      return false
-    }
-    return true
-  }
-
-  // ============ 提交表单 ============
-  const submitForm = async () => {
-    if (!validateForm()) return
-
-    isSubmitting.value = true
-
-    try {
-      const formDataObj = new FormData()
-
-      // 商品数据
-      const productData = {
-        name: formData.name.trim(),
-        brand: formData.brand.trim(),
-        description: formData.description.trim(),
-        price: parseFloat(formData.price),
-        originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : null,
-        stock: parseInt(formData.stock, 10),
-        categoryId: parseInt(formData.categoryId, 10),
-        status: formData.status
-      }
-
-      formDataObj.append('products', new Blob([JSON.stringify(productData)], { type: 'application/json' }))
-
-      // 只上传新增的图片
-      imageList.value.forEach((img) => {
-        if (img.isNew && img.file) {
-          formDataObj.append('images', img.file)
-        }
-      })
-
-      const response = await authAPI.updateProduct(productId.value, formDataObj)
-
-      if (response.success) {
-        Message.success('保存成功')
-        setTimeout(() => {
-          router.push('/seller/products')
-        }, 1500)
-      } else {
-        throw new Error(response.message || '保存失败')
-      }
-    } catch (error: any) {
-      Message.error(error.message || '保存失败')
-    } finally {
-      isSubmitting.value = false
-    }
-  }
-
-  // ============ 返回 ============
-  const goBack = () => {
+  } catch (error: any) {
+    Message.error(error.message || '加载商品失败')
     router.push('/seller/products')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const onLevel1Change = () => {
+  selectedLevel2.value = ''
+  formData.categoryId = ''
+
+  if (!selectedLevel1.value) {
+    level2Categories.value = []
+    return
   }
 
-  // ============ 生命周期 ============
-  onMounted(() => {
-    // 校验权限
-    if (!authStore.validateSellerPermission()) return;
+  level2Categories.value = allCategories.value.filter(
+    cat => cat.parentId === Number(selectedLevel1.value) && cat.isActive
+  )
+}
 
-    loadProductDetail()
-  })
+const onLevel2Change = () => {
+  if (selectedLevel2.value) {
+    formData.categoryId = selectedLevel2.value
+  } else {
+    formData.categoryId = ''
+  }
+}
+
+const triggerFileInput = () => {
+  fileInput.value?.click()
+}
+
+const onDragOver = () => {
+  isDragOver.value = true
+}
+
+const onDragLeave = () => {
+  isDragOver.value = false
+}
+
+const onFileDrop = (e: DragEvent) => {
+  isDragOver.value = false
+  const files = e.dataTransfer?.files
+  if (files && files.length > 0) {
+    handleFiles(Array.from(files))
+  }
+}
+
+const handleFileSelect = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const files = input.files
+  if (files && files.length > 0) {
+    handleFiles(Array.from(files))
+  }
+  input.value = ''
+}
+
+const handleFiles = (files: File[]) => {
+  if (imageList.value.length + files.length > 5) {
+    Message.error('最多只能上传5张图片！')
+    return
+  }
+
+  for (const file of files) {
+    if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
+      Message.error(`文件 ${file.name} 格式不支持`)
+      continue
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      Message.error(`文件 ${file.name} 超过5MB`)
+      continue
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      imageList.value.push({
+        id: Date.now() + Math.random(),
+        url: e.target?.result as string,
+        file: file,
+        isNew: true
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+const removeImage = (index: number) => {
+  imageList.value.splice(index, 1)
+}
+
+const validateForm = (): boolean => {
+  if (!formData.name.trim()) {
+    Message.error('请输入商品名称')
+    return false
+  }
+  if (!formData.categoryId) {
+    Message.error('请选择商品分类')
+    return false
+  }
+  if (imageList.value.length === 0) {
+    Message.error('请至少上传一张商品图片')
+    return false
+  }
+  for (const sku of skuList.value) {
+    if (!sku.price || sku.price < 0.01) {
+      Message.error('SKU价格不能低于0.01元')
+      return false
+    }
+    if (sku.stock == null || sku.stock < 0) {
+      Message.error('SKU库存不能为负数')
+      return false
+    }
+  }
+  return true
+}
+
+const submitForm = async () => {
+  if (!validateForm()) return
+
+  isSubmitting.value = true
+
+  try {
+    const formDataObj = new FormData()
+
+    const productData: any = {
+      name: formData.name.trim(),
+      brand: formData.brand.trim(),
+      description: formData.description.trim(),
+      categoryId: parseInt(formData.categoryId, 10),
+      status: formData.status,
+      skus: skuList.value.map(sku => ({
+        id: sku.id,
+        skuName: sku.skuName,
+        specInfo: sku.specInfo,
+        price: sku.price,
+        originalPrice: sku.originalPrice,
+        stock: sku.stock
+      }))
+    }
+
+    formDataObj.append('products', new Blob([JSON.stringify(productData)], { type: 'application/json' }))
+
+    imageList.value.forEach((img) => {
+      if (img.isNew && img.file) {
+        formDataObj.append('images', img.file)
+      }
+    })
+
+    const response = await authAPI.updateProduct(productId.value, formDataObj)
+
+    if (response.success) {
+      Message.success('保存成功')
+      setTimeout(() => {
+        router.push('/seller/products')
+      }, 1500)
+    } else {
+      throw new Error(response.message || '保存失败')
+    }
+  } catch (error: any) {
+    Message.error(error.message || '保存失败')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const goBack = () => {
+  router.push('/seller/products')
+}
+
+onMounted(() => {
+  if (!authStore.validateSellerPermission()) return
+
+  loadProductDetail()
+})
 </script>
 
 <style scoped>
-  @import url('@/static/css/seller/商品编辑页.css');
+@import url('@/static/css/seller/商品编辑页.css');
 </style>

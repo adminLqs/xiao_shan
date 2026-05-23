@@ -1,851 +1,314 @@
-/* 个人中心容器样式 - 纯移动端版本 */
-.user-center-container {
-  width: 100%;
-  max-width: 100%;
-  padding: 12px;
+/* 个人中心页面样式 - 活泼清爽风格 */
+
+/* 主题色变量 */
+:root {
+  --primary-color: #4a6491;
+  --primary-gradient: linear-gradient(135deg, #5a749f, #6b82ab);
+  --accent-color: #f43f5e;
+  --bg-color: #f0f4ff;
+  --card-bg: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  --icon-bg: #eef2ff;
+  --divider-color: #f1f5f9;
+}
+
+/* 整体页面样式 */
+.user-center {
+  min-height: 100vh;
+  background: var(--bg-color);
   padding-bottom: env(safe-area-inset-bottom);
+  position: relative;
 }
 
-/* 欢迎横幅 - 紧凑布局 */
-.welcome-banner {
-  background: linear-gradient(135deg, #4a6491, #3a5479);
-  color: white;
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 15px;
-  margin-bottom: 20px;
-  box-shadow: 0 5px 15px rgba(74, 100, 145, 0.2);
-}
-
-.banner-content h2 {
-  font-size: 20px;
-  margin-bottom: 8px;
-}
-
-.banner-content p {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.banner-actions {
-  display: flex;
-  width: 100%;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-/* 按钮基础样式 - 触摸友好 */
-.btn {
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  border: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-}
-
-/* 主要按钮 - 用于横幅等深色背景 */
-.primary-btn {
-  background: white;
-  color: #4a6491;
-}
-
-.primary-btn:hover {
-  background: #f8fafc;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* 轮廓按钮 - 通用样式 */
-.outline-btn {
-  background: transparent;
-  color: #4a6491;
-  border: 1px solid #4a6491;
-}
-
-.outline-btn:hover {
-  background: rgba(74, 100, 145, 0.1);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.small-btn {
-  padding: 10px 16px;
-  font-size: 13px;
-  min-height: 40px;
-}
-
-/* ========== 订单卡片中的按钮样式（与订单列表页统一 - 企业级方角规范） ========== */
-
-/* 立即付款按钮 - 主要按钮 */
-.order-footer .btn-pay {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 20px;
-  background: #4a6491;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  white-space: nowrap;
-  min-height: 44px;
-}
-
-.order-footer .btn-pay:hover {
-  background: #3a5479;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(74, 100, 145, 0.3);
-}
-
-.order-footer .btn-pay:active {
-  transform: translateY(0);
-}
-
-.order-footer .btn-pay i {
-  font-size: 12px;
-}
-
-/* 取消订单按钮 - 危险边框按钮 */
-.order-footer .btn-cancel {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 20px;
-  background: white;
-  color: #ef4444;
-  border: 1px solid #fee2e2;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  white-space: nowrap;
-  min-height: 44px;
-}
-
-.order-footer .btn-cancel:hover {
-  background: #fef2f2;
-  border-color: #ef4444;
-  transform: translateY(-1px);
-}
-
-.order-footer .btn-cancel:active {
-  transform: translateY(0);
-}
-
-.order-footer .btn-cancel i {
-  font-size: 12px;
-}
-
-/* 查看物流按钮 - 次要边框按钮 */
-.order-footer .btn-tracking {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 20px;
-  background: white;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  white-space: nowrap;
-  min-height: 44px;
-}
-
-.order-footer .btn-tracking:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #4a6491;
-  transform: translateY(-1px);
-}
-
-.order-footer .btn-tracking i {
-  font-size: 12px;
-}
-
-/* 确认收货按钮 - 成功按钮 */
-.order-footer .btn-confirm {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 20px;
-  background: #10b981;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  white-space: nowrap;
-  min-height: 44px;
-}
-
-.order-footer .btn-confirm:hover {
-  background: #059669;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-}
-
-.order-footer .btn-confirm:active {
-  transform: translateY(0);
-}
-
-.order-footer .btn-confirm i {
-  font-size: 12px;
-}
-
-/* 查看详情按钮 - 次要边框按钮 */
-.order-footer .btn-detail {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 20px;
-  background: white;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  white-space: nowrap;
-  min-height: 44px;
-}
-
-.order-footer .btn-detail:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #4a6491;
-  transform: translateY(-1px);
-}
-
-.order-footer .btn-detail i {
-  font-size: 12px;
-}
-
-/* 按钮禁用状态 */
-.order-footer .btn-pay:disabled,
-.order-footer .btn-cancel:disabled,
-.order-footer .btn-tracking:disabled,
-.order-footer .btn-confirm:disabled,
-.order-footer .btn-detail:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* 快捷入口 */
-.quick-actions {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.section-header h3 {
-  font-size: 16px;
-  color: #2c3e50;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.section-header i {
-  color: #4a6491;
-}
-
-.view-all {
-  font-size: 13px;
-  color: #64748b;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.3s;
-}
-
-.view-all:hover {
-  color: #4a6491;
-}
-
-/* 快捷入口 - 2列网格布局 */
-.action-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.action-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-decoration: none;
-  color: #475569;
-  transition: all 0.3s;
-  padding: 16px 8px;
-  border-radius: 8px;
-  background: #f8fafc;
-  cursor: pointer;
-  min-height: 90px;
-}
-
-.action-item:hover {
-  background: #4a6491;
-  transform: translateY(-3px);
-  color: white;
-}
-
-.action-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-  font-size: 18px;
-  color: white;
-}
-
-.action-icon.pending { background: #f59e0b; }
-.action-icon.shipped { background: #3b82f6; }
-.action-icon.completed { background: #10b981; }
-.action-icon.wishlist { background: #ef4444; }
-.action-icon.coupon { background: #8b5cf6; }
-.action-icon.address { background: #64748b; }
-
-/* 订单卡片 - 全宽 */
-.recent-orders {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  width: 100%;
-}
-
-.orders-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.order-card {
-  border: 1px solid #eaeaea;
-  border-radius: 10px;
-  overflow: hidden;
-  transition: all 0.3s;
-  width: 100%;
-}
-
-.order-card:hover {
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid #eaeaea;
-  font-size: 13px;
-}
-
-.order-id { color: #64748b; }
-.order-date { color: #64748b; }
-
-.order-status {
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: bold;
-}
-.order-status.pending { background: #fef3c7; color: #92400e; }
-.order-status.shipped { background: #dbeafe; color: #1e40af; }
-.order-status.completed { background: #d1fae5; color: #065f46; }
-
-.order-amount { font-weight: bold; color: #2c3e50; }
-
-.order-products { padding: 12px 16px; }
-.product-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.product-item img {
-  width: 60px;
+/* 顶部装饰圆弧 */
+.user-center::before {
+  content: '';
+  display: block;
   height: 60px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #eaeaea;
-}
-.product-info {
-  flex: 1;
-  min-width: 120px;
-}
-.product-info h4 {
-  font-size: 14px;
-  color: #2c3e50;
-  margin-bottom: 4px;
-  font-weight: normal;
-}
-.product-info p {
-  font-size: 13px;
-  color: #64748b;
+  background: linear-gradient(135deg, #6b82ab, #7a92bb);
+  border-radius: 0 0 50% 50%;
+  margin-bottom: -30px;
+  position: relative;
+  z-index: 1;
 }
 
-.order-footer {
+/* 顶部光斑装饰 */
+.user-center::after {
+  content: '';
+  position: absolute;
+  top: -20px;
+  right: 20px;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  z-index: 0;
+}
+
+/* 顶部栏 */
+.center-header {
+  height: 48px;
+  padding: 0 16px;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 12px 16px;
-  border-top: 1px solid #eaeaea;
-  background: #f8fafc;
-}
-
-/* 收藏商品 - 全宽 */
-.wishlist-section {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  width: 100%;
-}
-
-.wishlist-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-
-.wishlist-item {
-  border: 1px solid #eaeaea;
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
+  align-items: center;
   position: relative;
-  transition: all 0.3s;
+  z-index: 2;
 }
 
-.wishlist-item:hover {
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  transform: translateY(-3px);
+.header-actions {
+  display: flex;
+  gap: 20px;
 }
 
-.wishlist-item img {
-  width: 70px;
-  height: 70px;
+.header-actions i {
+  font-size: 18px;
+  color: #4a6491 !important;
+}
+
+/* 用户头像行 */
+.user-info-card {
+  background: var(--card-bg);
+  margin: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.user-info-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.user-info-card:hover .user-avatar {
+  transform: scale(1.03);
+}
+
+.user-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
   object-fit: cover;
-  border-radius: 6px;
-  margin-right: 12px;
+  margin-right: 14px;
+  border: 3px solid var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(74, 100, 145, 0.15);
+  transition: transform 0.3s;
 }
 
-.wishlist-item .product-info {
+.user-avatar:active {
+  transform: scale(0.95);
+}
+
+.user-text {
   flex: 1;
-}
-.wishlist-item .product-info h4 {
-  font-size: 14px;
-  color: #2c3e50;
-  margin-bottom: 8px;
-  font-weight: normal;
-}
-.price {
-  font-size: 15px;
-  color: #ef4444;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.remove-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #f8fafc;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s;
-  min-height: 28px;
-}
-.remove-btn:hover {
-  background: #ef4444;
-  color: white;
+  flex-direction: column;
+  gap: 6px;
 }
 
-/* ========== 核心数据卡片样式 ========== */
-/* 统计数据网格布局 - 2列 */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-/* 统计卡片样式 */
-.stat-card {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s;
-  cursor: pointer;
-}
-
-/* 统计卡片悬浮效果 */
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-}
-
-/* 统计图标容器 */
-.stat-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
-
-/* 待付款图标样式 */
-.stat-icon.pending {
-  background: #fef3c7;
-  color: #f59e0b;
-}
-
-/* 已付款图标样式 */
-.stat-icon.paid {
-  background: #dbeafe;
-  color: #3b82f6;
-}
-
-/* 已发货图标样式 */
-.stat-icon.shipped {
-  background: #cffafe;
-  color: #06b6d4;
-}
-
-/* 已完成图标样式 */
-.stat-icon.completed {
-  background: #dcfce7;
-  color: #10b981;
-}
-
-/* 统计信息区域 */
-.stat-info {
-  flex: 1;
-}
-
-/* 统计数值 */
-.stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-/* 统计标签 */
-.stat-label {
-  font-size: 13px;
-  color: #64748b;
-  margin-top: 2px;
-}
-
-/* 统计卡片操作箭头 */
-.stat-action {
-  color: #cbd5e1;
-  transition: all 0.3s;
-}
-
-/* 卡片悬浮时箭头移动 */
-.stat-card:hover .stat-action {
-  color: #4a6491;
-  transform: translateX(4px);
-}
-
-/* ========== 快捷入口区域 ========== */
-/* 快捷操作区域 */
-.quick-actions {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-/* 区域头部 */
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-/* 区域标题 */
-.section-header h3 {
-  font-size: 16px;
+.user-name {
+  font-size: 17px;
   font-weight: 600;
-  color: #1e293b;
-  margin: 0;
+  color: var(--text-primary);
+}
+
+.user-tip {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--primary-color);
+  background: #eef2ff;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+/* 订单状态栏 */
+.order-status-bar {
+  background: var(--card-bg);
+  margin: 0 12px 10px;
+  padding: 16px;
+  border-radius: 16px;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  justify-content: space-around;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
-/* 查看全部链接 */
-.view-all {
-  font-size: 13px;
-  color: #4a6491;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* 快捷操作网格 - 2列 */
-.action-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-/* 快捷操作项 */
-.action-item {
+.status-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 16px 8px;
-  border-radius: 12px;
-  background: #f8fafc;
-  cursor: pointer;
-  transition: all 0.3s;
-  text-decoration: none;
+  gap: 6px;
   position: relative;
-  min-height: 90px;
+  min-width: 50px;
+  flex: 1;
+  border-right: 1px solid var(--divider-color);
+  transition: transform 0.15s;
+  cursor: pointer;
 }
 
-/* 快捷操作项悬浮效果 */
-.action-item:hover {
-  background: #4a6491;
-  transform: translateY(-4px);
+.status-item:last-child {
+  border-right: none;
 }
 
-/* 操作项图标 */
-.action-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  transition: all 0.3s;
+.status-item:active {
+  transform: scale(0.95);
 }
 
-/* 操作项文字 */
-.action-item span:not(.badge) {
-  font-size: 13px;
-  font-weight: 500;
-  color: #1e293b;
+.status-item i {
+  font-size: 22px;
+  color: #4a6491 !important;
+  transition: transform 0.2s;
 }
 
-/* 悬浮时文字颜色变化 */
-.action-item:hover span:not(.badge) {
-  color: white;
+.status-item:hover i {
+  transform: translateY(-2px);
 }
 
-/* 角标徽章 */
-.badge {
+.status-item span:not(.badge) {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.status-item .badge {
   position: absolute;
-  top: 6px;
-  right: 16px;
-  background: #ef4444;
+  top: -4px;
+  right: 8px;
+  background: var(--accent-color);
   color: white;
   font-size: 11px;
   padding: 2px 6px;
+  border-radius: 8px;
+  min-width: 18px;
+  text-align: center;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* 功能菜单列表 */
+.menu-list {
+  background: var(--card-bg);
+  margin: 0 12px 10px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.menu-item {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--divider-color);
+  font-size: 15px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.menu-item:hover {
+  background: #fafbff;
+}
+
+.menu-item:hover::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  background: var(--primary-color);
+  border-radius: 0 2px 2px 0;
+}
+
+.menu-item:active {
+  background: #f0f2ff;
+}
+
+.menu-item > i:first-child {
+  background: linear-gradient(135deg, #eef2ff, #f0f4ff);
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #4a6491 !important;
+  transition: background 0.2s;
+}
+
+.menu-item > span:first-of-type {
+  flex: 1;
+}
+
+.menu-item .badge {
+  background: var(--accent-color);
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 8px;
   min-width: 18px;
   text-align: center;
 }
 
-/* ========== 空状态样式 ========== */
-/* 暂无订单样式 */
-.empty-orders {
-  text-align: center;
-  padding: 40px 16px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.empty-orders i {
-  font-size: 48px;
-  color: #cbd5e1;
-  margin-bottom: 12px;
-}
-
-.empty-orders p {
-  font-size: 13px;
-  color: #64748b;
-  margin-bottom: 16px;
-}
-
-.empty-orders .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: #4a6491;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  transition: all 0.3s;
-  min-height: 44px;
-}
-
-.empty-orders .btn:hover {
-  background: #3a5479;
-  transform: translateY(-2px);
-}
-
-/* 暂无收藏商品样式 */
-.empty-wishlist {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 40px 16px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.empty-wishlist i {
-  font-size: 48px;
-  color: #cbd5e1;
-  margin-bottom: 12px;
-}
-
-.empty-wishlist p {
-  font-size: 13px;
-  color: #64748b;
-  margin-bottom: 16px;
-}
-
-.empty-wishlist .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: #4a6491;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  transition: all 0.3s;
-  min-height: 44px;
-}
-
-.empty-wishlist .btn:hover {
-  background: #3a5479;
-  transform: translateY(-2px);
-}
-
-/* 收藏商品售罄样式 */
-.wishlist-item {
-  position: relative;
-}
-
-.wishlist-item.out-of-stock {
-  opacity: 0.7;
-}
-
-.wishlist-item.out-of-stock .product-info h4,
-.wishlist-item.out-of-stock .price {
-  color: #9ca3af;
-}
-
-.sold-out-mask {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 8px;
-}
-
-.disabled-btn {
-  background: #9ca3af !important;
-  cursor: not-allowed !important;
-  opacity: 0.6;
-}
-
-.disabled-btn:hover {
-  transform: none !important;
-}
-
-/* 订单内商品评价标签和退款按钮 */
-.order-products .reviewed-badge,
-.order-products .btn-refund-item {
-  padding: 6px 12px;
+.menu-item .arrow {
   font-size: 12px;
+  color: #a5b4fc !important;
 }
+
+/* 底部按钮 */
+.bottom-actions {
+  margin-top: 20px;
+  padding: 0 12px 20px;
+}
+
+.btn-back {
+  width: 100%;
+  height: 48px;
+  background: var(--primary-gradient);
+  border: none;
+  border-radius: 24px;
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
+  box-shadow: 0 4px 15px rgba(74, 100, 145, 0.35);
+  transition: all 0.3s;
+}
+
+.btn-back:hover {
+  box-shadow: 0 6px 20px rgba(74, 100, 145, 0.45);
+  transform: translateY(-2px);
+}
+
+.btn-back:active {
+  transform: scale(0.98) translateY(0);
+  box-shadow: 0 3px 10px rgba(74, 100, 145, 0.3);
+}
+
+.btn-logout {
+  width: 100%;
+  height: 44px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 14px;
+  margin-top: 12px;
+  border-radius: 24px;
+}
+
+.btn-logout:active {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+

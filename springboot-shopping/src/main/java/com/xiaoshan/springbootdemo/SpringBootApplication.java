@@ -1,10 +1,12 @@
 package com.xiaoshan.springbootdemo;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @org.springframework.boot.autoconfigure.SpringBootApplication
 @EnableScheduling // 启用定时任务
+@MapperScan("com.xiaoshan.springbootdemo.mapper") // 扫描Mapper接口
 public class SpringBootApplication {
 
     public static void main(String[] args) {

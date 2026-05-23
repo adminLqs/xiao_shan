@@ -74,9 +74,6 @@ CREATE TABLE products (
     name VARCHAR(255) NOT NULL COMMENT '商品名称',
     brand VARCHAR(100) COMMENT '品牌',
     description TEXT COMMENT '商品描述',
-    price DECIMAL(10,2) NOT NULL COMMENT '价格',
-    original_price DECIMAL(10,2) COMMENT '商品原价',
-    stock INT DEFAULT 0 COMMENT '库存',
     sales_count INT DEFAULT 0 COMMENT '已售数量',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -85,6 +82,24 @@ CREATE TABLE products (
     FOREIGN KEY (seller_id) REFERENCES users(id),
     FOREIGN KEY (category_id) REFERENCES categories(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
+
+-- 商品SKU表
+CREATE TABLE IF NOT EXISTS product_skus (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'SKU ID',
+    product_id BIGINT NOT NULL COMMENT '商品ID',
+    sku_name VARCHAR(200) NOT NULL COMMENT 'SKU名称，如"红色-128GB"或"单品"',
+    spec_info JSON COMMENT '规格信息，如{"颜色":"红色","内存":"128GB"}或{"默认":"单品"}',
+    price DECIMAL(10,2) NOT NULL COMMENT 'SKU价格',
+    original_price DECIMAL(10,2) COMMENT 'SKU原价',
+    stock INT NOT NULL DEFAULT 0 COMMENT 'SKU库存',
+    sku_image VARCHAR(500) COMMENT 'SKU主图',
+    sort_order INT DEFAULT 0 COMMENT '排序',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    INDEX idx_product_id (product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品SKU表';
 
 -- 商品图片
 CREATE TABLE product_images (
@@ -168,19 +183,21 @@ CREATE TABLE IF NOT EXISTS order_items (
     -- 关联信息
     order_id BIGINT NOT NULL COMMENT '订单ID',
     product_id BIGINT NOT NULL COMMENT '商品ID',
+    sku_id BIGINT NULL COMMENT 'SKU ID',
     seller_id BIGINT NOT NULL COMMENT '商家ID',
 
     -- 商品快照（防止商品信息变更后订单数据错误）
     product_name VARCHAR(255) NOT NULL COMMENT '商品名称（冗余快照）',
     product_image VARCHAR(500) COMMENT '商品图片（冗余快照）',
+    sku_name VARCHAR(200) NULL COMMENT 'SKU规格名称（快照）',
 
     -- 数量与价格
     quantity INT NOT NULL COMMENT '购买数量',
     price DECIMAL(10,2) NOT NULL COMMENT '下单时单价',
-    total_price DECIMAL(10,2) NOT NULL COMMENT '小计金额 = price * quantity',
+    total_price DECIMAL(10,2) NOT NULL COMMENT '小计金额',
 
     -- 评论状态
-    is_reviewed TINYINT(1) DEFAULT 0 COMMENT '是否已评论: 0-未评论, 1-已评论',
+    is_reviewed TINYINT(1) DEFAULT 0 COMMENT '是否已评论',
     reviewed_at DATETIME NULL COMMENT '评论时间',
 
     -- 时间戳
@@ -189,6 +206,7 @@ CREATE TABLE IF NOT EXISTS order_items (
     -- 外键约束
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+    FOREIGN KEY (sku_id) REFERENCES product_skus(id) ON DELETE SET NULL,
 
     -- 索引优化
     INDEX idx_order_id (order_id),
@@ -235,12 +253,16 @@ CREATE TABLE cart_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL COMMENT '用户ID',
     product_id BIGINT NOT NULL COMMENT '商品ID',
+    sku_id BIGINT NULL COMMENT 'SKU ID（可选，关联 product_skus 表）',
     quantity INT NOT NULL DEFAULT 1 COMMENT '数量',
     added_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '添加时间',
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    UNIQUE KEY uk_user_product (user_id, product_id)
+    FOREIGN KEY (sku_id) REFERENCES product_skus(id) ON DELETE SET NULL,
+    UNIQUE KEY uk_user_product_sku (user_id, product_id, sku_id),
+    INDEX idx_sku_id (sku_id),
+    INDEX idx_product_sku (product_id, sku_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='购物车表';
 
 -- 收藏表
@@ -322,3 +344,16 @@ CREATE TABLE merchant_apply (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     reviewed_at DATETIME COMMENT '审核时间'
 ) COMMENT='商家申请表';
+
+CREATE TABLE IF NOT EXISTS follow_sellers (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '关注ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    seller_id BIGINT NOT NULL COMMENT '商家用户ID',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '关注时间',
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_user_seller (user_id, seller_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_seller_id (seller_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注商家表';

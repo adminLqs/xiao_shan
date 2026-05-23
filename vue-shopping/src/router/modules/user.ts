@@ -1,103 +1,97 @@
-
 export default [
 
   // ============= 登录路由 =============
   {
     path:"/login",
     name: "Login",
-    component: () => import("@/views/user/Layout/Login.vue"),
+    component: () => import("@/views/user/Login.vue"),
   },
   
-  // ============ 用户端路由 ============
-  {
-    path: '/user/dashboard',
-    name: "UserDashboard",
-    component: () => import('@/views/user/Dashboard.vue'),
-    meta: {
-      title: '用户首页',
-    },
-  },
-  
-  // 个人中心布局页
+  // ============ 用户端路由 - 移动端布局 ============
   {
     path: '/user',
-    name: 'CenterLayout',
-    component: () => import('@/views/user/Layout/CenterLayout.vue'),
-    redirect: {name: 'UserCenter'},
+    name: 'MobileLayout',
+    component: () => import('@/views/user/Layout/MobileLayout.vue'),
+    redirect: '/user/dashboard',
     children: [
-      // 个人中心
       {
-        path: 'center',
+        path: 'dashboard',
+        name: 'UserDashboard',
+        component: () => import('@/views/user/Dashboard.vue'),
+      },
+      {
+        path: 'categories',
+        name: 'UserCategories',
+        component: () => import('@/views/user/Categories.vue'),
+      },
+      {
+        path: 'messages',
+        name: 'UserMessages',
+        component: () => import('@/views/user/Messages.vue'),
+      },
+      {
+        path: '/user/center',
         name: 'UserCenter',
-        component: () => import('@/components/user/Center.vue'),
-        meta: {
-          title: '个人中心',
-        },
-      },
-      // 个人信息
-      {
-        path: 'profile',
-        name: 'UserProfile',
-        component: () => import('@/components/user/Profile.vue'),
-        meta: {
-          title: '个人资料',
-        },
-      },
-      // 订单
-      {
-        path: 'orders',
-        name: 'UserOrders',
-        component: () => import('@/components/user/Orders.vue'),
-        meta: {
-          title: '我的订单',
-        },
-      },
-      // 收藏路由
-      {
-        path: 'favorites',
-        name: 'UserFavorites',
-        component: () => import('@/components/user/Favorites.vue'),
-        meta: {
-          title: '我的收藏',
-        }
-      },
-      // 收货地址
-      {
-        path: 'addresses',
-        name: 'UserAddresses',
-        component: () => import('@/components/user/Addresses.vue'),
-        meta: {
-          title: '收货地址',
-        },
-      },
-      // 优惠券
-      {
-        path: 'coupons',
-        name: 'UserCoupons',
-        component: () => import('@/components/user/Coupons.vue'),
-        meta: {
-          title: '我的优惠券',
-        },
-      },
-      // 账户设置
-      {
-        path: 'setting',
-        name: 'UserSetting',
-        component: () => import('@/components/user/Setting.vue'),
-        meta: {
-          title: '账户设置',
-        },
+        component: () => import('@/views/user/Center.vue'),
       },
     ]
+  },
+
+  // ============ 用户端其他页面（独立路由） ============
+
+  // 搜索页
+  {
+    path: '/user/search',
+    name: 'UserSearch',
+    component: () => import('@/views/user/Search.vue'),
+  },
+
+  // 个人资料
+  {
+    path: '/user/profile',
+    name: 'UserProfile',
+    component: () => import('@/views/user/Profile.vue'),
+  },
+
+  // 订单列表
+  {
+    path: '/user/orders',
+    name: 'UserOrders',
+    component: () => import('@/views/user/Orders.vue'),
+  },
+
+  // 收藏路由
+  {
+    path: '/user/favorites',
+    name: 'UserFavorites',
+    component: () => import('@/views/user/Favorites.vue'),
+  },
+
+  // 收货地址
+  {
+    path: '/user/addresses',
+    name: 'UserAddresses',
+    component: () => import('@/views/user/Addresses.vue'),
+  },
+
+  // 优惠券
+  {
+    path: '/user/coupons',
+    name: 'UserCoupons',
+    component: () => import('@/views/user/Coupons.vue'),
+  },
+
+  // 账户设置
+  {
+    path: '/user/setting',
+    name: 'UserSetting',
+    component: () => import('@/views/user/Setting.vue'),
   },
 
   {
     path: '/merchant/apply',
     name: 'MerchantApply',
     component: () => import('@/views/user/MerchantApply.vue'),
-    meta: { 
-      title: '商家入驻申请',
-    }
   },
   
   // ============ 商品相关路由 ============
@@ -105,10 +99,14 @@ export default [
     path: '/products/:productId',
     name: 'ProductDetail',
     component: () => import('@/views/user/ProductDetail.vue'),
-    props: true,  // 将路由参数作为 props 传递给组件
-    meta: {
-      title: '商品详情',
-    },
+    props: true,
+  },
+
+  // ============ 商家店铺路由 ============
+  {
+    path: '/shop/:sellerId',
+    name: 'Shop',
+    component: () => import('@/views/user/Shop.vue'),
   },
   
   // ============ 购物车路由 ============
@@ -116,9 +114,6 @@ export default [
     path: '/cart',
     name: 'Cart',
     component: () => import('@/views/user/Cart.vue'),
-    meta: {
-      title: '购物车',   
-    },
   },
   
   // ============ 结算路由 ============
@@ -126,9 +121,6 @@ export default [
     path: '/checkout',
     name: 'Checkout',
     component: () => import('@/views/user/Checkout.vue'),
-    meta: {
-      title: '订单结算',
-    },
   },
   
   // ============ 订单相关路由 ============
@@ -137,9 +129,6 @@ export default [
     name: 'OrderDetail',
     component: () => import('@/views/user/OrderDetail.vue'),
     props: true,
-    meta: {
-      title: '订单详情',
-    },
   },
 
   // ============= 评论路由 ==============
@@ -148,9 +137,6 @@ export default [
     name: 'Review',
     component: () => import('@/views/user/Review.vue'),
     props: true,
-    meta: { 
-      title: '发表评价' 
-    }
   },
 
   // ============= 查询物流 ===============
@@ -158,10 +144,6 @@ export default [
     path: '/user/logistics',
     name: 'UserLogistics',
     component: () => import('@/views/user/Logistics.vue'),
-    meta: { 
-      title: '物流详情',
-    }
   },
-
 
 ]

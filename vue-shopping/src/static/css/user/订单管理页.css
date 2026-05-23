@@ -322,44 +322,18 @@
   margin-right: 4px;
 }
 
-/* 分页 */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #e2e8f0;
+/* 加载更多 */
+.loading-more,
+.no-more {
+  text-align: center;
+  padding: 20px;
+  color: #94a3b8;
+  font-size: 13px;
 }
 
-.page-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: white;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.25s ease;
-}
-
-.page-btn:hover:not(:disabled) {
-  background: #f8fafc;
-  border-color: #4a6491;
-  color: #4a6491;
-}
-
-.page-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.page-info {
+.loading-more i {
+  margin-right: 8px;
   font-size: 14px;
-  color: #64748b;
 }
 
 /* 动画 */
@@ -426,3 +400,84 @@
 .empty-state .btn-primary:active {
   transform: translateY(0);
 }
+
+/* ========== 支付确认弹窗样式 ========== */
+.pay-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.pay-confirm-dialog {
+  background: white;
+  border-radius: 16px;
+  padding: 32px 24px;
+  width: 280px;
+  text-align: center;
+}
+
+.pay-icon {
+  font-size: 48px;
+  color: #10b981;
+  margin-bottom: 16px;
+}
+
+.pay-confirm-dialog h3 {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.pay-tip {
+  color: #64748b;
+  font-size: 13px;
+  margin: 8px 0 20px;
+}
+
+.pay-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-pay-done {
+  width: 100%;
+  padding: 12px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pay-done:hover {
+  background: #3a5479;
+}
+
+.btn-pay-later {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pay-later:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+

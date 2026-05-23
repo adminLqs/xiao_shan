@@ -24,7 +24,7 @@ public class AdminController {
     @GetMapping("/merchant/applications")
     public ResponseEntity<?> getMerchantApplications(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String businessType,
             @RequestParam(required = false) String dateFrom,
@@ -34,7 +34,7 @@ public class AdminController {
         try {
             // 调用服务层获取分页数据
             Map<String, Object> result = merchantApplyService.getMerchantApplicationsWithPagination(
-                    page, size, status, businessType, dateFrom, dateTo, search);
+                    page, pageSize, status, businessType, dateFrom, dateTo, search);
 
             if (Boolean.TRUE.equals(result.get("success"))) {
                 return ResponseEntity.ok(Map.of(

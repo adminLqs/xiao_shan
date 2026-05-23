@@ -224,7 +224,6 @@
         }, 2000)
       }
     } catch (error) {
-      console.error('加载物流信息失败:', error)
       Message.error('加载失败，请稍后重试')
     } finally {
       loading.value = false

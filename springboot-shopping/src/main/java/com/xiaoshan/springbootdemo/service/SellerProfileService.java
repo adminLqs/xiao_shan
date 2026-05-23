@@ -55,8 +55,7 @@ public class SellerProfileService {
         newProfile.setUserId(userId);
         // 设置默认店铺名称
         newProfile.setStoreName("商家店铺");
-        // 设置默认店铺Logo
-        newProfile.setStoreAvatar("/images/seller-avatar.jpg");
+        // 店铺头像留空，让前端显示默认头像
         // 设置默认店铺横幅
         newProfile.setStoreBanner("/images/default-banner.jpg");
         // 设置默认营业时间
@@ -89,8 +88,7 @@ public class SellerProfileService {
                     newProfile.setUserId(userId);
                     // 设置默认店铺名称
                     newProfile.setStoreName("商家店铺");
-                    // 设置默认店铺头像
-                    newProfile.setStoreAvatar("/images/seller-avatar.jpg");
+                    // 店铺头像留空，让前端显示默认头像
                     // 设置默认营业时间
                     newProfile.setBusinessHours("09:00 - 21:00");
                     return newProfile;
@@ -200,11 +198,6 @@ public class SellerProfileService {
             return;
         }
 
-        // 默认头像不删除，直接返回
-        if (oldFileUrl.contains("seller-avatar.jpg") || oldFileUrl.contains("default-banner.jpg")) {
-            return;
-        }
-
         try {
             // 提取文件名
             String oldFileName = oldFileUrl.substring(oldFileUrl.lastIndexOf("/") + 1);
@@ -216,7 +209,6 @@ public class SellerProfileService {
             if (Files.exists(oldFilePath)) {
                 // 删除文件
                 Files.delete(oldFilePath);
-
                 log.debug("旧头像文件已删除: {}", oldFileName);
             }
         } catch (Exception e) {

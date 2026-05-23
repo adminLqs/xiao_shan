@@ -1,31 +1,16 @@
 <template>
   <div class="order-detail-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <h1 class="page-title">
-        <i class="fas fa-clipboard-list"></i>
-        订单详情
-      </h1>
-      <div class="breadcrumb">
-        <RouterLink to="/">首页</RouterLink>
-        <i class="fas fa-chevron-right"></i>
-        <RouterLink :to="{name: 'UserOrders'}">我的订单</RouterLink>
-        <i class="fas fa-chevron-right"></i>
-        <span class="current">订单详情</span>
-      </div>
-    </div>
-
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-state">
+    <div v-if="loading" class="loading-container">
       <div class="loading-spinner"></div>
       <p>加载中...</p>
     </div>
 
     <!-- 订单不存在 -->
-    <div v-else-if="!orderData" class="empty-state">
+    <div v-else-if="!orderData" class="empty-cart">
       <i class="fas fa-search"></i>
       <p>订单不存在</p>
-      <button class="btn-primary" @click="goBack">返回订单列表</button>
+      <button class="btn btn-primary" @click="goBack">返回订单列表</button>
     </div>
 
     <!-- 订单详情内容 -->
@@ -80,14 +65,15 @@
       </div>
 
       <!-- 商品列表 -->
-      <div class="info-card">
+        <div class="info-card">
         <div class="card-title">商品清单</div>
         <div class="product-list">
           <div v-for="item in orderItems" :key="item.id" class="product-item">
             <img :src="item.productImage" class="product-image" @click="viewProduct(item.productId)">
             <div class="product-info" @click="viewProduct(item.productId)">
               <div class="product-name">{{ item.productName }}</div>
-              <div class="product-spec">数量：{{ item.quantity }}</div>
+              <div v-if="item.skuName" class="product-sku">规格：{{ item.skuName }}</div>
+              <div class="product-quantity">数量：{{ item.quantity }}</div>
             </div>
             <div class="product-price">¥{{ formatPrice(item.price) }}</div>
             <!-- 商品操作按钮区域 -->
@@ -161,9 +147,6 @@
             <i class="fas fa-trash-alt"></i> 删除订单
           </button>
         </template>
-        <button class="btn-outline" @click="goBack">
-          <i class="fas fa-arrow-left"></i> 返回
-        </button>
       </div>
     </div>
   </div>
@@ -355,7 +338,6 @@
         router.push({ name: 'UserOrders' })
       }
     } catch (error: any) {
-      console.error('加载订单详情失败:', error)
       Message.error(error.message || '加载失败')
     } finally {
       loading.value = false
@@ -431,7 +413,6 @@
         Message.error(response.message || '支付失败')
       }
     } catch (error: any) {
-      console.error('支付失败:', error)
       Message.error(error.message || '支付失败')
     } finally {
       loading.value = false

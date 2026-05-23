@@ -24,6 +24,12 @@ public class OrderItem {
     // 商品ID
     private Long productId;
 
+    // SKU ID（指定规格购买时有值）
+    private Long skuId;
+
+    // SKU 规格名称（如"500g"、"红色/M码"）
+    private String skuName;
+
     // 卖家ID（商家ID，冗余字段，提升查询性能）
     private Long sellerId;
 

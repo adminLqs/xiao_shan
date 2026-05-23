@@ -256,7 +256,6 @@
         quantity: orderItem.quantity
       }
     } catch (error: any) {
-      console.error('加载订单项信息失败:', error)
       Message.error(error.message || '加载失败')
       hasError.value = true
     } finally {

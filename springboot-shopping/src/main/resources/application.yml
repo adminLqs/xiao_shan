@@ -1,5 +1,3 @@
-# application-dev.yml - 修正后的标准YAML格式
-
 # 服务器配置
 server:
   port: 8088
@@ -12,7 +10,7 @@ spring:
 
   # ====== 数据源配置 =======
   datasource:
-    url: jdbc:mysql://localhost:3306/shopping?serverTimezone=Asia/Shanghai&characterEncoding=utf8 # 数据库连接URL
+    url: jdbc:mysql://localhost:3306/shopping-mobile?serverTimezone=Asia/Shanghai&characterEncoding=utf8 # 数据库连接URL
     username: root # 数据库用户名
     password: 21125211323 # 数据库密码
     driver-class-name: com.mysql.cj.jdbc.Driver # MySQL驱动类
@@ -102,6 +100,6 @@ alipay:
   # 支付宝公钥
   alipay-public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnYJmw0mjl6h4nXH/7a6wezMMp7x0oVDaf9lD1tC3MFZ/fbZDbU0SHiUw1hkTilYSQRLQx+/f8yqbspSj/l4X69Ic4SQXRd4L31XABgvmiTYY5G6fe14BEIfA0bPpYowumeOSDrB4Vx7CrPvm/Yrjk4N8C5+U7AnLT8+bhJtwb+q/8TMG/EdP7wh1YVBZMLYQQBYZ+28up0ozhN75/Nov1Bq0cUqssDrXA8OEXa2BFg82XYLQZnFSiRXKQbjv+yz61Ivke+s0CWASFuqo0aMUj/mUxIT80Lis8Hhsm2Fc4hV3ooJeVoPCVmZxMndYwDnqYTdyrFegdC9hGzHHvKwDcQIDAQAB
   # 支付宝支付结果的回调地址，后端接收支付结果的地址
-  notify-url: http://v884e9c7.natappfree.cc/api/v1/payment/callback
+  notify-url: http://ff2ad6bc.natappfree.cc/api/v1/payment/callback
   # 支付宝支付结果通知的回调地址，付款完毕后跳转本项目的页面
-  return-url: http://v884e9c7.natappfree.cc
+  return-url: http://ff2ad6bc.natappfree.cc
