@@ -89,6 +89,69 @@ public class FavoriteController {
     }
 
     /**
+     * 取消收藏（根据商品ID）
+     * DELETE /api/v1/favorites/product/{productId}
+     */
+    @DeleteMapping("/favorites/product/{productId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER','ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> removeFavoriteByProductId(
+            Authentication authentication,
+            @PathVariable Long productId
+    ) {
+        try {
+            Long userId = userService.getCurrentUserId(authentication);
+            favoriteService.removeFavoriteByProductId(userId, productId);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "取消收藏成功"
+            ));
+
+        } catch (Exception e) {
+            log.error("取消收藏失败: {}", e.getMessage());
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * 批量取消收藏
+     * DELETE /api/v1/favorites/batch
+     */
+    @DeleteMapping("/favorites/batch")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER','ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> batchRemoveFavorites(
+            Authentication authentication,
+            @RequestBody Map<String, List<Long>> request
+    ) {
+        try {
+            Long userId = userService.getCurrentUserId(authentication);
+            List<Long> ids = request.get("ids");
+            
+            if (ids == null || ids.isEmpty()) {
+                return ResponseEntity.ok().body(Map.of(
+                        "success", false,
+                        "message", "收藏ID列表不能为空"
+                ));
+            }
+
+            favoriteService.batchRemoveFavorites(userId, ids);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "批量取消收藏成功"
+            ));
+
+        } catch (Exception e) {
+            log.error("批量取消收藏失败: {}", e.getMessage());
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
      * 检查是否已收藏
      * GET /api/v1/favorites/check?productId=xxx
      */

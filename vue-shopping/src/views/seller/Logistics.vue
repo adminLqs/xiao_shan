@@ -1,39 +1,64 @@
 <template>
-  <!-- 物流详情页面容器 -->
   <div class="logistics-container">
-    <!-- ========== 页面头部区域 ========== -->
+    <!-- ========== 页面头部 - 与订单详情页呼应 ========== -->
     <div class="page-header">
+      <button class="back-btn" @click="goBack">
+        <i class="fas fa-arrow-left"></i>
+        <span>返回</span>
+      </button>
       <h1 class="page-title">
         <i class="fas fa-truck"></i>
-        物流详情
+        <span>物流详情</span>
       </h1>
-      <div class="breadcrumb">
-        <RouterLink to="/seller/dashboard">商家中心</RouterLink>
-        <i class="fas fa-chevron-right"></i>
-        <RouterLink to="/seller/orders">订单管理</RouterLink>
-        <i class="fas fa-chevron-right"></i>
-        <span class="current">物流详情</span>
-      </div>
+      <div class="header-placeholder"></div>
     </div>
 
-    <!-- ========== 加载状态 ========== -->
-    <div v-if="loading" class="loading-state">
-      <div class="loading-spinner"></div>
-      <p>加载中...</p>
+    <!-- ========== 加载状态 - 骨架屏 ========== -->
+    <div v-if="loading" class="skeleton-detail">
+      <div class="skeleton-section">
+        <div class="skeleton skeleton-section-title"></div>
+        <div class="skeleton-section-content">
+          <div class="skeleton skeleton-line long"></div>
+          <div class="skeleton skeleton-line medium"></div>
+        </div>
+      </div>
+      <div class="skeleton-section" style="margin-top: 16px;">
+        <div class="skeleton skeleton-section-title"></div>
+        <div class="skeleton" style="height: 120px; margin-top: 12px;"></div>
+      </div>
+      <div class="skeleton-section" style="margin-top: 16px;">
+        <div class="skeleton skeleton-section-title"></div>
+        <div class="skeleton-order-list">
+          <div v-for="i in 3" :key="i" class="skeleton-order-card">
+            <div class="skeleton-order-goods">
+              <div class="skeleton" style="width: 64px; height: 64px; border-radius: 8px;"></div>
+              <div style="flex: 1;">
+                <div class="skeleton skeleton-line long" style="margin-bottom: 10px;"></div>
+                <div class="skeleton skeleton-line medium"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ========== 物流信息 ========== -->
     <div v-else class="logistics-content">
-      <!-- 订单信息卡片 -->
-      <div class="order-info-card">
-        <div class="order-header">
-          <span class="order-number">订单号：{{ orderInfo.orderNumber }}</span>
-          <span class="order-status" :class="getStatusClass(orderInfo.status)">
-            {{ getStatusText(orderInfo.status) }}
-          </span>
-        </div>
-        <div class="order-amount">
-          实付款：¥{{ formatPrice(orderInfo.totalAmount) }}
+      <div v-if="orderInfo.orderNumber" class="order-number-row">
+        <span class="order-label">订单号</span>
+        <span class="order-value">{{ orderInfo.orderNumber }}</span>
+      </div>
+
+      <!-- ========== 商品信息卡片 ========== -->
+      <div class="product-info-card" v-for="(item, idx) in productItems" :key="idx"
+        :style="idx > 0 ? 'border-top:1px solid #f0f2f5;' : ''">
+        <img :src="item.productImage" class="product-image" />
+        <div class="product-detail">
+          <div class="product-name">{{ item.productName }}</div>
+          <div class="tags-group">
+            <span v-if="item.skuName" class="tag-spec">{{ item.skuName }}</span>
+            <span class="tag-quantity">x{{ item.quantity }}</span>
+          </div>
         </div>
       </div>
 
@@ -54,9 +79,9 @@
             <span class="info-label">物流单号：</span>
             <span class="info-value">{{ logisticsInfo.trackingNumber || '-' }}</span>
           </div>
-          <div class="info-row">
-            <span class="info-label">发货时间：</span>
-            <span class="info-value">{{ formatDateTime(orderInfo.shippedAt) }}</span>
+          <div class="info-row" v-if="orderInfo.shippedAt || isReturnLogistics">
+            <span class="info-label">{{ isReturnLogistics ? '退货时间：' : '发货时间：' }}</span>
+            <span class="info-value">{{ formatDateTime(orderInfo.shippedAt || orderInfo.returnApplyTime || '') }}</span>
           </div>
         </div>
 
@@ -82,6 +107,7 @@
           <div v-if="logisticsTraces.length === 0" class="no-trace">
             <i class="fas fa-box-open"></i>
             <p>暂无物流信息</p>
+            <p class="tips">请等待快递员揽件</p>
           </div>
         </div>
       </div>
@@ -95,7 +121,10 @@
 
       <!-- 操作按钮组 -->
       <div class="action-buttons">
-        <button class="btn-outline" @click="goBack">返回</button>
+        <button class="btn-outline" @click="goBack">
+          <i class="fas fa-arrow-left"></i>
+          返回
+        </button>
         <button
           v-if="orderInfo.trackingNumber"
           class="btn-primary"
@@ -105,13 +134,22 @@
           <i v-if="refreshing" class="fas fa-spinner fa-spin"></i>
           {{ refreshing ? '刷新中...' : '刷新物流' }}
         </button>
+        <button
+          v-if="showConfirmButton"
+          class="btn-success"
+          @click="confirmReturnReceive"
+          :disabled="confirming"
+        >
+          <i v-if="confirming" class="fas fa-spinner fa-spin"></i>
+          {{ confirming ? '确认中...' : '确认收货' }}
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
+  import { ref, computed, onMounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { authAPI } from '@/api/authAPI'
   import Message from '@/utils/message'
@@ -129,6 +167,7 @@
     status: string
     totalAmount: number
     shippedAt: string | null
+    returnApplyTime: string | null
     trackingNumber: string | null
     logisticsCode: string
     logisticsName: string
@@ -137,19 +176,34 @@
   interface LogisticsTrace {
     time: string
     description: string
+    status?: string
+    location?: string
   }
 
   interface LogisticsInfo {
-    trackingNumber: string
-    logisticsCode: string
-    logisticsName: string
-    traces: LogisticsTrace[]
-  }
+  trackingNumber: string
+  logisticsCode: string
+  logisticsName: string
+  traces: LogisticsTrace[]
+}
 
-  // ==================== 响应式数据 ====================
+interface ProductInfo {
+  productName: string
+  productImage: string
+  skuName?: string
+  quantity: number
+}
 
-  const loading = ref(false)
+// ==================== 响应式数据 ====================
+
+  const loading = ref(true)
   const refreshing = ref(false)
+  const confirming = ref(false)
+
+  const productItems = ref<ProductInfo[]>([])
+
+  const refundId = ref<string | null>(null)
+  const isReturnLogistics = ref(false)
 
   const orderInfo = ref<OrderInfo>({
     id: null,
@@ -157,6 +211,7 @@
     status: '',
     totalAmount: 0,
     shippedAt: null,
+    returnApplyTime: null,
     trackingNumber: null,
     logisticsCode: '',
     logisticsName: ''
@@ -171,11 +226,15 @@
 
   const logisticsTraces = ref<LogisticsTrace[]>([])
 
+  const showConfirmButton = computed(() => {
+    return isReturnLogistics.value && logisticsInfo.value.trackingNumber
+  })
+
   // ==================== 数据加载 ====================
 
   /**
    * 加载物流信息
-   * @description 根据订单ID获取订单和物流详情
+   * @description 根据订单ID获取订单和物流详情，或直接根据物流单号查询
    * @returns {Promise<void>}
    */
   const loadLogistics = async () => {
@@ -183,10 +242,121 @@
 
     try {
       const orderId = route.query.orderId
+      const trackingNumber = route.query.trackingNumber as string
+      const logisticsName = route.query.logisticsName as string
+      const refundParam = route.query.refundId as string
 
+      // === 场景 1：退货物流（有 refundId） ===
+      if (route.query.refundId) {
+        // 通过 refundId 获取退货物流信息
+        const refundRes = await authAPI.getRefundDetail(Number(route.query.refundId))
+        if (refundRes.success && refundRes.data) {
+          const refund = refundRes.data
+          isReturnLogistics.value = true
+          refundId.value = route.query.refundId as string
+
+          orderInfo.value = {
+            id: null,
+            orderNumber: refund.orderNumber || '',
+            status: 'RETURNING',
+            totalAmount: 0,
+            shippedAt: refund.returnApplyTime || refund.applyTime || '',
+            returnApplyTime: refund.returnApplyTime || refund.applyTime || '',
+            trackingNumber: refund.returnTrackingNumber || '',
+            logisticsCode: '',
+            logisticsName: refund.returnLogisticsName || ''
+          }
+
+          logisticsInfo.value = {
+            trackingNumber: refund.returnTrackingNumber || '',
+            logisticsCode: '',
+            logisticsName: refund.returnLogisticsName || '',
+            traces: []
+          }
+
+          // ===== 退货物流：通过 refundId 获取商品信息 =====
+          productItems.value = [{
+            productName: refund.productName || '',
+            productImage: refund.productImage || '',
+            skuName: refund.skuName || '',
+            quantity: refund.quantity || 1
+          }]
+
+          // 查询物流轨迹
+          if (refund.returnTrackingNumber) {
+            const res = await authAPI.getLogisticsByTrackingNumber(
+              refund.returnTrackingNumber,
+              refund.returnLogisticsName
+            )
+            if (res.success && res.data) {
+              logisticsTraces.value = res.data.traces || []
+            } else {
+              logisticsTraces.value = []
+            }
+          } else {
+            logisticsTraces.value = []
+          }
+
+          loading.value = false
+          return
+        }
+      }
+
+      // === 场景 2：只有 trackingNumber（可能是退货物流） ===
+      if (trackingNumber) {
+        isReturnLogistics.value = true
+        refundId.value = refundParam || null
+
+        orderInfo.value = {
+          id: null,
+          orderNumber: '',
+          status: 'SHIPPED',
+          totalAmount: 0,
+          shippedAt: null,
+          returnApplyTime: null,
+          trackingNumber: trackingNumber,
+          logisticsCode: '',
+          logisticsName: logisticsName || ''
+        }
+
+        logisticsInfo.value = {
+          trackingNumber: trackingNumber,
+          logisticsCode: '',
+          logisticsName: logisticsName || '',
+          traces: []
+        }
+
+        if (refundParam) {
+          const refundRes = await authAPI.getRefundDetail(Number(refundParam))
+          if (refundRes.success && refundRes.data) {
+            orderInfo.value.orderNumber = refundRes.data.orderNumber || ''
+            orderInfo.value.totalAmount = refundRes.data.refundAmount || 0
+            orderInfo.value.shippedAt = refundRes.data.returnApplyTime || refundRes.data.applyTime || ''
+            orderInfo.value.returnApplyTime = refundRes.data.returnApplyTime || refundRes.data.applyTime || ''
+            // ===== 退货物流：通过 refundId 获取商品信息 =====
+            productItems.value = [{
+              productName: refundRes.data.productName || '',
+              productImage: refundRes.data.productImage || '',
+              skuName: refundRes.data.skuName || '',
+              quantity: refundRes.data.quantity || 1
+            }]
+          }
+        }
+
+        const response = await authAPI.getLogisticsByTrackingNumber(trackingNumber, logisticsName)
+        if (response.success && response.data) {
+          logisticsTraces.value = response.data.traces || []
+        } else {
+          logisticsTraces.value = []
+        }
+        loading.value = false
+        return
+      }
+
+      // === 场景 3：订单物流（有 orderId） ===
       if (!orderId) {
         Message.error('订单ID不存在')
-        router.push('/seller/orders')
+        router.push({ name: 'SellerOrders' })
         return
       }
 
@@ -201,6 +371,7 @@
             status: order.status,
             totalAmount: order.totalAmount,
             shippedAt: order.shippedAt,
+            returnApplyTime: order.returnApplyTime || null,
             trackingNumber: order.trackingNumber,
             logisticsCode: order.logisticsCode || '',
             logisticsName: order.logisticsName || ''
@@ -216,6 +387,18 @@
             traces: logistics.traces || []
           }
           logisticsTraces.value = logistics.traces || []
+        }
+
+        // ===== 订单物流：通过 orderId 获取订单项 =====
+        const orderRes = await authAPI.getSellerOrderDetail(Number(orderId))
+        if (orderRes.success) {
+          const items = orderRes.data?.orderDetail?.orderItems || []
+          productItems.value = items.map((item: any) => ({
+            productName: item.productName || '',
+            productImage: item.productImage || '',
+            skuName: item.skuName || '',
+            quantity: item.quantity || 1
+          }))
         }
       } else {
         Message.error(response.message || '获取物流信息失败')
@@ -239,28 +422,73 @@
     refreshing.value = true
 
     try {
-      const orderId = orderInfo.value.id
+      const trackingNumber = logisticsInfo.value.trackingNumber
 
-      const response = await authAPI.refreshLogistics(Number(orderId))
-
-      if (response.success && response.data?.logistics) {
-        const logistics = response.data.logistics
-        logisticsInfo.value = {
-          trackingNumber: logistics.trackingNumber || '',
-          logisticsCode: logistics.logisticsCode || '',
-          logisticsName: logistics.logisticsName || '',
-          traces: logistics.traces || []
+      if (isReturnLogistics.value && trackingNumber) {
+        const response = await authAPI.getLogisticsByTrackingNumber(trackingNumber, logisticsInfo.value.logisticsName)
+        if (response.success && response.data) {
+          logisticsTraces.value = response.data.traces || []
+          Message.success('刷新成功')
+        } else {
+          Message.error(response.message || '刷新失败')
         }
-        logisticsTraces.value = logistics.traces || []
-        Message.success('刷新成功')
       } else {
-        Message.error(response.message || '刷新失败')
+        const orderId = orderInfo.value.id
+        const response = await authAPI.refreshLogistics(Number(orderId))
+
+        if (response.success && response.data?.logistics) {
+          const logistics = response.data.logistics
+          logisticsInfo.value = {
+            trackingNumber: logistics.trackingNumber || '',
+            logisticsCode: logistics.logisticsCode || '',
+            logisticsName: logistics.logisticsName || '',
+            traces: logistics.traces || []
+          }
+          logisticsTraces.value = logistics.traces || []
+          Message.success('刷新成功')
+        } else {
+          Message.error(response.message || '刷新失败')
+        }
       }
-    } catch (error) {
-      console.error('刷新物流失败:', error)
-      Message.error('刷新失败，请稍后重试')
+    } catch (error: any) {
+      Message.error(error.message || '刷新物流失败')
     } finally {
       refreshing.value = false
+    }
+  }
+
+  /**
+   * 商家确认退货收货
+   * @description 商家确认收到退货商品，触发退款流程
+   * @returns {Promise<void>}
+   */
+  const confirmReturnReceive = async () => {
+    if (!refundId.value) {
+      Message.error('退款记录不存在')
+      return
+    }
+
+    try {
+      await Message.confirm('确认已收到退货商品？确认后将自动处理退款。', '确认收货')
+
+      confirming.value = true
+
+      const response = await authAPI.sellerConfirmReturn(Number(refundId.value))
+
+      if (response.success) {
+        Message.success('确认收货成功，退款已处理')
+        setTimeout(() => {
+          router.back()
+        }, 1500)
+      } else {
+        Message.error(response.message || '操作失败')
+      }
+    } catch (error: any) {
+      if (error !== 'cancel') {
+        Message.error(error.message || '操作失败')
+      }
+    } finally {
+      confirming.value = false
     }
   }
 
@@ -302,44 +530,6 @@
     }
   }
 
-  /**
-   * 获取订单状态样式类
-   * @param {string} status - 订单状态代码
-   * @returns {string} CSS类名字符串
-   */
-  const getStatusClass = (status: string): string => {
-    const classes: Record<string, string> = {
-      PENDING: 'status-pending',
-      PAID: 'status-paid',
-      PROCESSING: 'status-processing',
-      SHIPPED: 'status-shipped',
-      DELIVERED: 'status-delivered',
-      COMPLETED: 'status-completed',
-      CANCELLED: 'status-cancelled',
-      REFUNDED: 'status-refunded'
-    }
-    return classes[status] || ''
-  }
-
-  /**
-   * 获取订单状态文字
-   * @param {string} status - 订单状态代码
-   * @returns {string} 订单状态中文描述
-   */
-  const getStatusText = (status: string): string => {
-    const texts: Record<string, string> = {
-      PENDING: '待付款',
-      PAID: '已付款',
-      PROCESSING: '处理中',
-      SHIPPED: '已发货',
-      DELIVERED: '已送达',
-      COMPLETED: '已完成',
-      CANCELLED: '已取消',
-      REFUNDED: '已退款'
-    }
-    return texts[status] || status
-  }
-
   // ==================== 生命周期 ====================
 
   onMounted(() => {
@@ -349,5 +539,5 @@
 </script>
 
 <style scoped>
- @import url('@/static/css/seller/商家物流.css');
+@import url('@/static/css/seller/商家物流.css');
 </style>

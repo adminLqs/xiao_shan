@@ -1,12 +1,5 @@
 export default [
 
-  // ============= 登录路由 =============
-  {
-    path:"/login",
-    name: "Login",
-    component: () => import("@/views/user/Login.vue"),
-  },
-  
   // ============ 用户端路由 - 移动端布局 ============
   {
     path: '/user',
@@ -21,7 +14,7 @@ export default [
       },
       {
         path: 'categories',
-        name: 'UserCategories',
+        name: 'Categories',
         component: () => import('@/views/user/Categories.vue'),
       },
       {
@@ -30,11 +23,18 @@ export default [
         component: () => import('@/views/user/Messages.vue'),
       },
       {
-        path: '/user/center',
+        path: 'center',
         name: 'UserCenter',
         component: () => import('@/views/user/Center.vue'),
       },
+
     ]
+  },
+  // 购物车
+  {
+    path: '/user/cart',
+    name: 'Cart',
+    component: () => import('@/views/user/Cart.vue'),
   },
 
   // ============ 用户端其他页面（独立路由） ============
@@ -57,7 +57,7 @@ export default [
   {
     path: '/user/orders',
     name: 'UserOrders',
-    component: () => import('@/views/user/Orders.vue'),
+    component: () => import('@/views/user/orders/index.vue'),
   },
 
   // 收藏路由
@@ -89,43 +89,44 @@ export default [
   },
 
   {
-    path: '/merchant/apply',
+    path: '/user/merchant/apply',
     name: 'MerchantApply',
     component: () => import('@/views/user/MerchantApply.vue'),
   },
-  
+
   // ============ 商品相关路由 ============
   {
-    path: '/products/:productId',
+    path: '/user/products/:productId',
     name: 'ProductDetail',
     component: () => import('@/views/user/ProductDetail.vue'),
     props: true,
   },
 
+  // 商品评论列表
+  {
+    path: '/user/products/:productId/reviews',
+    name: 'ProductReviews',
+    component: () => import('@/views/user/Reviews.vue'),
+    props: true,
+  },
+
   // ============ 商家店铺路由 ============
   {
-    path: '/shop/:sellerId',
+    path: '/user/shop/:sellerId',
     name: 'Shop',
     component: () => import('@/views/user/Shop.vue'),
   },
-  
-  // ============ 购物车路由 ============
-  {
-    path: '/cart',
-    name: 'Cart',
-    component: () => import('@/views/user/Cart.vue'),
-  },
-  
+
   // ============ 结算路由 ============
   {
-    path: '/checkout',
+    path: '/user/checkout',
     name: 'Checkout',
     component: () => import('@/views/user/Checkout.vue'),
   },
-  
+
   // ============ 订单相关路由 ============
   {
-    path: '/orders/:orderId',
+    path: '/user/orders/:orderId',
     name: 'OrderDetail',
     component: () => import('@/views/user/OrderDetail.vue'),
     props: true,
@@ -133,10 +134,15 @@ export default [
 
   // ============= 评论路由 ==============
   {
-    path: '/review/:orderItemId',
+    path: '/user/review/:orderItemId',
     name: 'Review',
     component: () => import('@/views/user/Review.vue'),
     props: true,
+  },
+  {
+    path: '/user/reviews',
+    name: 'ReviewList',
+    component: () => import('@/views/user/ReviewList.vue'),
   },
 
   // ============= 查询物流 ===============
@@ -144,6 +150,29 @@ export default [
     path: '/user/logistics',
     name: 'UserLogistics',
     component: () => import('@/views/user/Logistics.vue'),
+  },
+
+  // ============= 退款售后 ===============
+  {
+    path: '/user/refund',
+    name: 'Refund',
+    component: () => import('@/views/user/Refund.vue'),
+  },
+  {
+    path: '/user/refund/chat/:refundId',
+    name: 'RefundChat',
+    component: () => import('@/views/user/RefundChat.vue'),
+  },
+  {
+    path: '/user/return-goods',
+    name: 'ReturnGoods',
+    component: () => import('@/views/user/ReturnGoods.vue'),
+  },
+
+  {
+    path: '/user/after-sale',
+    name: 'AfterSaleList',
+    component: () => import('@/views/user/AfterSaleList.vue'),
   },
 
 ]

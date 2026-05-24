@@ -24,9 +24,8 @@ public interface UserProfileMapper {
      * @param userProfile 用户资料对象
      * @return 影响行数
      */
-    @Insert("INSERT INTO user_profiles (user_id, avatar, nickname, gender, birthday, region, bio, phone, email, email_verified) " +
-            "VALUES (#{userId}, #{avatar}, #{nickname}, #{gender}, #{birthday}, #{region}, #{bio}, #{phone}, #{email}, #{emailVerified})")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @Insert("INSERT INTO user_profiles (id, user_id, avatar, nickname, gender, birthday, region, bio, phone, email, email_verified) " +
+            "VALUES (#{id}, #{userId}, #{avatar}, #{nickname}, #{gender}, #{birthday}, #{region}, #{bio}, #{phone}, #{email}, #{emailVerified})")
     int insert(UserProfile userProfile);
 
     // ==================== 删（Delete） ====================

@@ -28,6 +28,10 @@ public class SkuDTO {
 
     private String skuImage;
 
+    private Boolean skuImageDeleted;
+
+    private Boolean deleted;
+
     private String skuCode;
 
     private Integer sortOrder;

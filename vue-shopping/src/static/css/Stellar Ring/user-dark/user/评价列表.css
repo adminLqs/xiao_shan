@@ -1,0 +1,1045 @@
+/* ========== 评价列表页 - 深空揣摩·鉴赏家主题 ========== */
+
+.reviews-page {
+  min-height: 100vh;
+  background: linear-gradient(145deg, #0f0c1a 0%, #1a1530 25%, #0d0b1f 50%, #1a1530 75%, #0f0c1a 100%);
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 深邃星空背景 */
+.reviews-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 60% 70%, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(3px 3px at 80% 20%, rgba(255, 255, 255, 0.15), transparent),
+    radial-gradient(1.5px 1.5px at 40% 90%, rgba(255, 255, 255, 0.25), transparent);
+  background-size: 180px 180px, 140px 140px, 220px 220px, 160px 160px;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 0;
+  animation: starTwinkle 4s ease-in-out infinite;
+}
+
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.reviews-page::after {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle at center, rgba(74, 100, 145, 0.08) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  animation: starRotate 30s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes starRotate {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* 星轨光晕层 */
+.star-trail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(from 0deg, transparent, rgba(74, 100, 145, 0.04), rgba(107, 138, 181, 0.06), rgba(74, 100, 145, 0.04), transparent);
+  animation: trailRotate 25s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes trailRotate {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 页面导航栏 ========== */
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: rgba(15, 12, 26, 0.92);
+  backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(74, 100, 145, 0.3);
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+}
+
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(74, 100, 145, 0.15);
+  border: 1px solid rgba(74, 100, 145, 0.3);
+  border-radius: 50%;
+  cursor: pointer;
+  color: #6b8ab5;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.page-nav-back:active {
+  background: rgba(74, 100, 145, 0.3);
+  transform: scale(0.95);
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6b8ab5, #4a6491, #c7d2fe);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.page-nav-title i {
+  color: #6b8ab5;
+}
+
+.page-nav-right {
+  width: 36px;
+}
+
+/* ========== 下拉刷新 ========== */
+.refresh-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(15, 12, 26, 0.85);
+  backdrop-filter: blur(15px);
+  border-radius: 40px;
+  margin: 8px auto;
+  width: fit-content;
+  transition: transform 0.2s;
+  color: #6b8ab5;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid rgba(74, 100, 145, 0.3);
+}
+
+.refresh-indicator.active {
+  background: rgba(74, 100, 145, 0.2);
+  color: #fbbf24;
+}
+
+/* ========== 评价概览 - 深邃卡片 ========== */
+.review-stats {
+  display: flex;
+  gap: 20px;
+  margin: 12px;
+  padding: 20px;
+  background: rgba(20, 16, 35, 0.85);
+  backdrop-filter: blur(15px);
+  border-radius: 28px;
+  border: 1px solid rgba(74, 100, 145, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s;
+}
+
+.review-stats:active {
+  transform: scale(0.98);
+}
+
+.stats-left {
+  flex: 1;
+  text-align: center;
+  padding-right: 16px;
+  border-right: 2px dashed rgba(74, 100, 145, 0.2);
+}
+
+.score {
+  font-size: 48px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1;
+  margin-bottom: 8px;
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+}
+
+.score-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 6px;
+}
+
+.positive-rate {
+  font-size: 13px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.stats-right {
+  flex: 2;
+}
+
+.rating-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rating-bar:active {
+  transform: scale(0.98);
+}
+
+.rating-label {
+  width: 40px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.bar-bg {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a6491, #6b8ab5, #fbbf24);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.rating-count {
+  width: 36px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: right;
+}
+
+/* ========== 评价筛选Tabs ========== */
+.review-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(15, 12, 26, 0.85);
+  backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(74, 100, 145, 0.2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: sticky;
+  top: 60px;
+  z-index: 99;
+}
+
+.review-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-item {
+  flex-shrink: 0;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  border-radius: 40px;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: rgba(74, 100, 145, 0.1);
+  border: 1px solid rgba(74, 100, 145, 0.2);
+}
+
+.tab-item:active {
+  transform: scale(0.95);
+}
+
+.tab-item.active {
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  color: white;
+  box-shadow: 0 4px 15px rgba(74, 100, 145, 0.3);
+  border-color: transparent;
+}
+
+.tab-count {
+  margin-left: 6px;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  font-size: 11px;
+}
+
+.tab-item.active .tab-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* ========== 评价列表 ========== */
+.review-list {
+  padding: 12px;
+  position: relative;
+  z-index: 1;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+}
+
+/* 评价卡片 - 深空悬浮 */
+.review-item {
+  background: rgba(20, 16, 35, 0.85);
+  backdrop-filter: blur(15px);
+  border-radius: 28px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(74, 100, 145, 0.2);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.review-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4a6491, #6b8ab5, #fbbf24);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.review-item:active {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  border-color: rgba(74, 100, 145, 0.35);
+}
+
+.review-item:active::before {
+  opacity: 1;
+}
+
+/* 评价头部 */
+.review-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.review-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(74, 100, 145, 0.3);
+  transition: all 0.2s;
+}
+
+.review-avatar:active {
+  transform: scale(0.95);
+}
+
+.review-user-info {
+  flex: 1;
+}
+
+.review-user-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 6px;
+}
+
+.review-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.review-rating {
+  display: flex;
+  gap: 4px;
+}
+
+.review-rating i {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.2);
+  transition: all 0.2s;
+}
+
+.review-rating i.active {
+  color: #fbbf24;
+  text-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
+  animation: starGlow 0.8s ease;
+}
+
+@keyframes starGlow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.review-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* 评价内容 */
+.review-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 14px;
+  padding: 8px 0;
+}
+
+/* 评价图片 */
+.review-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.review-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+  object-fit: cover;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid rgba(74, 100, 145, 0.2);
+}
+
+.review-img:active {
+  transform: scale(0.95);
+  border-color: #6b8ab5;
+}
+
+/* 商品信息卡片 */
+.review-product-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(74, 100, 145, 0.1), rgba(20, 16, 35, 0.6));
+  border-radius: 20px;
+  margin-top: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid rgba(74, 100, 145, 0.15);
+}
+
+.review-product-card:active {
+  transform: scale(0.98);
+  background: rgba(74, 100, 145, 0.15);
+}
+
+.review-product-image {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: #1a1530;
+  border: 1px solid rgba(74, 100, 145, 0.3);
+}
+
+.review-product-info {
+  flex: 1;
+}
+
+.review-product-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-product-sku {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.review-product-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  color: white;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.review-product-action:active {
+  transform: scale(0.95);
+}
+
+/* ========== 加载更多 ========== */
+.load-more-wrapper {
+  padding: 20px;
+  text-align: center;
+}
+
+.loading-more-bar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 24px;
+  background: rgba(20, 16, 35, 0.85);
+  backdrop-filter: blur(15px);
+  border-radius: 40px;
+  color: #6b8ab5;
+  font-size: 13px;
+  border: 1px solid rgba(74, 100, 145, 0.3);
+}
+
+.loading-more-bar i {
+  animation: spin 1s linear infinite;
+}
+
+.no-more-bar {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+  padding: 10px;
+}
+
+.empty-reviews {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(20, 16, 35, 0.85);
+  backdrop-filter: blur(15px);
+  border-radius: 28px;
+  margin: 20px;
+}
+
+.empty-reviews i {
+  font-size: 64px;
+  color: rgba(255, 255, 255, 0.2);
+  margin-bottom: 16px;
+}
+
+.empty-reviews p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ========== 图片预览弹窗 ========== */
+.image-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.96);
+  backdrop-filter: blur(25px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.preview-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preview-close:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.preview-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preview-arrow:active {
+  transform: translateY(-50%) scale(0.95);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.preview-arrow.left {
+  left: 20px;
+}
+
+.preview-arrow.right {
+  right: 20px;
+}
+
+.preview-image {
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 20px;
+  animation: zoomIn 0.3s ease;
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.preview-counter {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: 6px 20px;
+  border-radius: 30px;
+  font-size: 13px;
+}
+
+/* ========== 底部留空 ========== */
+.bottom-space {
+  height: 40px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  .review-stats {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .stats-left {
+    border-right: none;
+    border-bottom: 2px dashed rgba(74, 100, 145, 0.2);
+    padding-bottom: 16px;
+    padding-right: 0;
+  }
+  
+  .score {
+    font-size: 40px;
+  }
+  
+  .review-img {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .review-product-image {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .review-product-name {
+    font-size: 12px;
+  }
+  
+  .preview-arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .reviews-page {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}
+/* ========== 移动端溢出处理和响应式优化 ========== */
+
+/* 商品信息卡片溢出处理 */
+.review-product-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(74, 100, 145, 0.1), rgba(20, 16, 35, 0.6));
+  border-radius: 20px;
+  margin-top: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid rgba(74, 100, 145, 0.15);
+  min-width: 0; /* 允许flex子项收缩 */
+}
+
+.review-product-info {
+  flex: 1;
+  min-width: 0; /* 允许内容溢出时收缩 */
+  overflow: hidden;
+}
+
+/* 商品名称 - 最多2行，超出显示省略号 */
+.review-product-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  line-height: 1.4;
+  max-height: 2.8em;
+}
+
+/* 规格名称 - 最多1行，超出显示省略号 */
+.review-product-sku {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* 买同款按钮 - 固定宽度，不被挤压 */
+.review-product-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  color: white;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+  flex-shrink: 0; /* 防止按钮被挤压 */
+  white-space: nowrap;
+}
+
+/* 评价内容溢出处理 */
+.review-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 14px;
+  padding: 8px 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 用户名称溢出处理 */
+.review-user-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 150px;
+}
+
+/* ========== 移动端响应式增强 ========== */
+
+/* 平板端 (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .review-product-name {
+    font-size: 13px;
+    -webkit-line-clamp: 2;
+  }
+  
+  .review-product-sku {
+    font-size: 11px;
+  }
+  
+  .review-product-action {
+    padding: 5px 12px;
+    font-size: 11px;
+  }
+}
+
+/* 手机端 (max-width: 767px) */
+@media (max-width: 767px) {
+  /* 商品卡片布局优化 */
+  .review-product-card {
+    gap: 10px;
+    padding: 10px;
+  }
+  
+  .review-product-image {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+  
+  .review-product-name {
+    font-size: 12px;
+    -webkit-line-clamp: 2;
+    margin-bottom: 2px;
+  }
+  
+  .review-product-sku {
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  
+  .review-product-action {
+    padding: 4px 10px;
+    font-size: 10px;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  
+  .review-product-action span {
+    white-space: nowrap;
+  }
+  
+  /* 评价头部优化 */
+  .review-header {
+    gap: 10px;
+  }
+  
+  .review-avatar {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+  
+  .review-user-name {
+    font-size: 14px;
+    max-width: 120px;
+  }
+  
+  .review-meta-row {
+    gap: 8px;
+  }
+  
+  .review-rating i {
+    font-size: 12px;
+  }
+  
+  .review-time {
+    font-size: 10px;
+  }
+  
+  /* 评价图片优化 */
+  .review-img {
+    width: 70px;
+    height: 70px;
+    border-radius: 14px;
+  }
+  
+  /* 评价内容字体 */
+  .review-content {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}
+
+/* 小屏手机 (max-width: 480px) */
+@media (max-width: 480px) {
+  .review-product-card {
+    gap: 8px;
+    padding: 8px;
+  }
+  
+  .review-product-image {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+  
+  .review-product-name {
+    font-size: 11px;
+    -webkit-line-clamp: 2;
+  }
+  
+  .review-product-sku {
+    font-size: 9px;
+  }
+  
+  .review-product-action {
+    padding: 3px 8px;
+    font-size: 9px;
+    gap: 3px;
+  }
+  
+  .review-product-action i {
+    font-size: 8px;
+  }
+  
+  .review-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .review-user-name {
+    font-size: 13px;
+    max-width: 100px;
+  }
+  
+  .review-rating i {
+    font-size: 10px;
+  }
+  
+  .review-time {
+    font-size: 9px;
+  }
+  
+  .review-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+  }
+  
+  .review-content {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+}
+
+/* 超小屏 (max-width: 360px) */
+@media (max-width: 360px) {
+  .review-product-image {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .review-product-name {
+    font-size: 10px;
+  }
+  
+  .review-product-sku {
+    font-size: 8px;
+  }
+  
+  .review-product-action {
+    padding: 2px 6px;
+    font-size: 8px;
+  }
+  
+  .review-user-name {
+    font-size: 12px;
+    max-width: 80px;
+  }
+  
+  .review-content {
+    font-size: 11px;
+  }
+}
+
+/* 横屏模式适配 */
+@media (max-width: 896px) and (orientation: landscape) {
+  .review-product-card {
+    padding: 8px 12px;
+  }
+  
+  .review-product-image {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .review-product-name {
+    font-size: 12px;
+    -webkit-line-clamp: 1;
+    white-space: nowrap;
+  }
+  
+  .review-product-sku {
+    font-size: 10px;
+  }
+  
+  .review-product-action {
+    padding: 4px 10px;
+    font-size: 10px;
+  }
+}
+
+/* 触摸优化 - 增大点击区域 */
+@media (max-width: 768px) {
+  .review-product-card,
+  .review-img,
+  .review-avatar,
+  .tab-item,
+  .rating-bar {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .review-product-card:active,
+  .review-img:active,
+  .review-avatar:active,
+  .tab-item:active,
+  .rating-bar:active {
+    transform: scale(0.98);
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .reviews-page {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}

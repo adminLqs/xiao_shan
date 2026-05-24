@@ -1,0 +1,742 @@
+/* ========== 退款对峙页 - 剑拔弩张·愤怒升级主题 ========== */
+
+.refund-chat-page {
+  min-height: 100vh;
+  background: linear-gradient(145deg, #0a0505 0%, #1a0808 30%, #2a0a0a 60%, #1a0505 100%);
+  padding-bottom: 220px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 血腥闪电光晕背景 */
+.refund-chat-page::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: -20%;
+  width: 140%;
+  height: 140%;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, rgba(185, 28, 28, 0.08) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: lightningPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes lightningPulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.refund-chat-page::after {
+  content: '';
+  position: fixed;
+  bottom: 5%;
+  right: -20%;
+  width: 70%;
+  height: 70%;
+  background: conic-gradient(from 0deg, transparent, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.35), rgba(239, 68, 68, 0.2), transparent);
+  border-radius: 50%;
+  animation: ringRotate 12s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes ringRotate {
+  to { transform: rotate(360deg); }
+}
+
+/* 愤怒闪电粒子 */
+.lightning-particle {
+  position: fixed;
+  width: 2px;
+  height: 20px;
+  background: linear-gradient(180deg, #ef4444, transparent);
+  pointer-events: none;
+  z-index: 0;
+  animation: lightningStrike 3s ease-in-out infinite;
+}
+
+@keyframes lightningStrike {
+  0%, 90%, 100% { opacity: 0; transform: translateY(-50px); }
+  95% { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== 页面导航栏 ========== */
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: rgba(10, 5, 5, 0.95);
+  backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 2px solid #ef4444;
+  box-shadow: 0 2px 15px rgba(239, 68, 68, 0.2);
+}
+
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 50%;
+  cursor: pointer;
+  color: #ef4444;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.page-nav-back:active {
+  background: rgba(239, 68, 68, 0.4);
+  transform: scale(0.95);
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.page-nav-title i {
+  color: #ef4444;
+}
+
+.page-nav-right {
+  width: 36px;
+}
+
+/* ========== 状态卡片 - 对峙风格 ========== */
+.status-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 24px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.status-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  opacity: 0.3;
+  z-index: -1;
+  animation: borderGlow 2s ease-in-out infinite;
+}
+
+@keyframes borderGlow {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.5; }
+}
+
+/* 处理中状态 - 愤怒红光闪烁 */
+.status-processing {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(185, 28, 28, 0.08));
+  border-left: 4px solid #ef4444;
+}
+.status-processing .status-icon {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  animation: iconAnger 1s ease-in-out infinite;
+}
+.status-processing .status-text { color: #ef4444; text-shadow: 0 0 5px rgba(239, 68, 68, 0.5); }
+
+/* 成功状态 - 暗绿色 */
+.status-success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 95, 70, 0.08));
+  border-left: 4px solid #10b981;
+}
+.status-success .status-icon {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+.status-success .status-text { color: #10b981; }
+
+/* 失败状态 - 暗灰色 */
+.status-failed {
+  background: linear-gradient(135deg, rgba(100, 116, 139, 0.1), rgba(51, 65, 85, 0.08));
+  border-left: 4px solid #64748b;
+}
+.status-failed .status-icon {
+  background: linear-gradient(135deg, #64748b, #475569);
+  color: white;
+}
+.status-failed .status-text { color: #94a3b8; }
+
+@keyframes iconAnger {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(239, 68, 68, 0)); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8)); }
+}
+
+.status-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 28px;
+}
+
+.status-info {
+  flex: 1;
+}
+
+.status-text {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.status-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ========== 信息卡片 ========== */
+.detail-card {
+  background: rgba(15, 8, 8, 0.85);
+  backdrop-filter: blur(15px);
+  border-radius: 24px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.card-header i {
+  color: #ef4444;
+}
+
+.card-body {
+  padding: 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.1);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.info-value.price {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ef4444;
+}
+
+/* ========== 商品信息 ========== */
+.product-item {
+  display: flex;
+  gap: 14px;
+}
+
+.product-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 16px;
+  background: #1a0a0a;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.product-info {
+  flex: 1;
+}
+
+.product-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 6px;
+}
+
+.product-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+/* ========== 对峙聊天区域 - 剑拔弩张 ========== */
+.chat-card {
+  max-height: 500px;
+}
+
+.chat-body {
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.empty-chat {
+  text-align: center;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 买家消息 - 愤怒红色气泡 */
+.chat-message.is-buyer {
+  flex-direction: row;
+}
+.chat-message.is-buyer .message-content {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  border-radius: 20px 20px 20px 4px;
+  border-left: 3px solid #f97316;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+/* 卖家消息 - 冷峻蓝色对峙 */
+.chat-message.is-seller {
+  flex-direction: row-reverse;
+}
+.chat-message.is-seller .message-content {
+  background: linear-gradient(135deg, #1e3a5f, #1e40af);
+  border-radius: 20px 20px 4px 20px;
+  border-right: 3px solid #3b82f6;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.message-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  border: 2px solid;
+}
+
+.chat-message.is-buyer .message-avatar {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  border-color: #f97316;
+  color: white;
+}
+
+.chat-message.is-seller .message-avatar {
+  background: linear-gradient(135deg, #1e40af, #2563eb);
+  border-color: #60a5fa;
+  color: white;
+}
+
+.message-content {
+  max-width: 70%;
+  padding: 12px 16px;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.chat-message.is-seller .message-header {
+  justify-content: flex-end;
+}
+
+.message-name {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.message-time {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.message-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: white;
+  word-break: break-word;
+}
+
+.message-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.message-image {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: transform 0.2s;
+}
+
+.message-image:active {
+  transform: scale(0.95);
+}
+
+/* ========== 对峙操作按钮 ========== */
+.action-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10, 5, 5, 0.95);
+  backdrop-filter: blur(20px);
+  padding: 16px;
+  box-shadow: 0 -4px 20px rgba(239, 68, 68, 0.2);
+  border-top: 2px solid #ef4444;
+  z-index: 50;
+}
+
+.message-input-area {
+  margin-bottom: 12px;
+}
+
+.message-input {
+  width: 100%;
+  min-height: 70px;
+  padding: 14px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 20px;
+  font-size: 14px;
+  resize: none;
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+}
+
+.message-input:focus {
+  outline: none;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.message-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.input-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.btn-upload {
+  padding: 10px 18px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 30px;
+  background: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  color: #ef4444;
+}
+
+.btn-upload:active {
+  transform: scale(0.95);
+}
+
+.btn-send {
+  padding: 10px 28px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
+}
+
+.btn-send:active {
+  transform: scale(0.96);
+}
+
+.btn-send:disabled {
+  background: #4a1a1a;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* 商家对峙按钮 */
+.seller-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.seller-actions button {
+  flex: 1;
+  padding: 14px;
+  border-radius: 30px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.seller-actions button:active {
+  transform: scale(0.97);
+}
+
+.btn-reject {
+  background: linear-gradient(135deg, #7f1d1d, #991b1b);
+  color: #fca5a5;
+  border: 1px solid #ef4444;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.2);
+}
+
+.btn-approve {
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: #a7f3d0;
+  border: 1px solid #10b981;
+}
+
+/* 买家对峙按钮 */
+.buyer-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.buyer-actions button {
+  flex: 1;
+  padding: 14px;
+  border-radius: 30px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.buyer-actions button:active {
+  transform: scale(0.97);
+}
+
+.btn-appeal {
+  background: linear-gradient(135deg, #991b1b, #dc2626);
+  color: #fecaca;
+  border: 1px solid #ef4444;
+  animation: appealAnger 1.5s ease-in-out infinite;
+}
+
+@keyframes appealAnger {
+  0%, 100% { box-shadow: 0 2px 10px rgba(239, 68, 68, 0.2); }
+  50% { box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5); }
+}
+
+.btn-back {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ========== 弹窗样式 ========== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.modal-content {
+  background: rgba(20, 10, 10, 0.98);
+  backdrop-filter: blur(20px);
+  border-radius: 28px;
+  width: 90%;
+  max-width: 400px;
+  overflow: hidden;
+  border: 1px solid #ef4444;
+  animation: modalSlideUp 0.3s ease;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  background: rgba(239, 68, 68, 0.15);
+  border: none;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  color: #ef4444;
+  transition: all 0.2s;
+}
+
+.modal-close:active {
+  transform: scale(0.95);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  resize: none;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #ef4444;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-cancel {
+  flex: 1;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+
+.btn-confirm {
+  flex: 1;
+  padding: 12px;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  border: none;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+}
+
+.btn-confirm.btn-danger {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+}
+
+/* 响应式 */
+@media (max-width: 480px) {
+  .message-content {
+    max-width: 80%;
+  }
+  
+  .seller-actions, .buyer-actions {
+    flex-direction: column;
+  }
+  
+  .status-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+  
+  .status-text {
+    font-size: 16px;
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .action-area {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}

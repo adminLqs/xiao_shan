@@ -1,0 +1,460 @@
+/* ========== 分类浏览页 - 深空科幻深色主题 ========== */
+
+.categories-page {
+  min-height: 100vh;
+  background: radial-gradient(ellipse at 20% 30%, #0d0d2b 0%, #0a0a1a 50%, #050510 100%);
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 星云背景层 */
+.categories-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 30% 20%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(107, 138, 181, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 动态星环旋转 */
+.categories-page::after {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  background: conic-gradient(from 0deg, 
+    transparent, 
+    rgba(0, 212, 255, 0.08), 
+    rgba(107, 138, 181, 0.12), 
+    rgba(0, 212, 255, 0.08), 
+    transparent);
+  transform: translate(-50%, -50%);
+  animation: galaxyRotate 25s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes galaxyRotate {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ========== 页面导航栏 ========== */
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: rgba(10, 10, 26, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00d4ff, #6b8ab5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.page-nav-title i {
+  color: #00d4ff;
+}
+
+.page-nav-right {
+  width: 40px;
+}
+
+/* ========== 一级分类 - 深色胶囊 ========== */
+.level1-scroll {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: rgba(10, 10, 26, 0.7);
+  backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  position: sticky;
+  top: 60px;
+  z-index: 99;
+  -webkit-overflow-scrolling: touch;
+}
+
+.level1-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.level1-chip {
+  flex-shrink: 0;
+  padding: 10px 24px;
+  background: rgba(10, 10, 26, 0.6);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 40px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+}
+
+.level1-chip:active {
+  transform: scale(0.96);
+}
+
+.level1-chip.active {
+  background: linear-gradient(135deg, #00d4ff, #6b8ab5);
+  color: white;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+  border-color: transparent;
+}
+
+/* ========== 二级分类 ========== */
+.level2-scroll {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: rgba(10, 10, 26, 0.5);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+  -webkit-overflow-scrolling: touch;
+}
+
+.level2-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.level2-chip {
+  flex-shrink: 0;
+  padding: 6px 18px;
+  background: rgba(10, 10, 26, 0.6);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.level2-chip:active {
+  transform: scale(0.95);
+}
+
+.level2-chip.active {
+  background: linear-gradient(135deg, #00d4ff, #6b8ab5);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+/* ========== 商品网格 ========== */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+  position: relative;
+  z-index: 5;
+}
+
+/* 商品卡片 - 深色毛玻璃 */
+.product-card {
+  background: rgba(10, 10, 26, 0.7);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  animation: cardFadeIn 0.4s ease-out backwards;
+}
+
+.product-card:nth-child(1) { animation-delay: 0.05s; }
+.product-card:nth-child(2) { animation-delay: 0.1s; }
+.product-card:nth-child(3) { animation-delay: 0.15s; }
+.product-card:nth-child(4) { animation-delay: 0.2s; }
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.product-card:active {
+  transform: scale(0.97);
+  border-color: rgba(0, 212, 255, 0.4);
+}
+
+/* 商品图片区 */
+.product-image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #1a1a3e;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s;
+}
+
+.product-card:active .product-image img {
+  transform: scale(1.05);
+}
+
+/* 商品徽章 */
+.product-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  z-index: 2;
+  background: linear-gradient(135deg, #00d4ff, #6b8ab5);
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.3);
+}
+
+/* 商品信息 */
+.product-info {
+  padding: 12px;
+}
+
+.product-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f1f5f9;
+  line-height: 1.4;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.current-price {
+  font-size: 16px;
+  font-weight: 800;
+  color: #f97316;
+}
+
+.original-price {
+  font-size: 12px;
+  color: #64748b;
+  text-decoration: line-through;
+}
+
+.product-sales {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(10, 10, 26, 0.8);
+  backdrop-filter: blur(15px);
+  border-radius: 28px;
+  margin: 20px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.empty-state i {
+  font-size: 64px;
+  background: linear-gradient(135deg, #00d4ff, #6b8ab5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* ========== 回到顶部按钮 ========== */
+.back-to-top {
+  position: fixed;
+  right: 20px;
+  bottom: 120px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d4ff, #6b8ab5);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s;
+  z-index: 50;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.back-to-top.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.back-to-top:active {
+  transform: scale(0.92);
+}
+
+/* ========== 加载更多 ========== */
+.load-more-wrapper {
+  padding: 20px;
+  text-align: center;
+}
+
+.loading-more-bar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #00d4ff;
+  font-size: 13px;
+  padding: 10px 24px;
+  background: rgba(10, 10, 26, 0.8);
+  border-radius: 40px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.loading-more-bar i {
+  animation: spin 1s linear infinite;
+}
+
+.no-more-bar {
+  color: #64748b;
+  font-size: 12px;
+  padding: 10px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px) {
+  .products-grid {
+    gap: 10px;
+    padding: 12px;
+  }
+  
+  .level1-chip {
+    padding: 8px 20px;
+    font-size: 13px;
+  }
+  
+  .level2-chip {
+    padding: 5px 16px;
+    font-size: 12px;
+  }
+  
+  .product-title {
+    font-size: 12px;
+  }
+  
+  .current-price {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .products-grid {
+    gap: 10px;
+    padding: 10px;
+  }
+  
+  .level1-scroll {
+    padding: 12px;
+    gap: 8px;
+  }
+  
+  .level1-chip {
+    padding: 6px 16px;
+    font-size: 12px;
+  }
+  
+  .level2-scroll {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  
+  .level2-chip {
+    padding: 4px 14px;
+    font-size: 11px;
+  }
+  
+  .product-title {
+    font-size: 11px;
+  }
+  
+  .current-price {
+    font-size: 14px;
+  }
+  
+  .original-price {
+    font-size: 10px;
+  }
+  
+  .back-to-top {
+    right: 16px;
+    bottom: 100px;
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .categories-page {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}

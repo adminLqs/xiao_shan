@@ -3,6 +3,7 @@ package com.xiaoshan.springbootdemo.schedule;  // 包路径
 import com.xiaoshan.springbootdemo.entity.Order;
 import com.xiaoshan.springbootdemo.mapper.OrderMapper;
 import com.xiaoshan.springbootdemo.service.OrderService;
+import com.xiaoshan.springbootdemo.service.SellerPackageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -20,6 +21,7 @@ public class OrderSchedule {
 
     private final OrderMapper orderMapper;      // 订单数据库操作
     private final OrderService orderService;    // 订单业务服务
+    private final SellerPackageService sellerPackageService;  // 商家套餐服务
     private final RedisTemplate<String, Object> redisTemplate;  // Redis 操作模板
 
     /**
@@ -28,13 +30,13 @@ public class OrderSchedule {
      */
     @Scheduled(cron = "0 0 2 * * ?")
     public void cancelExpiredOrders() {
-        log.info("========== 开始执行订单超时取消任务 ==========");
+
 
         // 查询30分钟前创建的未支付订单
         LocalDateTime expireTime = LocalDateTime.now().minusMinutes(30);
         List<Order> expiredOrders = orderMapper.findExpiredOrders(expireTime);
 
-        log.info("发现 {} 个超时未支付订单", expiredOrders.size());
+
 
         for (Order order : expiredOrders) {
             try {
@@ -48,7 +50,7 @@ public class OrderSchedule {
 
                     String stockKey = "product:stock:" + productId;
                     redisTemplate.opsForValue().increment(stockKey, quantity);
-                    log.info("回滚Redis库存: productId={}, quantity={}", productId, quantity);
+
                 }
 
                 // 删除 Redis 预扣记录
@@ -58,13 +60,28 @@ public class OrderSchedule {
                 //  注意：定时任务没有 userId，需要从 order 对象获取
                 orderService.cancelOrder(order.getUserId(), order.getId());
 
-                log.info("超时订单已取消: orderNumber={}", order.getOrderNumber());
+
 
             } catch (Exception e) {
                 log.error("取消订单失败: orderNumber={}, error={}", order.getOrderNumber(), e.getMessage());
             }
         }
 
-        log.info("订单超时取消任务执行完成，共处理 {} 个订单", expiredOrders.size());
+
+    }
+
+    /**
+     * 每天凌晨1点执行，检查并更新过期的商家套餐
+     */
+    @Scheduled(cron = "0 0 1 * * ?")
+    public void updateExpiredPackages() {
+
+        
+        try {
+            sellerPackageService.updateExpiredPackages();
+
+        } catch (Exception e) {
+            log.error("商家套餐过期检查任务执行失败", e);
+        }
     }
 }

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -30,6 +31,7 @@ public class OrderController {
     private final OrderItemService orderItemService;
     private final AlipayService alipayService;
     private final LogisticsService logisticsService;
+    private final OrderRefundService orderRefundService;
 
     /**
      * 创建订单
@@ -196,6 +198,42 @@ public class OrderController {
             ));
         } catch (Exception e) {
             log.error("获取订单统计失败: {}", e.getMessage());
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * 获取评价相关订单项列表
+     * GET /api/v1/orders/review-items?type=pending|reviewed
+     *
+     * @param authentication 认证信息
+     * @param type 类型（pending: 待评价, reviewed: 已评价）
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @return 订单项列表
+     */
+    @GetMapping("/orders/review-items")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER','ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> getReviewItems(
+            Authentication authentication,
+            @RequestParam String type,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        try {
+            Long userId = userService.getCurrentUserId(authentication);
+            
+            Map<String, Object> result = orderService.getReviewItems(userId, type, page, pageSize);
+            
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", result
+            ));
+        } catch (Exception e) {
+            log.error("获取评价订单项失败: {}", e.getMessage());
             return ResponseEntity.ok().body(Map.of(
                     "success", false,
                     "message", e.getMessage()
@@ -528,8 +566,163 @@ public class OrderController {
         }
     }
 
+    /**
+     * 获取用户的退款记录列表
+     * GET /api/v1/refunds
+     */
+    @GetMapping("/refunds")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER','ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> getUserRefunds(Authentication authentication) {
+        try {
+            Long userId = userService.getCurrentUserId(authentication);
+            var refunds = orderRefundService.getUserRefunds(userId);
 
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", refunds
+            ));
 
+        } catch (Exception e) {
+            log.error("获取退款记录失败", e);
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", "获取数据失败"
+            ));
+        }
+    }
 
+    /**
+     * 获取订单的退款记录
+     * GET /api/v1/orders/{orderId}/refunds
+     */
+    @GetMapping("/orders/{orderId}/refunds")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER','ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> getOrderRefunds(@PathVariable Long orderId) {
+        try {
+            var refunds = orderRefundService.getOrderRefunds(orderId);
 
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", refunds
+            ));
+
+        } catch (Exception e) {
+            log.error("获取退款记录失败", e);
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", "获取数据失败"
+            ));
+        }
+    }
+
+    // ========== 商家退款处理接口 ==========
+
+    /**
+     * 获取商家待处理的退款列表
+     * GET /api/v1/seller/refunds
+     */
+    @GetMapping("/seller/refunds")
+    @PreAuthorize("hasAnyAuthority('ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> getSellerPendingRefunds(Authentication authentication) {
+        try {
+            Long sellerId = userService.getCurrentUserId(authentication);
+            var refunds = orderRefundService.getPendingRefunds(sellerId);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", refunds,
+                    "count", refunds.size()
+            ));
+
+        } catch (Exception e) {
+            log.error("获取待处理退款失败", e);
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", "获取数据失败"
+            ));
+        }
+    }
+
+    /**
+     * 商家同意退款
+     * POST /api/v1/seller/refunds/{refundId}/approve
+     */
+    @PostMapping("/seller/refunds/{refundId}/approve")
+    @PreAuthorize("hasAnyAuthority('ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> approveRefund(
+            Authentication authentication,
+            @PathVariable Long refundId,
+            @RequestBody Map<String, String> request
+    ) {
+        try {
+            Long sellerId = userService.getCurrentUserId(authentication);
+            String notes = request.getOrDefault("notes", "");
+
+            var result = orderRefundService.approveRefund(refundId, sellerId, notes);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "退款成功",
+                    "data", result
+            ));
+
+        } catch (RuntimeException e) {
+            log.warn("处理退款失败: {}", e.getMessage());
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("处理退款系统异常", e);
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", "系统错误，请稍后重试"
+            ));
+        }
+    }
+
+    /**
+     * 商家拒绝退款
+     * POST /api/v1/seller/refunds/{refundId}/reject
+     */
+    @PostMapping("/seller/refunds/{refundId}/reject")
+    @PreAuthorize("hasAnyAuthority('ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> rejectRefund(
+            Authentication authentication,
+            @PathVariable Long refundId,
+            @RequestBody Map<String, String> request
+    ) {
+        try {
+            Long sellerId = userService.getCurrentUserId(authentication);
+            String notes = request.get("notes");
+
+            if (notes == null || notes.trim().isEmpty()) {
+                return ResponseEntity.ok().body(Map.of(
+                        "success", false,
+                        "message", "请填写拒绝原因"
+                ));
+            }
+
+            var result = orderRefundService.rejectRefund(refundId, sellerId, notes);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "已拒绝退款申请",
+                    "data", result
+            ));
+
+        } catch (RuntimeException e) {
+            log.warn("拒绝退款失败: {}", e.getMessage());
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("拒绝退款系统异常", e);
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", "系统错误，请稍后重试"
+            ));
+        }
+    }
 }

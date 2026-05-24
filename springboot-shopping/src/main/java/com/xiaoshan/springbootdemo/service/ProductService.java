@@ -4,12 +4,24 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiaoshan.springbootdemo.entity.Product;
 import com.xiaoshan.springbootdemo.entity.ProductImage;
+import com.xiaoshan.springbootdemo.entity.ProductParam;
 import com.xiaoshan.springbootdemo.entity.ProductSku;
 import com.xiaoshan.springbootdemo.entity.dto.ProductDTO;
 import com.xiaoshan.springbootdemo.entity.dto.SkuDTO;
+import com.xiaoshan.springbootdemo.entity.vo.ProductImageVO;
+import com.xiaoshan.springbootdemo.entity.vo.ProductParamVO;
+import com.xiaoshan.springbootdemo.entity.vo.ProductVO;
+import com.xiaoshan.springbootdemo.mapper.CartItemMapper;
+import com.xiaoshan.springbootdemo.mapper.FavoriteMapper;
+import com.xiaoshan.springbootdemo.mapper.OrderItemMapper;
+import com.xiaoshan.springbootdemo.mapper.ProductFreezeLogMapper;
 import com.xiaoshan.springbootdemo.mapper.ProductImageMapper;
 import com.xiaoshan.springbootdemo.mapper.ProductMapper;
+import com.xiaoshan.springbootdemo.mapper.ProductParamMapper;
 import com.xiaoshan.springbootdemo.mapper.ProductSkuMapper;
+import com.xiaoshan.springbootdemo.mapper.ReviewMapper;
+import com.xiaoshan.springbootdemo.mapper.ReviewImageMapper;
+import com.xiaoshan.springbootdemo.mapper.ReviewVideoMapper;
 import com.xiaoshan.springbootdemo.entity.vo.CheckoutItemVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,12 +31,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.concurrent.CompletableFuture;
+
+import com.xiaoshan.springbootdemo.util.SnowflakeIdGenerator;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,8 +55,18 @@ public class ProductService {
     private final ProductMapper productMapper;
     private final ProductImageMapper productImageMapper;
     private final ProductSkuMapper productSkuMapper;
+    private final ProductParamMapper productParamMapper;
+    private final CartItemMapper cartItemMapper;
+    private final FavoriteMapper favoriteMapper;
+    private final ProductFreezeLogMapper productFreezeLogMapper;
+    private final OrderItemMapper orderItemMapper;
+    private final ReviewMapper reviewMapper;
+    private final ReviewImageMapper reviewImageMapper;
+    private final ReviewVideoMapper reviewVideoMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final SellerPackageService sellerPackageService;
+    private final SnowflakeIdGenerator snowflakeIdGenerator;
 
     @Value("${app.file.upload-dir:uploads}")
     private String uploadDir;
@@ -50,7 +76,11 @@ public class ProductService {
 
     @Transactional
     public void addProduct(Long sellerId, ProductDTO productDTO, List<MultipartFile> images, List<MultipartFile> skuImages) {
-        log.info("开始添加商品: sellerId={}, name={}", sellerId, productDTO.getName());
+        // 检查商家套餐权限
+        var permission = sellerPackageService.checkPublishPermission(sellerId);
+        if (!(Boolean) permission.get("canPublish")) {
+            throw new RuntimeException((String) permission.get("message"));
+        }
 
         validateProduct(productDTO, images);
 
@@ -60,11 +90,16 @@ public class ProductService {
         // 保存 SKU 列表
         if (productDTO.getSkus() != null && !productDTO.getSkus().isEmpty()) {
             saveSkus(product.getId(), productDTO.getSkus(), skuImages);
-            Integer totalStock = productSkuMapper.getTotalStockByProductId(product.getId());
-            syncStockToRedis(product.getId(), totalStock != null ? totalStock : 0);
+            // 商品发布成功后，将每个 SKU 的库存同步到 Redis
+            List<ProductSku> skus = productSkuMapper.findByProductId(product.getId());
+            for (ProductSku sku : skus) {
+                String stockKey = "product:stock:sku:" + sku.getId();
+                redisTemplate.opsForValue().set(stockKey, sku.getStock());
+                log.info("同步 SKU 库存到 Redis: skuId={}, stock={}", sku.getId(), sku.getStock());
+            }
         }
 
-        log.info("商品添加成功: productId={}", product.getId());
+
     }
 
     private void saveSkus(Long productId, List<SkuDTO> skus, List<MultipartFile> skuImages) {
@@ -74,6 +109,7 @@ public class ProductService {
             SkuDTO skuDTO = skus.get(i);
             
             ProductSku sku = new ProductSku();
+            sku.setId(snowflakeIdGenerator.nextId());
             sku.setProductId(productId);
             sku.setSkuName(skuDTO.getSkuName());
             sku.setPrice(skuDTO.getPrice());
@@ -105,7 +141,7 @@ public class ProductService {
                 log.error("SKU插入失败: productId={}, skuName={}", productId, sku.getSkuName());
             }
         }
-        log.info("SKU保存成功: productId={}, count={}", productId, skus.size());
+
     }
     
     private String uploadSkuImageToServer(MultipartFile file, Long productId, int skuIndex) {
@@ -137,8 +173,8 @@ public class ProductService {
         if (images == null || images.isEmpty()) {
             throw new RuntimeException("请至少上传一张商品图片");
         }
-        if (images.size() > 5) {
-            throw new RuntimeException("最多只能上传5张商品图片");
+        if (images.size() > 15) {
+            throw new RuntimeException("最多只能上传15张商品图片");
         }
 
         for (int i = 0; i < images.size(); i++) {
@@ -197,8 +233,45 @@ public class ProductService {
                 productDTO.getDescription()
         );
         
+        // 设置新增字段
+        product.setWeight(productDTO.getWeight());
+        product.setIsFreeShipping(productDTO.getIsFreeShipping() != null ? productDTO.getIsFreeShipping() : false);
+        product.setServiceGuarantee(productDTO.getServiceGuarantee());
+        product.setDeliveryCity(productDTO.getDeliveryCity());
+        product.setDetailHtml(productDTO.getDetailHtml());
+        product.setStatus(1); // 确保上架状态
+        
+        // 先生成雪花 ID，确保 product.getId() 不为 null
+        product.setId(snowflakeIdGenerator.nextId());
+        
         productMapper.insert(product);
+        
+        // 保存商品参数
+        if (productDTO.getParams() != null && !productDTO.getParams().isEmpty()) {
+            saveProductParams(product.getId(), productDTO.getParams());
+        }
+        
         return product;
+    }
+    
+    /**
+     * 保存商品参数
+     */
+    private void saveProductParams(Long productId, List<com.xiaoshan.springbootdemo.entity.dto.ParamDTO> params) {
+        int sortOrder = 0;
+        for (com.xiaoshan.springbootdemo.entity.dto.ParamDTO paramDTO : params) {
+            if (paramDTO.getName() != null && !paramDTO.getName().trim().isEmpty() &&
+                paramDTO.getValue() != null && !paramDTO.getValue().trim().isEmpty()) {
+                
+                ProductParam param = new ProductParam();
+                param.setId(snowflakeIdGenerator.nextId());
+                param.setProductId(productId);
+                param.setParamName(paramDTO.getName().trim());
+                param.setParamValue(paramDTO.getValue().trim());
+                param.setSortOrder(sortOrder++);
+                productParamMapper.insert(param);
+            }
+        }
     }
 
     /**
@@ -211,6 +284,7 @@ public class ProductService {
             String imageUrl = uploadImageToServer(images.get(i), productId, i);
 
             ProductImage productImage = new ProductImage();
+            productImage.setId(snowflakeIdGenerator.nextId());
             productImage.setProductId(productId);
             productImage.setImage(imageUrl);
             productImage.setSortOrder(i);
@@ -218,7 +292,7 @@ public class ProductService {
 
             productImageMapper.insert(productImage);
         }
-        log.info("图片保存成功: productId={}, count={}", productId, images.size());
+
     }
 
     /**
@@ -256,7 +330,7 @@ public class ProductService {
     private void syncStockToRedis(Long productId, Integer stock) {
         String stockKey = "product:stock:" + productId;
         redisTemplate.opsForValue().set(stockKey, stock);
-        log.info("同步库存到Redis: productId={}, stock={}", productId, stock);
+
     }
 
     private String getFileExtension(String filename) {
@@ -271,8 +345,8 @@ public class ProductService {
     /**
      * 更新商品
      */
-    @Transactional
-    public void updateProduct(Long userId, Long productId, ProductDTO productDTO, List<MultipartFile> files) throws IOException {
+    @Transactional(rollbackFor = Exception.class)
+    public void updateProduct(Long userId, Long productId, ProductDTO productDTO, List<MultipartFile> files, List<MultipartFile> skuImages, String imageSortOrder, String existingImageIds) throws IOException {
         // 查询原商品
         Product existingProduct = productMapper.findById(productId)
                 .orElseThrow(() -> new RuntimeException("商品不存在"));
@@ -289,66 +363,232 @@ public class ProductService {
         existingProduct.setCategoryId(productDTO.getCategoryId());
         existingProduct.setStatus(productDTO.getStatus());
         existingProduct.setUpdatedAt(LocalDateTime.now());
+        
+        // 更新新增字段
+        if (productDTO.getWeight() != null) {
+            existingProduct.setWeight(productDTO.getWeight());
+        }
+        if (productDTO.getIsFreeShipping() != null) {
+            existingProduct.setIsFreeShipping(productDTO.getIsFreeShipping());
+        }
+        if (productDTO.getServiceGuarantee() != null) {
+            existingProduct.setServiceGuarantee(productDTO.getServiceGuarantee());
+        }
+        if (productDTO.getDeliveryCity() != null) {
+            existingProduct.setDeliveryCity(productDTO.getDeliveryCity());
+        }
+        if (productDTO.getDetailHtml() != null) {
+            existingProduct.setDetailHtml(productDTO.getDetailHtml());
+        }
 
-        // 更新 SKU 列表（价格和库存由 @Transient 字段从查询时的子查询获取，不需要保存）
-        if (productDTO.getSkus() != null && !productDTO.getSkus().isEmpty()) {
-            // 计算总库存用于 Redis 同步
+        // 1. 先更新商品主表
+        productMapper.update(existingProduct);
+
+        // 2. 更新商品参数（先删后插）
+        productParamMapper.deleteByProductId(productId);
+        if (productDTO.getParams() != null && !productDTO.getParams().isEmpty()) {
+            saveProductParams(productId, productDTO.getParams());
+        }
+
+        // 3. 更新 SKU 列表
+        // 收集前端传来的所有有效 SKU ID（用于后续删除不在列表中的旧 SKU）
+        List<Long> keepSkuIds = new ArrayList<>();
+        int skuImageIndex = 0;
+
+        if (productDTO.getSkus() != null) {
+            // 计算总库存用于 Redis 同步（排除已删除的SKU）
             int totalStock = productDTO.getSkus().stream()
+                    .filter(sku -> !Boolean.TRUE.equals(sku.getDeleted()))
                     .mapToInt(SkuDTO::getStock)
                     .sum();
 
-            // 删除旧的 SKU
-            productSkuMapper.deleteByProductId(productId);
+            // 获取当前最大 sortOrder，新增 SKU 从最大值 + 1 开始
+            int maxSort = productSkuMapper.getMaxSortOrder(productId);
 
-            // 转换为 ProductSku 实体并批量插入
-            List<ProductSku> skuEntities = productDTO.getSkus().stream()
-                    .map(dto -> {
-                        ProductSku sku = new ProductSku();
-                        sku.setProductId(productId);
-                        sku.setSkuName(dto.getSkuName());
-                        if (dto.getSpecInfo() != null) {
-                            try {
-                                sku.setSpecInfo(objectMapper.writeValueAsString(dto.getSpecInfo()));
-                            } catch (JsonProcessingException e) {
-                                log.error("规格信息序列化失败", e);
-                            }
+            // 遍历 SKU：有 ID 则 UPDATE，无 ID 则 INSERT，标记删除则 DELETE
+            for (int i = 0; i < productDTO.getSkus().size(); i++) {
+                SkuDTO dto = productDTO.getSkus().get(i);
+
+                // 处理标记删除的 SKU
+                if (Boolean.TRUE.equals(dto.getDeleted()) && dto.getId() != null && dto.getId() > 0) {
+                    // 删除 SKU，保留图片文件（订单可能引用）
+                    productSkuMapper.deleteById(dto.getId());
+                    // SKU 被删除，清除 Redis 中的库存
+                    String stockKey = "product:stock:sku:" + dto.getId();
+                    redisTemplate.delete(stockKey);
+                    log.info("删除 SKU 库存缓存: skuId={}", dto.getId());
+                    continue;
+                }
+
+                ProductSku sku = new ProductSku();
+                sku.setProductId(productId);
+                sku.setSkuName(dto.getSkuName());
+                if (dto.getSpecInfo() != null) {
+                    try {
+                        sku.setSpecInfo(objectMapper.writeValueAsString(dto.getSpecInfo()));
+                    } catch (JsonProcessingException e) {
+                        log.error("规格信息序列化失败", e);
+                    }
+                }
+                sku.setPrice(dto.getPrice());
+                sku.setOriginalPrice(dto.getOriginalPrice());
+                sku.setStock(dto.getStock());
+
+                // 处理 SKU 图片增量更新
+                if (dto.getId() != null && dto.getId() > 0) {
+                    // 有 ID → 旧 SKU，执行 UPDATE
+                    keepSkuIds.add(dto.getId());
+
+                    // 查询原 SKU 信息
+                    ProductSku existingSku = productSkuMapper.findById(dto.getId()).orElse(null);
+                    String oldImageUrl = existingSku != null ? existingSku.getSkuImage() : null;
+
+                    // sortOrder：前端传了就用前端的，否则用原值
+                    if (dto.getSortOrder() != null) {
+                        sku.setSortOrder(dto.getSortOrder());
+                    } else if (existingSku != null) {
+                        sku.setSortOrder(existingSku.getSortOrder());
+                    } else {
+                        sku.setSortOrder(0);
+                    }
+
+                    // 处理图片删除标记
+                    if (Boolean.TRUE.equals(dto.getSkuImageDeleted())) {
+                        // 标记删除图片，保留文件（订单可能引用）
+                        sku.setSkuImage(null);
+                    } else if (skuImages != null && skuImageIndex < skuImages.size()) {
+                        // 有新图片上传 → 上传新文件，保留旧文件（订单可能引用）
+                        MultipartFile newImage = skuImages.get(skuImageIndex);
+                        if (!newImage.isEmpty()) {
+                            // 上传新图片，不删除旧文件
+                            String newImageUrl = uploadSkuImageToServer(newImage, productId, i);
+                            sku.setSkuImage(newImageUrl);
                         }
-                        sku.setPrice(dto.getPrice());
-                        sku.setOriginalPrice(dto.getOriginalPrice());
-                        sku.setStock(dto.getStock());
+                        skuImageIndex++;
+                    } else {
+                        // 没有新图片，保留原图片URL
                         sku.setSkuImage(dto.getSkuImage());
-                        sku.setSkuCode(dto.getSkuCode());
-                        sku.setSortOrder(dto.getSortOrder() != null ? dto.getSortOrder() : 0);
-                        return sku;
-                    })
-                    .toList();
-            productSkuMapper.batchInsert(productId, skuEntities);
+                    }
 
-            // 同步库存到 Redis
-            syncStockToRedis(productId, totalStock);
+                    sku.setId(dto.getId());
+                    productSkuMapper.update(sku);
+                } else {
+                    // 无 ID → 新 SKU，执行 INSERT
+                    Long newSkuId = snowflakeIdGenerator.nextId();
+                    sku.setId(newSkuId);
+                    keepSkuIds.add(newSkuId);
+
+                    // 新增 SKU 的 sortOrder 设为当前最大值 + 1
+                    sku.setSortOrder(++maxSort);
+
+                    // 处理新 SKU 的图片
+                    if (skuImages != null && skuImageIndex < skuImages.size()) {
+                        MultipartFile newImage = skuImages.get(skuImageIndex);
+                        if (!newImage.isEmpty()) {
+                            String newImageUrl = uploadSkuImageToServer(newImage, productId, i);
+                            sku.setSkuImage(newImageUrl);
+                        }
+                        skuImageIndex++;
+                    } else {
+                        sku.setSkuImage(dto.getSkuImage());
+                    }
+
+                    productSkuMapper.insert(sku);
+                }
+
+                // 更新 SKU 库存到 Redis
+                String stockKey = "product:stock:sku:" + (dto.getId() != null ? dto.getId() : sku.getId());
+                redisTemplate.opsForValue().set(stockKey, dto.getStock());
+                log.info("更新 SKU 库存缓存: skuId={}, stock={}", 
+                        dto.getId() != null ? dto.getId() : sku.getId(), dto.getStock());
+            }
         }
 
-        // 更新商品基本信息
-        productMapper.update(existingProduct);
-
-        // 处理新上传的商品主图（如果有）
-        if (files != null && !files.isEmpty()) {
-            // 删除服务器上的旧图片文件
-            List<ProductImage> oldImages = productImageMapper.findByProductId(productId);
-            for (ProductImage image : oldImages) {
-                deleteImageFile(image.getImage());
+        // 删除前端没传的旧 SKU（不在 keepSkuIds 列表中的）
+        if (!keepSkuIds.isEmpty()) {
+            List<ProductSku> oldSkus = productSkuMapper.findByProductId(productId);
+            for (ProductSku sku : oldSkus) {
+                if (!keepSkuIds.contains(sku.getId())) {
+                    productSkuMapper.deleteById(sku.getId());
+                    String stockKey = "product:stock:sku:" + sku.getId();
+                    redisTemplate.delete(stockKey);
+                    log.info("删除 SKU 库存缓存: skuId={}", sku.getId());
+                }
             }
-            // 删除数据库中的旧图片记录
-            productImageMapper.deleteByProductId(productId);
+        } else {
+            // 如果前端传了空列表，删除所有旧 SKU
+            List<ProductSku> oldSkus = productSkuMapper.findByProductId(productId);
+            for (ProductSku sku : oldSkus) {
+                productSkuMapper.deleteById(sku.getId());
+                String stockKey = "product:stock:sku:" + sku.getId();
+                redisTemplate.delete(stockKey);
+                log.info("删除 SKU 库存缓存: skuId={}", sku.getId());
+            }
+        }
 
-            // 保存新图片
-            for (int i = 0; i < files.size(); i++) {
-                String imageUrl = uploadImageToServer(files.get(i), productId, i);
-                ProductImage productImage = new ProductImage();
-                productImage.setProductId(productId);
-                productImage.setImage(imageUrl);
-                productImage.setSortOrder(i);
-                productImageMapper.insert(productImage);
+        // 4. 处理商品主图（增量更新）
+        // 解析前端传递的已有图片ID列表
+        List<Long> keepImageIds = new ArrayList<>();
+        if (existingImageIds != null && !existingImageIds.isEmpty()) {
+            try {
+                Long[] ids = objectMapper.readValue(existingImageIds, Long[].class);
+                for (Long id : ids) {
+                    if (id != null) {
+                        keepImageIds.add(id);
+                    }
+                }
+            } catch (JsonProcessingException e) {
+                log.error("解析 existingImageIds 失败", e);
+            }
+        }
+
+        // 解析前端传递的图片排序信息
+        List<Long> sortedImageIds = new ArrayList<>();
+        if (imageSortOrder != null && !imageSortOrder.isEmpty()) {
+            try {
+                List<java.util.Map<String, Object>> sortList = objectMapper.readValue(imageSortOrder, 
+                    new com.fasterxml.jackson.core.type.TypeReference<List<java.util.Map<String, Object>>>() {});
+                for (java.util.Map<String, Object> item : sortList) {
+                    Number idNum = (Number) item.get("id");
+                    if (idNum != null) {
+                        sortedImageIds.add(idNum.longValue());
+                    }
+                }
+            } catch (JsonProcessingException e) {
+                log.error("解析 imageSortOrder 失败", e);
+            }
+        }
+
+        // 获取当前商品的所有旧图片
+        List<ProductImage> oldImages = productImageMapper.findByProductId(productId);
+
+        // 更新已有图片的排序
+        for (int i = 0; i < sortedImageIds.size(); i++) {
+            Long imageId = sortedImageIds.get(i);
+            productImageMapper.updateSortOrder(imageId, i);
+        }
+
+        // 删除不在保留列表中的旧图片记录（不删文件）
+        for (ProductImage image : oldImages) {
+            if (!keepImageIds.contains(image.getId())) {
+                productImageMapper.deleteById(image.getId());
+            }
+        }
+
+        // 保存新上传的图片（sortOrder 接在已有图片后面）
+        int nextSortOrder = sortedImageIds.size();
+        if (files != null && !files.isEmpty()) {
+            for (MultipartFile file : files) {
+                if (!file.isEmpty()) {
+                    String imageUrl = uploadImageToServer(file, productId, nextSortOrder);
+                    ProductImage productImage = new ProductImage();
+                    productImage.setId(snowflakeIdGenerator.nextId());
+                    productImage.setProductId(productId);
+                    productImage.setImage(imageUrl);
+                    productImage.setSortOrder(nextSortOrder);
+                    productImageMapper.insert(productImage);
+                    nextSortOrder++;
+                }
             }
         }
     }
@@ -356,14 +596,19 @@ public class ProductService {
     public void deleteImageFile(String imageUrl) throws IOException {
         try {
             if (imageUrl == null || imageUrl.isEmpty()) {
-                throw new RuntimeException("旧图片路径为空");
+                return;
             }
 
-            Path filePath = Paths.get(imageUrl).toAbsolutePath();
+            // 处理相对路径：去掉开头的 /uploads/，拼接实际存储路径
+            String relativePath = imageUrl.startsWith("/uploads/") 
+                ? imageUrl.substring("/uploads/".length()) 
+                : imageUrl;
+            
+            Path filePath = Paths.get(uploadDir, relativePath).toAbsolutePath();
 
             if (Files.exists(filePath)) {
                 Files.delete(filePath);
-                log.info("删除旧图片成功: {}", filePath.toAbsolutePath());
+
             } else {
                 log.warn("旧图片文件不存在: {}", filePath.toAbsolutePath());
             }
@@ -417,23 +662,45 @@ public class ProductService {
         // 如果指定了 SKU，从 SKU 获取价格和规格信息
         if (skuId != null) {
             ProductSku sku = productSkuMapper.findById(skuId)
-                    .orElseThrow(() -> new RuntimeException("SKU不存在"));
+                    .orElseThrow(() -> {
+                        log.error("SKU不存在: skuId={}, productId={}", skuId, productId);
+                        return new RuntimeException("所选商品规格不存在或已被删除，请重新选择");
+                    });
+            
+            // 检查 SKU 是否属于当前商品
+            if (!sku.getProductId().equals(productId)) {
+                log.error("SKU不属于该商品: skuId={}, productId={}, sku.productId={}", 
+                        skuId, productId, sku.getProductId());
+                throw new RuntimeException("所选商品规格不属于该商品");
+            }
+            
             item.setSkuId(sku.getId());
             item.setSkuName(sku.getSkuName());
             item.setPrice(sku.getPrice() != null ? sku.getPrice() : BigDecimal.ZERO);
             item.setOriginalPrice(sku.getOriginalPrice());
-            Integer skuStock = sku.getStock();
-            item.setStock(skuStock != null ? skuStock : 0);
+            Integer realTimeStock = getSkuAvailableStock(sku.getId());
+            item.setStock(realTimeStock);
             if (sku.getSkuImage() != null && !sku.getSkuImage().isEmpty()) {
                 item.setProductImage(sku.getSkuImage());
             }
         } else {
-            // 否则使用商品表汇总的价格和库存
-            item.setPrice(product.getPrice() != null ? product.getPrice() : BigDecimal.ZERO);
-            item.setOriginalPrice(product.getOriginalPrice());
-            Integer productStock = product.getStock();
+            // 否则从SKU表获取最低价格和总库存
+            BigDecimal minPrice = productSkuMapper.getMinPriceByProductId(product.getId());
+            item.setPrice(minPrice != null ? minPrice : BigDecimal.ZERO);
+            // 商品表不再存储原价，需要从SKU表获取最低原价
+            List<ProductSku> skus = productSkuMapper.findByProductId(product.getId());
+            BigDecimal minOriginalPrice = skus.stream()
+                    .map(ProductSku::getOriginalPrice)
+                    .filter(p -> p != null)
+                    .min(BigDecimal::compareTo)
+                    .orElse(null);
+            item.setOriginalPrice(minOriginalPrice);
+            Integer productStock = productSkuMapper.getTotalStockByProductId(product.getId());
             item.setStock(productStock != null ? productStock : 0);
         }
+
+        // 设置包邮状态
+        item.setIsFreeShipping(product.getIsFreeShipping());
 
         return item;
     }
@@ -441,9 +708,52 @@ public class ProductService {
     /**
      * 获取商品详情
      */
-    public Product getProductDetail(Long productId) {
-        return productMapper.findByIdWithDetails(productId)
+    public ProductVO getProductDetail(Long productId) {
+        // 查询商品基础信息
+        ProductVO productVO = productMapper.findProductVOById(productId)
                 .orElseThrow(() -> new RuntimeException("获取商品详情失败"));
+
+        // 查询商品图片列表
+        List<ProductImage> images = productImageMapper.findByProductId(productId);
+        List<ProductImageVO> imageVOs = images.stream()
+                .map(img -> {
+                    ProductImageVO vo = new ProductImageVO();
+                    vo.setId(img.getId());
+                    vo.setImage(img.getImage());
+                    vo.setSortOrder(img.getSortOrder());
+                    return vo;
+                })
+                .toList();
+        productVO.setProductImages(imageVOs);
+
+        // 查询商品参数列表
+        List<ProductParam> params = productParamMapper.findByProductId(productId);
+        List<ProductParamVO> paramVOs = params.stream()
+                .map(p -> {
+                    ProductParamVO vo = new ProductParamVO();
+                    vo.setId(p.getId());
+                    vo.setParamName(p.getParamName());
+                    vo.setParamValue(p.getParamValue());
+                    return vo;
+                })
+                .toList();
+        productVO.setParams(paramVOs);
+
+        // 查询商品 SKU 列表
+        List<ProductSku> skus = productSkuMapper.findByProductId(productId);
+        // 替换为实时可用库存
+        for (ProductSku sku : skus) {
+            Integer realTimeStock = getSkuAvailableStock(sku.getId());
+            sku.setStock(realTimeStock);
+        }
+        productVO.setSkus(skus);
+
+        // 异步更新浏览量（避免影响响应速度）
+        CompletableFuture.runAsync(() -> {
+            productMapper.incrementViewCount(productId);
+        });
+
+        return productVO;
     }
 
     /** ======== 用户首页查询商品（分页筛选）======== */
@@ -458,9 +768,9 @@ public class ProductService {
      * @param level2CategoryId 二级分类ID
      * @return 商品列表
      */
-    public List<Product> getProductsForHome(int offset, int limit, String keyword, Long level1CategoryId, Long level2CategoryId) {
+    public List<Product> getProductsForHome(int offset, int limit, String keyword, Long sellerId, Long level1CategoryId, Long level2CategoryId) {
         try {
-            return productMapper.findUserProducts(offset, limit, keyword, level1CategoryId, level2CategoryId);
+            return productMapper.findUserProducts(offset, limit, keyword, sellerId, level1CategoryId, level2CategoryId);
         } catch (Exception e) {
             log.error("查询首页商品列表失败: {}", e.getMessage());
             throw new RuntimeException("查询商品列表失败");
@@ -475,15 +785,182 @@ public class ProductService {
      * @param level2CategoryId 二级分类ID
      * @return 商品总数
      */
-    public long countProductsForHome(String keyword, Long level1CategoryId, Long level2CategoryId) {
+    public long countProductsForHome(String keyword, Long sellerId, Long level1CategoryId, Long level2CategoryId) {
         try {
-            return productMapper.countUserProducts(keyword, level1CategoryId, level2CategoryId);
+            return productMapper.countUserProducts(keyword, sellerId, level1CategoryId, level2CategoryId);
         } catch (Exception e) {
             log.error("统计首页商品总数失败: {}", e.getMessage());
             return 0;
         }
     }
 
+    /**
+     * 搜索商品（支持排序、价格区间、分类筛选）
+     *
+     * @param offset 偏移量
+     * @param limit 每页数量
+     * @param keyword 搜索关键词
+     * @param categoryId 分类ID
+     * @param minPrice 最低价格
+     * @param maxPrice 最高价格
+     * @param sort 排序方式
+     * @return 商品列表
+     */
+    public List<Product> searchProducts(int offset, int limit, String keyword, Long categoryId, 
+                                        java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice, String sort) {
+        try {
+            return productMapper.searchProducts(offset, limit, keyword, categoryId, minPrice, maxPrice, sort);
+        } catch (Exception e) {
+            log.error("搜索商品失败: {}", e.getMessage());
+            throw new RuntimeException("搜索商品失败");
+        }
+    }
 
+    /**
+     * 统计搜索商品总数
+     *
+     * @param keyword 搜索关键词
+     * @param categoryId 分类ID
+     * @param minPrice 最低价格
+     * @param maxPrice 最高价格
+     * @return 商品总数
+     */
+    public long countSearchProducts(String keyword, Long categoryId, 
+                                    java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice) {
+        try {
+            return productMapper.countSearchProducts(keyword, categoryId, minPrice, maxPrice);
+        } catch (Exception e) {
+            log.error("统计搜索商品数量失败: {}", e.getMessage());
+            return 0;
+        }
+    }
 
+    /**
+     * 删除商品（只删数据库记录，保留图片文件）
+     * 
+     * 删除顺序：
+     * 1. 删除评论图片记录（不删文件）
+     * 2. 删除评论视频记录（不删文件）
+     * 3. 删除评论
+     * 4. 删除商品参数
+     * 5. 删除商品图片记录（不删文件）
+     * 6. 删除SKU
+     * 7. 删除购物车中的该商品
+     * 8. 删除收藏中的该商品
+     * 9. 删除冻结记录
+     * 10. 最后删除商品主表
+     * 
+     * 注意：order_items 不删（已购用户需查看订单），所有图片视频文件不删
+     * 
+     * @param productId 商品ID
+     */
+    @Transactional
+    public void deleteProduct(Long productId) {
+        // 1. 删除评论图片记录（不删文件）
+        reviewImageMapper.deleteByProductId(productId);
+        
+        // 删除评论视频记录（不删文件）
+        reviewVideoMapper.deleteByProductId(productId);
+        
+        // 删除评论
+        reviewMapper.deleteByProductId(productId);
+        
+        // 删除商品参数
+        productParamMapper.deleteByProductId(productId);
+        
+        // 删除商品图片记录（不删文件）
+        productImageMapper.deleteByProductId(productId);
+        
+        // 删除SKU
+        productSkuMapper.deleteByProductId(productId);
+        
+        // 删除购物车中的该商品
+        cartItemMapper.deleteByProductId(productId);
+        
+        // 删除收藏中的该商品
+        favoriteMapper.deleteByProductId(productId);
+        
+        // 删除冻结记录
+        productFreezeLogMapper.deleteByProductId(productId);
+        
+        // 最后删除商品主表
+        productMapper.deleteById(productId);
+        
+        log.info("商品删除成功: productId={}", productId);
+    }
+
+    /**
+     * 批量删除商品（只删数据库记录，保留图片文件）
+     * 
+     * @param productIds 商品ID列表
+     * @return 删除成功的数量
+     */
+    @Transactional
+    public int batchDeleteProducts(List<Long> productIds) {
+        int deletedCount = 0;
+        
+        for (Long productId : productIds) {
+            try {
+                // 删除评论图片记录（不删文件）
+                reviewImageMapper.deleteByProductId(productId);
+                
+                // 删除评论视频记录（不删文件）
+                reviewVideoMapper.deleteByProductId(productId);
+                
+                // 删除评论
+                reviewMapper.deleteByProductId(productId);
+                
+                // 删除商品参数
+                productParamMapper.deleteByProductId(productId);
+                
+                // 删除商品图片记录（不删文件）
+                productImageMapper.deleteByProductId(productId);
+                
+                // 删除SKU
+                productSkuMapper.deleteByProductId(productId);
+                
+                // 删除购物车中的该商品
+                cartItemMapper.deleteByProductId(productId);
+                
+                // 删除收藏中的该商品
+                favoriteMapper.deleteByProductId(productId);
+                
+                // 删除冻结记录
+                productFreezeLogMapper.deleteByProductId(productId);
+                
+                // 最后删除商品主表（order_items 不删，已购用户需查看订单）
+                productMapper.deleteById(productId);
+                
+                deletedCount++;
+                log.info("商品批量删除成功: productId={}", productId);
+            } catch (Exception e) {
+                log.warn("商品删除失败: productId={}, error={}", productId, e.getMessage());
+            }
+        }
+        
+        return deletedCount;
+    }
+
+    /**
+     * 获取 SKU 实时可用库存（Redis 优先）
+     * 如果 Redis 中有值，返回 Redis 中的值（已减去预扣）
+     * 如果 Redis 中没有，从数据库查询并回写 Redis
+     */
+    public Integer getSkuAvailableStock(Long skuId) {
+        String stockKey = "product:stock:sku:" + skuId;
+
+        // 1. 先从 Redis 取
+        Integer redisStock = (Integer) redisTemplate.opsForValue().get(stockKey);
+        if (redisStock != null) {
+            return redisStock;
+        }
+
+        // 2. Redis 没有，从数据库查
+        ProductSku sku = productSkuMapper.findById(skuId).orElse(null);
+        if (sku == null) return 0;
+
+        // 3. 回写 Redis
+        redisTemplate.opsForValue().set(stockKey, sku.getStock());
+        return sku.getStock();
+    }
 }

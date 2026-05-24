@@ -8,9 +8,8 @@ import java.util.List;
 public interface ProductImageMapper {
 
     // 插入商品图片
-    @Insert("INSERT INTO product_images (product_id, image, sort_order, created_at) " +
-            "VALUES (#{productId}, #{image}, #{sortOrder}, #{createdAt})")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @Insert("INSERT INTO product_images (id, product_id, image, sort_order, created_at) " +
+            "VALUES (#{id}, #{productId}, #{image}, #{sortOrder}, #{createdAt})")
     int insert(ProductImage productImage);
 
     // 根据商品ID查询图片列表
@@ -31,4 +30,8 @@ public interface ProductImageMapper {
     // 根据图片ID删除
     @Delete("DELETE FROM product_images WHERE id = #{id}")
     int deleteById(Long id);
+
+    // 更新图片排序
+    @Update("UPDATE product_images SET sort_order = #{sortOrder} WHERE id = #{id}")
+    int updateSortOrder(Long id, Integer sortOrder);
 }

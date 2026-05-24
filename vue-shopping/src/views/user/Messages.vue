@@ -1,316 +1,189 @@
 <template>
-  <div class="messages-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <h1 class="page-title">消息中心</h1>
-      <button class="clear-btn" @click="clearAllMessages">清空</button>
-    </div>
-
-    <!-- 消息列表 -->
-    <div class="messages-container" v-if="messages.length > 0">
-      <div 
-        v-for="message in messages" 
-        :key="message.id" 
-        class="message-item"
-        :class="{ unread: !message.read }"
-        @click="viewMessage(message)"
-      >
-        <div class="message-avatar">
-          <i :class="message.icon"></i>
-        </div>
-        <div class="message-content">
-          <div class="message-header">
-            <span class="message-title">{{ message.title }}</span>
-            <span class="message-time">{{ message.time }}</span>
-          </div>
-          <p class="message-text">{{ message.content }}</p>
-        </div>
-        <span v-if="!message.read" class="unread-dot"></span>
-      </div>
-    </div>
-
-    <!-- 空状态 -->
-    <div class="empty-state" v-else>
-      <div class="empty-icon">
+  <div class="messages-page page-container">
+    <!-- 顶部导航栏 -->
+    <div class="page-navbar">
+      <div class="page-nav-right"></div>
+      <div class="page-nav-title">
         <i class="fas fa-bell"></i>
+        <span>消息中心</span>
       </div>
-      <p class="empty-text">暂无消息</p>
-      <p class="empty-hint">有新消息时会在这里显示</p>
+      <button class="page-nav-action" @click="markAllRead">
+        <i class="fas fa-check-circle"></i>
+      </button>
     </div>
+
+    <!-- 骨架屏加载 -->
+    <div v-if="loading" class="message-list skeleton-order-list">
+      <div v-for="n in 3" :key="n" class="message-item skeleton-card">
+        <div class="msg-avatar">
+          <div class="skeleton" style="width: 48px; height: 48px; border-radius: 50%;"></div>
+        </div>
+        <div class="msg-content">
+          <div class="msg-header">
+            <div class="skeleton-line medium" style="width: 120px;"></div>
+            <div class="skeleton-line short" style="width: 60px;"></div>
+          </div>
+          <div class="skeleton-line" style="margin-top: 8px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div v-else>
+      <!-- 未读提醒 -->
+      <div class="unread-reminder" v-if="unreadCount > 0" @click="markAllRead">
+        <i class="fas fa-check-circle"></i>
+        <span>全部已读 ({{ unreadCount }})</span>
+        <i class="fas fa-chevron-right"></i>
+      </div>
+
+      <!-- 消息列表 -->
+      <div class="message-list">
+        <div
+          v-for="msg in messages"
+          :key="msg.id"
+          class="message-item"
+          :class="{ unread: !msg.read }"
+          @click="goToDetail(msg)"
+        >
+          <div class="msg-avatar">
+            <i :class="['fas', msg.icon]"></i>
+          </div>
+          <div class="msg-content">
+            <div class="msg-header">
+              <span class="msg-title">{{ msg.title }}</span>
+              <span class="msg-time">{{ msg.time }}</span>
+            </div>
+            <div class="msg-preview">{{ msg.preview }}</div>
+            <div v-if="!msg.read" class="unread-dot"></div>
+          </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-if="messages.length === 0" class="empty-messages">
+          <i class="fas fa-inbox"></i>
+          <p>暂无消息</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 系统通知设置入口 -->
+    <div class="settings-entry">
+      <div class="settings-card" @click="goToNotificationSettings">
+        <div class="settings-icon">
+          <i class="fas fa-cog"></i>
+        </div>
+        <span class="settings-text">通知设置</span>
+        <i class="fas fa-chevron-right"></i>
+      </div>
+    </div>
+
+    <!-- 底部留空 -->
+    <div class="bottom-space"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
 
 const router = useRouter()
 
-interface MessageItem {
-  id: number
-  title: string
-  content: string
-  time: string
-  read: boolean
-  icon: string
-  type: string
-}
+const loading = ref(true)
+const messages = ref<any[]>([])
 
-const messages = ref<MessageItem[]>([
-  {
-    id: 1,
-    title: '订单发货通知',
-    content: '您的订单 #20260521001 已发货，快递单号：SF1234567890',
-    time: '10分钟前',
-    read: false,
-    icon: 'fas fa-truck',
-    type: 'order'
-  },
-  {
-    id: 2,
-    title: '优惠券到账',
-    content: '恭喜您获得满100减20优惠券，有效期至2026年6月21日',
-    time: '1小时前',
-    read: false,
-    icon: 'fas fa-gift',
-    type: 'coupon'
-  },
-  {
-    id: 3,
-    title: '商品降价提醒',
-    content: '您关注的商品「Apple iPhone 15」已降价500元，快去看看吧',
-    time: '3小时前',
-    read: true,
-    icon: 'fas fa-tag',
-    type: 'product'
-  },
-  {
-    id: 4,
-    title: '系统公告',
-    content: '商城将于5月22日0:00-6:00进行系统维护，期间暂停服务',
-    time: '昨天',
-    read: true,
-    icon: 'fas fa-info-circle',
-    type: 'system'
-  },
-  {
-    id: 5,
-    title: '评价奖励',
-    content: '感谢您对商品的评价，已获得10积分奖励',
-    time: '2天前',
-    read: true,
-    icon: 'fas fa-star',
-    type: 'review'
+const unreadCount = computed(() => {
+  return messages.value.filter(m => !m.read).length
+})
+
+// const loadMessages = async () => {
+//   try {
+//     const response = await authAPI.getUserMessages()
+//     if (response.success && response.data) {
+//       messages.value = response.data.map((item: any) => ({
+//         id: item.id,
+//         type: item.type,
+//         icon: getIconByType(item.type),
+//         title: item.title,
+//         preview: item.content?.substring(0, 50) || '查看详情',
+//         time: formatTime(item.createdAt),
+//         read: item.read,
+//         orderId: item.orderId,
+//         refundId: item.refundId
+//       }))
+//     } else {
+//       throw new Error(response.message || '加载失败')
+//     }
+//   } catch (error: any) {
+//     Message.error(error.message || '加载失败')
+//   }
+// }
+
+const getIconByType = (type: string) => {
+  const icons: Record<string, string> = {
+    ORDER: 'fa-shopping-cart',
+    REFUND: 'fa-undo',
+    SYSTEM: 'fa-bell',
+    COMMENT: 'fa-comment',
+    COUPON: 'fa-ticket-alt',
+    SHOP: 'fa-store'
   }
-])
-
-const loadMessages = async () => {
-  try {
-    const response = await authAPI.getMessages()
-    if (response.success && response.data?.messages) {
-      messages.value = response.data.messages
-    }
-  } catch (error) {
-    Message.error('加载消息失败')
+  return icons[type] || 'fa-bell'
 }
 
-const viewMessage = (message: MessageItem) => {
-  message.read = true
-  
-  switch (message.type) {
-    case 'order':
-      router.push({ name: 'UserOrders' })
-      break
-    case 'coupon':
-      router.push({ name: 'UserCoupons' })
-      break
-    case 'product':
-      router.push({ name: 'UserDashboard' })
-      break
-    default:
-      Message.info('暂无更多详情')
-  }
+const formatTime = (dateStr: string) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+  if (diff < minute) return '刚刚'
+  if (diff < hour) return Math.floor(diff / minute) + '分钟前'
+  if (diff < day) return Math.floor(diff / hour) + '小时前'
+  if (diff < 2 * day) return '昨天'
+  return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
 
-const clearAllMessages = async () => {
-  try {
-    await Message.confirm('确定要清空所有消息吗？', '清空确认')
-    
-    try {
-      const response = await authAPI.clearMessages()
-      if (response.success) {
-        messages.value = []
-        Message.success('清空成功')
-      }
-    } catch (error) {
-      Message.error('清空失败')
-    }
-  } catch (error) {
+const markAllRead = () => {
+  // 实现标记全部已读的逻辑
+  Message.info('标记全部已读')
+}
+
+// const markAllRead = async () => {
+//   try {
+//     const response = await authAPI.markAllMessagesRead()
+//     if (response.success) {
+//       messages.value.forEach(m => m.read = true)
+//       Message.success('已全部标记为已读')
+//     } else {
+//       throw new Error(response.message || '操作失败')
+//     }
+//   } catch (error: any) {
+//     Message.error(error.message || '操作失败')
+//   }
+// }
+
+const goToDetail = (msg: any) => {
+  msg.read = true
+  if (msg.orderId) {
+    router.push({ name: 'OrderDetail', params: { orderId: msg.orderId } })
+  } else if (msg.refundId) {
+    router.push({ name: 'RefundChat', params: { refundId: msg.refundId } })
   }
 }
 
-onMounted(async () => {
-  await loadMessages()
+const goToNotificationSettings = () => {
+  Message.info('通知设置开发中')
+}
+
+onMounted(() => {
+  loading.value = false
 })
 </script>
 
 <style scoped>
-.messages-page {
-  min-height: 100vh;
-  background-color: #f5f7fa;
-}
-
-/* 页面头部 */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  background: white;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.page-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.clear-btn {
-  padding: 6px 14px;
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  font-size: 13px;
-  color: #64748b;
-  cursor: pointer;
-}
-
-.clear-btn:active {
-  background: #f8fafc;
-}
-
-/* 消息列表 */
-.messages-container {
-  padding: 12px;
-}
-
-.message-item {
-  display: flex;
-  align-items: center;
-  padding: 14px;
-  background: white;
-  border-radius: 12px;
-  margin-bottom: 10px;
-  position: relative;
-}
-
-.message-item:active {
-  background: #f8fafc;
-}
-
-.message-item.unread {
-  background: #fef3c7;
-}
-
-.message-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4a6491, #3a5479);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-.message-avatar i {
-  font-size: 18px;
-  color: white;
-}
-
-.message-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.message-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.message-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-}
-
-.message-time {
-  font-size: 12px;
-  color: #94a3b8;
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-
-.message-text {
-  font-size: 13px;
-  color: #64748b;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.unread-dot {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 8px;
-  height: 8px;
-  background: #ff4757;
-  border-radius: 50%;
-}
-
-/* 空状态 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-}
-
-.empty-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: #f1f5f9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.empty-icon i {
-  font-size: 36px;
-  color: #94a3b8;
-}
-
-.empty-text {
-  font-size: 16px;
-  color: #64748b;
-  margin: 0 0 8px 0;
-}
-
-.empty-hint {
-  font-size: 13px;
-  color: #94a3b8;
-  margin: 0;
-}
+@import url('@/static/css/user/消息中心.css');
 </style>

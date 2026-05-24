@@ -1,0 +1,574 @@
+/* ========== 物流页 - 深空星尘·星际追踪主题 ========== */
+
+.user-logistics-container {
+  min-height: 100vh;
+  background: radial-gradient(ellipse at 30% 40%, #1a1a3e 0%, #0f0c29 50%, #050510 100%);
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 星环背景装饰 */
+.user-logistics-container::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: -20%;
+  width: 140%;
+  height: 140%;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.06) 0%, rgba(74, 100, 145, 0.04) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: bgPulse 6s ease-in-out infinite;
+}
+
+@keyframes bgPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+.user-logistics-container::after {
+  content: '';
+  position: fixed;
+  bottom: 10%;
+  right: -30%;
+  width: 80%;
+  height: 80%;
+  background: conic-gradient(from 0deg, transparent, rgba(0, 212, 255, 0.1), rgba(107, 138, 181, 0.15), rgba(0, 212, 255, 0.1), transparent);
+  border-radius: 50%;
+  animation: ringRotate 25s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes ringRotate {
+  to { transform: rotate(360deg); }
+}
+
+/* 漂浮粒子 */
+.floating-particle {
+  position: fixed;
+  width: 3px;
+  height: 3px;
+  background: rgba(0, 212, 255, 0.4);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  animation: floatParticle 10s ease-in-out infinite;
+}
+
+@keyframes floatParticle {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  25% { transform: translateY(-30px) translateX(20px); opacity: 0.7; }
+  50% { transform: translateY(-15px) translateX(40px); opacity: 0.5; }
+  75% { transform: translateY(20px) translateX(10px); opacity: 0.6; }
+}
+
+/* ========== 页面导航栏 ========== */
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: rgba(5, 5, 16, 0.85);
+  backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 212, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #00d4ff;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.page-nav-back:active {
+  background: rgba(0, 212, 255, 0.3);
+  transform: scale(0.95);
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00d4ff, #6b8ab5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.page-nav-title i {
+  color: #00d4ff;
+}
+
+.page-nav-right {
+  width: 36px;
+}
+
+/* ========== 物流内容 ========== */
+.logistics-content {
+  padding: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ========== 订单号行 ========== */
+.order-number-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(10, 10, 26, 0.8);
+  backdrop-filter: blur(15px);
+  border-radius: 24px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.order-label {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.order-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: #00d4ff;
+  flex: 1;
+  word-break: break-all;
+}
+
+/* ========== 物流公司卡片 ========== */
+.logistics-company-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: rgba(10, 10, 26, 0.8);
+  backdrop-filter: blur(15px);
+  border-radius: 24px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  transition: all 0.3s;
+}
+
+.logistics-company-card:active {
+  transform: scale(0.98);
+}
+
+.company-logo {
+  width: 48px;
+  height: 48px;
+  background: rgba(0, 212, 255, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.company-logo i {
+  font-size: 24px;
+  color: #00d4ff;
+}
+
+.company-info {
+  flex: 1;
+}
+
+.company-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin-bottom: 4px;
+}
+
+.tracking-number {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.copy-btn {
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 212, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  color: #00d4ff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.copy-btn:active {
+  background: rgba(0, 212, 255, 0.3);
+  transform: scale(0.92);
+}
+
+/* ========== 物流轨迹卡片 ========== */
+.logistics-card {
+  background: rgba(10, 10, 26, 0.8);
+  backdrop-filter: blur(15px);
+  border-radius: 24px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+/* 物流时间线 */
+.logistics-timeline {
+  position: relative;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-line {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #64748b;
+  transition: all 0.3s;
+}
+
+.timeline-item.is-first .timeline-dot {
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, #00d4ff, #6b8ab5);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+  animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(0, 212, 255, 0); }
+}
+
+.timeline-line::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: calc(100% + 20px);
+  background: linear-gradient(180deg, rgba(0, 212, 255, 0.5), rgba(0, 212, 255, 0.1));
+}
+
+.timeline-item:last-child .timeline-line::after {
+  display: none;
+}
+
+.timeline-content {
+  flex: 1;
+  padding-bottom: 8px;
+}
+
+.timeline-status {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f1f5f9;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.timeline-item.is-first .timeline-status {
+  color: #00d4ff;
+}
+
+.timeline-time {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.timeline-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #64748b;
+  background: rgba(0, 212, 255, 0.08);
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-top: 4px;
+}
+
+.timeline-location i {
+  font-size: 10px;
+  color: #00d4ff;
+}
+
+/* 无物流信息 */
+.no-trace {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+}
+
+.no-trace i {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+  color: #00d4ff;
+}
+
+.no-trace p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.no-trace .tips {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ========== 未发货卡片 ========== */
+.not-shipped-card {
+  background: rgba(10, 10, 26, 0.8);
+  backdrop-filter: blur(15px);
+  border-radius: 24px;
+  padding: 32px;
+  text-align: center;
+  margin-bottom: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.not-shipped-card i {
+  font-size: 48px;
+  color: #00d4ff;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.not-shipped-card p {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 4px 0;
+}
+
+.not-shipped-card .tips {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ========== 收件信息卡片 ========== */
+.address-card {
+  background: rgba(10, 10, 26, 0.8);
+  backdrop-filter: blur(15px);
+  border-radius: 24px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00d4ff, #6b8ab5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.card-content {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.receiver {
+  margin-bottom: 8px;
+}
+
+.receiver-name {
+  font-weight: 600;
+  color: #f1f5f9;
+  margin-right: 12px;
+}
+
+.receiver-phone {
+  color: #94a3b8;
+}
+
+.receiver-address {
+  color: #94a3b8;
+  word-break: break-all;
+}
+
+/* ========== 底部操作按钮 ========== */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  margin-bottom: 20px;
+}
+
+.btn-receive {
+  flex: 1;
+  padding: 14px;
+  background: linear-gradient(135deg, #00d4ff, #6b8ab5);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+.btn-receive:active {
+  transform: scale(0.97);
+}
+
+.btn-receive:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-contact {
+  flex: 1;
+  padding: 14px;
+  background: rgba(10, 10, 26, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 30px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #00d4ff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.btn-contact:active {
+  transform: scale(0.97);
+  background: rgba(0, 212, 255, 0.1);
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(10, 10, 26, 0.8);
+  backdrop-filter: blur(15px);
+  border-radius: 28px;
+  margin: 20px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.empty-state i {
+  font-size: 64px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 4px 0;
+}
+
+.empty-state .tips {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  .logistics-content {
+    padding: 8px;
+  }
+  
+  .order-number-row {
+    padding: 10px 12px;
+  }
+  
+  .logistics-company-card {
+    padding: 12px;
+  }
+  
+  .company-logo {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .company-logo i {
+    font-size: 20px;
+  }
+  
+  .company-name {
+    font-size: 14px;
+  }
+  
+  .tracking-number {
+    font-size: 11px;
+  }
+  
+  .timeline-status {
+    font-size: 13px;
+  }
+  
+  .timeline-time {
+    font-size: 11px;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .btn-receive,
+  .btn-contact {
+    width: 100%;
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .user-logistics-container {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}

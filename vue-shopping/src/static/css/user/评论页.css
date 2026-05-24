@@ -1,111 +1,142 @@
-/* 页面容器 */
-.review-container {
-  max-width: 100%;
-  margin: 0 auto;
-  padding: 12px;
+/* ========== 写评价页 - 简洁版样式 ========== */
+
+.review-page {
   min-height: 100vh;
   background: #f5f7fa;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  position: relative;
 }
 
-/* 页面头部 */
-.page-header {
-  margin-bottom: 24px;
+/* 移除所有动态背景 */
+.review-page::before,
+.review-page::after {
+  display: none;
+  content: none;
 }
 
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 12px;
+/* ========== 页面导航栏 ========== */
+.page-navbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid #e8ecf0;
 }
 
-.page-title i {
-  color: #f59e0b;
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #4a6491;
+  font-size: 16px;
+  transition: all 0.2s;
 }
 
-.breadcrumb {
+.page-nav-back:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
+}
+
+.page-nav-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  color: #64748b;
-}
-
-.breadcrumb a {
-  color: #4a6491;
-  text-decoration: none;
-}
-
-.breadcrumb .current {
+  font-size: 17px;
+  font-weight: 700;
   color: #1e293b;
-  font-weight: 500;
 }
 
-/* 加载状态 */
-.loading-state {
-  text-align: center;
-  padding: 80px;
-  background: white;
-  border-radius: 12px;
+.page-nav-title i {
+  color: #4a6491;
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #4a6491;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* 评价表单卡片 */
-.review-form-card {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-/* 商品信息区 */
-.product-info-section {
+.page-nav-right {
+  width: 36px;
   display: flex;
-  gap: 16px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #e2e8f0;
-  margin-bottom: 20px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.review-badge {
+  background: #ef4444;
+  color: white;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* ========== 商品卡片 ========== */
+.product-card {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  margin: 0 0 8px 0;
+  border-radius: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e8ecf0;
+}
+
+.product-card:active {
+  transform: scale(0.98);
 }
 
 .product-image {
   width: 80px;
   height: 80px;
+  border-radius: 12px;
   object-fit: cover;
-  border-radius: 8px;
+  background: #f5f7fa;
 }
 
 .product-detail {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .product-name {
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   color: #1e293b;
-  margin-bottom: 8px;
-  font-size: 16px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .product-spec {
-  font-size: 13px;
-  color: #94a3b8;
-  margin-bottom: 4px;
+  font-size: 12px;
+  color: #64748b;
+  background: #f0f2f5;
+  padding: 2px 8px;
+  border-radius: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  width: fit-content;
+}
+
+.product-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: auto;
 }
 
 .product-price {
@@ -114,194 +145,366 @@
   color: #ef4444;
 }
 
-/* 评分区域 */
-.rating-section {
-  margin-bottom: 24px;
-  text-align: center;
+.product-quantity {
+  font-size: 12px;
+  color: #94a3b8;
 }
 
-.rating-label {
-  font-size: 14px;
-  color: #64748b;
-  margin-bottom: 12px;
+/* ========== 评价区块 ========== */
+.review-section {
+  margin: 0 0 8px 0;
+  padding: 20px;
+  background: white;
+  border-radius: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e8ecf0;
 }
 
-.rating-stars {
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
   display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.section-title .required {
+  color: #ef4444;
+  font-size: 14px;
+}
+
+/* ========== 评分星星 ========== */
+.rating-select {
+  display: flex;
+  gap: 16px;
   justify-content: center;
-  gap: 8px;
   margin-bottom: 12px;
 }
 
-.star-icon {
-  font-size: 44px;
-  width: 44px;
-  height: 44px;
-  line-height: 44px;
+.rating-select i {
+  font-size: 36px;
+  color: #e2e8f0;
   cursor: pointer;
-  color: #cbd5e1;
   transition: all 0.2s;
 }
 
-.star-icon.active {
+.rating-select i:active {
+  transform: scale(0.9);
+}
+
+.rating-select i.active {
   color: #f59e0b;
 }
 
-.star-icon:hover {
-  transform: scale(1.1);
-  color: #f59e0b;
-}
-
-.rating-tip {
-  font-size: 14px;
-  color: #f59e0b;
-  font-weight: 500;
-}
-
-/* 评价内容区 */
-.comment-section {
-  margin-bottom: 24px;
-}
-
-.comment-label {
+.rating-label {
+  text-align: center;
   font-size: 14px;
   font-weight: 500;
-  color: #1e293b;
-  margin-bottom: 12px;
-}
-
-.comment-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: inherit;
-  resize: vertical;
-  box-sizing: border-box;
-  resize: none;
-}
-
-.comment-input:focus {
-  outline: none;
-  border-color: #f59e0b;
-}
-
-.comment-count {
-  text-align: right;
-  font-size: 12px;
-  color: #94a3b8;
+  color: #64748b;
   margin-top: 8px;
 }
 
-/* 图片上传区 */
-.image-section {
-  margin-bottom: 24px;
-}
-
-.image-label {
+/* ========== 评价内容输入 ========== */
+.content-textarea {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   font-size: 14px;
-  font-weight: 500;
   color: #1e293b;
-  margin-bottom: 12px;
+  resize: none;
+  background: white;
+  transition: all 0.2s;
+  font-family: inherit;
 }
 
-.image-list {
+.content-textarea:focus {
+  outline: none;
+  border-color: #4a6491;
+  box-shadow: 0 0 0 3px rgba(74, 100, 145, 0.1);
+}
+
+.textarea-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.char-count {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ========== 媒体上传区域 ========== */
+.media-upload-area {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
 }
 
-.image-item {
+.media-preview-item {
   position: relative;
-  width: 70px;
-  height: 70px;
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f5f7fa;
+  border: 1px solid #e8ecf0;
+  transition: all 0.2s;
 }
 
-.uploaded-image {
+.media-preview-item:active {
+  transform: scale(0.95);
+}
+
+.media-preview-item img,
+.media-preview-item video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 8px;
-}
-
-.remove-icon {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  font-size: 20px;
-  color: #ef4444;
-  background: white;
-  border-radius: 50%;
   cursor: pointer;
 }
 
-.upload-btn {
-  width: 70px;
-  height: 70px;
+.video-tag {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.remove-media-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.remove-media-btn:active {
+  transform: scale(0.9);
+  background: rgba(239, 68, 68, 0.9);
+}
+
+/* 视频预览包装器 */
+.video-preview-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.video-preview-wrapper img.video-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.video-play-icon i {
+  color: white;
+  font-size: 14px;
+}
+
+/* 上传按钮组 */
+.upload-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.upload-option {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 2px dashed #cbd5e1;
-  border-radius: 8px;
+  width: 100px;
+  height: 100px;
+  background: #fafbfc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  color: #64748b;
 }
 
-.upload-btn:hover {
-  border-color: #f59e0b;
-  background: #fef3c7;
+.upload-option:active {
+  transform: scale(0.95);
+  background: #f5f7fa;
 }
 
-.upload-btn i {
-  font-size: 24px;
-  color: #94a3b8;
-  margin-bottom: 4px;
+.upload-option i {
+  font-size: 28px;
+  margin-bottom: 8px;
+  color: #4a6491;
 }
 
-.upload-btn span {
+.upload-option span {
   font-size: 12px;
+}
+
+.upload-count {
+  font-size: 10px;
   color: #94a3b8;
+  margin-left: 4px;
 }
 
-.hidden-input {
-  display: none;
-}
-
-.image-tip {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-top: 8px;
-}
-
-/* 提交按钮区 */
-.submit-section {
-  text-align: center;
-  padding-top: 20px;
-  border-top: 1px solid #e2e8f0;
-}
-
-.btn-submit {
-  width: 100%;
-  height: 44px;
-  padding: 0 24px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+/* ========== 提交按钮 ========== */
+.submit-btn {
+  width: calc(100% - 24px);
+  margin: 12px;
+  padding: 14px;
+  background: #4a6491;
   color: white;
   border: none;
-  border-radius: 40px;
+  border-radius: 28px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
 }
 
-.btn-submit:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+.submit-btn:active {
+  transform: scale(0.97);
+  background: #3a5479;
 }
 
-.btn-submit:disabled {
-  opacity: 0.6;
+.submit-btn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ========== 温馨提示 ========== */
+.tips-section {
+  margin: 12px;
+  padding: 16px;
+  background: #fafbfc;
+  border: 1px solid #e8ecf0;
+  border-radius: 16px;
+}
+
+.tips-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4a6491;
+  margin-bottom: 12px;
+}
+
+.tips-title i {
+  font-size: 16px;
+}
+
+.tips-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.8;
+}
+
+/* ========== 媒体预览弹窗 ========== */
+.media-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.media-preview-overlay img,
+.media-preview-overlay video {
+  max-width: 90vw;
+  max-height: 80vh;
+  border-radius: 12px;
+}
+
+/* ========== 底部留空 ========== */
+.bottom-space {
+  height: 40px;
+}
+
+/* ========== 骨架屏 ========== */
+.skeleton-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 12px;
+  border: 1px solid #e8ecf0;
+}
+
+.skeleton-line {
+  height: 14px;
+  background: linear-gradient(90deg, #f0f2f5 25%, #e2e8f0 50%, #f0f2f5 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-line.short { width: 40%; }
+.skeleton-line.medium { width: 60%; }
+.skeleton-line.long { width: 80%; }
+
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  .rating-select i {
+    gap: 12px;
+  }
+
+  .review-section {
+    padding: 16px;
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .review-page {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
 }

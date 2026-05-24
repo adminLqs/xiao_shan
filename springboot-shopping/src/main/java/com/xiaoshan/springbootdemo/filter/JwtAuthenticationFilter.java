@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -27,6 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserMapper userMapper;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -34,6 +36,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 从Cookie提取JWT Token
         String token = jwtUtil.extractTokenFromCookie(request);
+
+        // 检查token是否在黑名单中
+        if (token != null) {
+            String blacklisted = stringRedisTemplate.opsForValue().get("jwt:blacklist:" + token);
+            if (blacklisted != null) {
+                log.warn("token已被加入黑名单，用户在其他设备登录");
+                clearAuthCookie(response);
+                sendErrorResponse(response, "账号在其他设备登录，请重新登录");
+                return;
+            }
+        }
 
         // 验证Token有效性
         if (token != null && jwtUtil.validateToken(token)) {
@@ -73,8 +86,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                log.info("用户: {} 认证成功，角色: {}", userId, user.getRole().name());
-
             } catch (RuntimeException e) {
                 // 认证失败处理：清除Cookie并返回错误
                 log.error("JWT认证失败: {}", e.getMessage());
@@ -97,7 +108,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .maxAge(0)
                 .build();
         response.addHeader("Set-Cookie", cookie.toString());
-        log.debug("已清除认证Cookie");
     }
 
     /**

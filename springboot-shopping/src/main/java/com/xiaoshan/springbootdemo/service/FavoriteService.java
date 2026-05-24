@@ -3,6 +3,7 @@ package com.xiaoshan.springbootdemo.service;
 import com.xiaoshan.springbootdemo.entity.Favorite;
 import com.xiaoshan.springbootdemo.entity.vo.FavoriteVO;
 import com.xiaoshan.springbootdemo.mapper.FavoriteMapper;
+import com.xiaoshan.springbootdemo.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.List;
 public class FavoriteService {
 
     private final FavoriteMapper favoriteMapper;
+    private final SnowflakeIdGenerator snowflakeIdGenerator;
 
     /**
      * 添加收藏
@@ -30,12 +32,13 @@ public class FavoriteService {
         }
 
         Favorite favorite = new Favorite();
+        favorite.setId(snowflakeIdGenerator.nextId()); // 生成雪花ID
         favorite.setUserId(userId);
         favorite.setProductId(productId);
         favorite.setCreatedAt(LocalDateTime.now());
         favoriteMapper.insert(favorite);
 
-        log.info("添加收藏成功: userId={}, productId={}", userId, productId);
+
     }
 
     /**
@@ -44,6 +47,17 @@ public class FavoriteService {
     @Transactional
     public void removeFavorite(Long userId, Long favoriteId) {
         int deleted = favoriteMapper.deleteByIdAndUserId(favoriteId, userId);
+        if (deleted == 0) {
+            throw new RuntimeException("收藏不存在");
+        }
+    }
+
+    /**
+     * 取消收藏（根据商品ID）
+     */
+    @Transactional
+    public void removeFavoriteByProductId(Long userId, Long productId) {
+        int deleted = favoriteMapper.deleteByUserIdAndProductId(userId, productId);
         if (deleted == 0) {
             throw new RuntimeException("收藏不存在");
         }
@@ -63,7 +77,7 @@ public class FavoriteService {
         }
 
         int deleted = favoriteMapper.batchDeleteByIds(favoriteIds);
-        log.info("批量取消收藏成功: userId={}, 删除数量={}", userId, deleted);
+
     }
 
     /**

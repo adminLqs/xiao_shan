@@ -1,0 +1,720 @@
+/* ========== 云杉购·星环流光 - 浅色主题（首页） ========== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: #f5f7ff;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.outer-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f5f7ff 0%, #ede9fe 30%, #e0e7ff 100%);
+  padding-bottom: env(safe-area-inset-bottom);
+  position: relative;
+}
+
+/* 浅色星环背景装饰 */
+.outer-container::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: -20%;
+  width: 140%;
+  height: 140%;
+  background: radial-gradient(circle, rgba(74, 100, 145, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 星环旋转光晕 */
+.outer-container::after {
+  content: '';
+  position: fixed;
+  bottom: 10%;
+  right: -30%;
+  width: 80%;
+  height: 80%;
+  background: conic-gradient(from 0deg, transparent, rgba(74, 100, 145, 0.08), rgba(107, 138, 181, 0.12), rgba(74, 100, 145, 0.08), transparent);
+  border-radius: 50%;
+  animation: ringRotate 25s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes ringRotate {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 呼吸式导航栏 - 浅色毛玻璃 ========== */
+.breathe-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(74, 100, 145, 0.12);
+  box-shadow: 0 2px 8px rgba(74, 100, 145, 0.04);
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-logo i {
+  font-size: 22px;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: logoBreathing 2s ease-in-out infinite;
+}
+
+@keyframes logoBreathing {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+.logo-text {
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.nav-center {
+  flex: 1;
+  margin: 0 12px;
+}
+
+.nav-center .search-wrapper {
+  padding: 2px;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  border-radius: 30px;
+  transition: all 0.3s;
+}
+
+.nav-center .search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border-radius: 28px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nav-center .search-box:active {
+  transform: scale(0.98);
+  background: #f8fafc;
+}
+
+.nav-center .search-icon {
+  color: #4a6491;
+  font-size: 14px;
+}
+
+.search-placeholder {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* ========== 悬浮胶囊导航 - 浅色毛玻璃 ========== */
+.floating-capsule {
+  position: fixed;
+  top: 12px;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 16px;
+  right: 16px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(74, 100, 145, 0.2);
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 101;
+  box-shadow: 0 4px 16px rgba(74, 100, 145, 0.08);
+  opacity: 0;
+  transform: translateY(-20px);
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.floating-capsule.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.capsule-back {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: rgba(74, 100, 145, 0.08);
+  border-radius: 50%;
+  color: #4a6491;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.capsule-back:active {
+  background: rgba(74, 100, 145, 0.15);
+  transform: scale(0.95);
+}
+
+.capsule-title {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.capsule-cart {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4a6491;
+  font-size: 16px;
+  text-decoration: none;
+  background: rgba(74, 100, 145, 0.08);
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.capsule-cart:active {
+  background: rgba(74, 100, 145, 0.15);
+  transform: scale(0.95);
+}
+
+.capsule-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  background: #ef4444;
+  color: white;
+  font-size: 9px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* ========== 商家入驻横幅 - 浅色渐变 ========== */
+.merchant-banner {
+  background: linear-gradient(135deg, #e8edf5 0%, #e0e7ff 100%);
+  margin: 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(74, 100, 145, 0.15);
+  overflow: hidden;
+  position: relative;
+}
+
+.merchant-container {
+  padding: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.merchant-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.merchant-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.merchant-desc {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.merchant-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 25px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(74, 100, 145, 0.2);
+}
+
+.merchant-btn:active {
+  transform: scale(0.96);
+}
+
+/* ========== 分类图标网格 - 浅色毛玻璃 ========== */
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px 0;
+  padding: 20px 16px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  margin: 8px 12px;
+  border-radius: 24px;
+  border: 1px solid rgba(74, 100, 145, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.grid-item:active {
+  transform: scale(0.94);
+}
+
+.grid-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.grid-label {
+  font-size: 12px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+/* ========== 商品展示区 ========== */
+.products-section {
+  padding: 12px;
+  flex: 1;
+}
+
+/* 商品网格 - 2列布局 */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+/* 商品卡片 - 星环卡片 */
+.product-card {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(15px);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(74, 100, 145, 0.08);
+  border: 1px solid rgba(74, 100, 145, 0.1);
+  position: relative;
+  animation: cardFadeIn 0.4s ease-out backwards;
+}
+
+.product-card:nth-child(1) { animation-delay: 0.05s; }
+.product-card:nth-child(2) { animation-delay: 0.1s; }
+.product-card:nth-child(3) { animation-delay: 0.15s; }
+.product-card:nth-child(4) { animation-delay: 0.2s; }
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.product-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(74, 100, 145, 0.06), transparent);
+  transition: left 0.4s;
+}
+
+.product-card:active::before {
+  left: 100%;
+}
+
+.product-card:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(74, 100, 145, 0.15);
+  border-color: rgba(74, 100, 145, 0.25);
+}
+
+/* 商品图片区 */
+.product-image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #f8fafc;
+  border-radius: 12px 12px 0 0;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-card:active .product-image img {
+  transform: scale(1.05);
+}
+
+.product-image img {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.product-image img.img-loaded {
+  opacity: 1;
+}
+
+/* 商品徽章 */
+.product-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: badgeGlow 2s ease-in-out infinite;
+}
+
+@keyframes badgeGlow {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+.out-of-stock-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(100, 116, 139, 0.9);
+  backdrop-filter: blur(4px);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 500;
+  z-index: 2;
+}
+
+/* 商品信息 */
+.product-info {
+  padding: 6px 8px;
+}
+
+.product-title {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: #1e293b !important;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.current-price {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #ef4444 !important;
+}
+
+.original-price {
+  font-size: 12px !important;
+  color: #94a3b8 !important;
+  text-decoration: line-through !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 80px;
+}
+
+.product-sales {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  margin-top: 2px;
+}
+
+/* ========== 加载更多 ========== */
+.load-more-wrapper {
+  width: 100%;
+  padding: 20px 0 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-more-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #4a6491;
+  font-size: 13px;
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 30px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.loading-more-bar i {
+  animation: spin 1s linear infinite;
+}
+
+.no-more-bar {
+  color: #cbd5e1;
+  font-size: 12px;
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 30px;
+}
+
+/* 空状态 */
+.empty-products {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  margin: 20px;
+}
+
+.empty-products i {
+  font-size: 64px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.empty-products p {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* ========== 回到顶部按钮 - 浅色 ========== */
+.back-to-top {
+  position: fixed;
+  right: 16px;
+  bottom: 120px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 4px 16px rgba(74, 100, 145, 0.25);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s;
+  z-index: 50;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.back-to-top.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.back-to-top:active {
+  transform: scale(0.92);
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px) {
+  .products-grid {
+    gap: 10px;
+  }
+
+  .grid-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+  }
+
+  .category-grid {
+    padding: 16px 12px;
+  }
+
+  .product-title {
+    font-size: 15px;
+  }
+
+  .current-price {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+
+  .grid-label {
+    font-size: 11px;
+  }
+
+  .merchant-title {
+    font-size: 13px;
+  }
+
+  .merchant-desc {
+    font-size: 10px;
+  }
+
+  .merchant-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .outer-container {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ========== 下拉刷新指示器 ========== */
+.refresh-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: height 0.2s ease;
+}
+
+.refresh-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #4a6491;
+}
+
+.refresh-content i {
+  font-size: 14px;
+}
+
+/* ========== 星环加载器迷你版 ========== */
+.mini-ring {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(74, 100, 145, 0.2);
+  border-top-color: #4a6491;
+  border-radius: 50%;
+  animation: ringSpin 0.8s linear infinite;
+}
+
+.brand-icon-pulse {
+  font-size: 18px;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: breathe 1.5s ease-in-out infinite;
+}
+
+@keyframes ringSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(74, 100, 145, 0.4)); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 0 20px rgba(74, 100, 145, 0.7)); }
+}
+

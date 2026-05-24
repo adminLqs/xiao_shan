@@ -27,6 +27,9 @@ public class MerchantApply {
     // 店铺详细描述
     private String storeDetail;
 
+    // 详细地址
+    private String address;
+
     // 经营类型
     private String businessType;
 

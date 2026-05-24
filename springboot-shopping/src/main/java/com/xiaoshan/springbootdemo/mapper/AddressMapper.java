@@ -14,11 +14,10 @@ public interface AddressMapper {
     /**
      * 新增收货地址
      */
-    @Insert("INSERT INTO addresses (user_id, recipient_name, recipient_phone, " +
+    @Insert("INSERT INTO addresses (id, user_id, recipient_name, recipient_phone, " +
             "province, city, district, detail_address, label, is_default, created_at, updated_at) " +
-            "VALUES (#{userId}, #{recipientName}, #{recipientPhone}, " +
-            "#{province}, #{city}, #{district}, #{detailAddress}, #{label}, #{isDefault}, NOW(), NOW())")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
+            "VALUES (#{id}, #{userId}, #{recipientName}, #{recipientPhone}, " +
+            "#{province}, #{city}, #{district}, #{detailAddress}, #{label}, #{isDefault}, #{createdAt}, #{updatedAt})")
     int insert(Address address);
 
     // ========== 查 ==========

@@ -1,9 +1,40 @@
 <template>
-  <div class="order-detail-container">
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>加载中...</p>
+  <div class="order-detail-container page-container">
+    <div class="page-navbar">
+      <button class="page-nav-back" @click="router.back()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="page-nav-title">
+        <i class="fas fa-file-invoice"></i>
+        <span>订单详情</span>
+      </div>
+      <div class="page-nav-right"></div>
+    </div>
+
+    <!-- 加载状态 - 骨架屏 -->
+    <div v-if="loading" class="order-detail-content">
+      <div class="skeleton-card skeleton-status-bar"></div>
+      <div class="skeleton-card">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line medium"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line medium"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-item">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-item-content">
+            <div class="skeleton-line medium"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+        </div>
+        <div class="skeleton-line"></div>
+      </div>
     </div>
 
     <!-- 订单不存在 -->
@@ -16,19 +47,24 @@
     <!-- 订单详情内容 -->
     <div v-else class="order-detail-content">
       <!-- 订单状态栏 -->
-      <div class="order-status-bar" :class="getStatusClass(orderData.status)">
+      <div class="order-status-bar" :class="[getStatusClass(orderData.status), getRefundStatusClass(orderData.status)]">
         <div class="status-icon">
           <i :class="getStatusIcon(orderData.status)"></i>
         </div>
         <div class="status-info">
-          <div class="status-text">{{ getStatusText(orderData.status) }}</div>
+          <div class="status-text">
+            {{ getStatusText(orderData.status) }}
+            <span v-if="getOrderRefundStatus()" class="refund-status-badge" :class="getRefundBadgeClass()">
+              {{ getOrderRefundStatus() }}
+            </span>
+          </div>
           <div class="status-desc">{{ getStatusDesc(orderData.status) }}</div>
         </div>
       </div>
 
       <!-- 订单基本信息 -->
       <div class="info-card">
-        <div class="card-title">订单信息</div>
+        <div class="card-title"><i class="fas fa-receipt"></i>订单信息</div>
         <div class="info-grid">
           <div class="info-item">
             <span class="info-label">订单号：</span>
@@ -51,7 +87,7 @@
 
       <!-- 收货地址 -->
       <div class="info-card">
-        <div class="card-title">收货地址</div>
+        <div class="card-title"><i class="fas fa-map-marker-alt"></i>收货地址</div>
         <div class="address-info" v-if="addressData">
           <div class="address-recipient">
             <span>{{ addressData.recipientName }}</span>
@@ -66,47 +102,20 @@
 
       <!-- 商品列表 -->
         <div class="info-card">
-        <div class="card-title">商品清单</div>
+        <div class="card-title"><i class="fas fa-boxes"></i>商品清单</div>
         <div class="product-list">
-          <div v-for="item in orderItems" :key="item.id" class="product-item">
-            <img :src="item.productImage" class="product-image" @click="viewProduct(item.productId)">
-            <div class="product-info" @click="viewProduct(item.productId)">
-              <div class="product-name">{{ item.productName }}</div>
-              <div v-if="item.skuName" class="product-sku">规格：{{ item.skuName }}</div>
-              <div class="product-quantity">数量：{{ item.quantity }}</div>
-            </div>
-            <div class="product-price">¥{{ formatPrice(item.price) }}</div>
-            <!-- 商品操作按钮区域 -->
-            <div class="product-actions">
-              <!-- 评价按钮（已完成状态且未评价） -->
-              <button
-                v-if="orderData.status === 'COMPLETED'"
-                class="btn-review"
-                :class="{ 'btn-reviewed': item.isReviewed }"
-                :disabled="item.isReviewed"
-                @click.stop="reviewOrderItem(item.id)"
-              >
-                <i :class="item.isReviewed ? 'fas fa-check-circle' : 'fas fa-edit'"></i>
-                {{ item.isReviewed ? '已评价' : '评价' }}
-              </button>
-
-              <!-- 申请退款按钮（待付款/已付款/处理中/已发货状态） -->
-              <button
-                v-if="['PENDING', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'].includes(orderData.status)"
-                class="btn-refund"
-                @click.stop="goToRefund(item.id)"
-              >
-                <i class="fas fa-undo-alt"></i> 申请退款
-              </button>
-
-              <!-- 申请售后按钮（已完成状态） -->
-              <button
-                v-if="orderData.status === 'COMPLETED'"
-                class="btn-after-sale"
-                @click.stop="goToAfterSale(item.id)"
-              >
-                <i class="fas fa-tools"></i> 申请售后
-              </button>
+          <div v-for="item in orderItems" :key="item.id" class="product-card">
+            <!-- 商品信息 -->
+            <div class="product-item">
+              <img :src="item.productImage || '/images/default-product.png'" class="product-image" @click="viewProduct(item.productId)">
+              <div class="product-info">
+                <div class="product-name">{{ item.productName }}</div>
+                <div class="tags-group">
+                  <span v-if="item.skuName" class="tag-spec">{{ item.skuName }}</span>
+                  <span class="tag-quantity">x{{ item.quantity }}</span>
+                </div>
+              </div>
+              <div class="product-price">¥{{ formatPrice(item.price) }}</div>
             </div>
           </div>
         </div>
@@ -120,44 +129,104 @@
             <span class="total-amount">¥{{ formatPrice(orderData.totalAmount) }}</span>
           </div>
         </div>
+
+        <!-- 底部统一操作区 -->
+        <div class="order-actions-bar">
+          <button
+            v-if="orderData?.status === 'PAID' || orderData?.status === 'PROCESSING'"
+            @click="handleRefund"
+            class="action-btn refund"
+          >申请退款</button>
+          <template v-if="orderData?.status === 'COMPLETED'">
+            <button
+              v-if="hasUnreviewedItems"
+              @click="goToReview"
+              class="action-btn review"
+            >评价</button>
+            <button
+              v-else
+              class="action-btn review disabled"
+              disabled
+            >已评价</button>
+          </template>
+          <button
+            v-if="showAfterSaleBtn"
+            @click="handleAfterSale"
+            class="action-btn after-sale"
+          >申请售后</button>
+        </div>
       </div>
 
-      <!-- 底部操作按钮 -->
-      <div class="action-buttons">
-        <template v-if="orderData.status === 'PENDING'">
-          <button class="btn-danger" @click="cancelOrder">
-            <i class="fas fa-times"></i> 取消订单
+      <!-- 底部留空防止被固定操作栏遮挡 -->
+      <div class="bottom-space"></div>
+    </div>
+
+    <!-- 商品选择弹窗 -->
+    <div v-if="showItemSelector" class="item-selector-overlay" @click.self="showItemSelector = false">
+      <div class="item-selector-dialog">
+        <div class="dialog-header">
+          <span>{{ selectorTitle }}</span>
+          <button class="dialog-close" @click="showItemSelector = false">
+            <i class="fas fa-times"></i>
           </button>
-          <button class="btn-primary" @click="goToPay">
-            <i class="fas fa-credit-card"></i> 去支付
-          </button>
-        </template>
-        <template v-if="['SHIPPED', 'DELIVERED'].includes(orderData.status)">
-          <button class="btn-success" @click="confirmReceive">
-            <i class="fas fa-check"></i> 确认收货
-          </button>
-        </template>
-        <template v-if="['SHIPPED', 'DELIVERED', 'COMPLETED'].includes(orderData.status) && orderData.trackingNumber">
-          <button class="btn-outline" @click="viewLogistics(orderData.id)">
-            <i class="fas fa-truck"></i> 查看物流
-          </button>
-        </template>
-        <template v-if="['CANCELLED', 'REFUNDED'].includes(orderData.status)">
-          <button class="btn-danger" @click="deleteOrder">
-            <i class="fas fa-trash-alt"></i> 删除订单
-          </button>
-        </template>
+        </div>
+        <div class="dialog-content">
+          <div
+            v-for="item in selectableItems"
+            :key="item.id"
+            class="selector-item"
+            :class="{ selected: selectedItemId === item.id, disabled: !isItemSelectable(item) }"
+            @click="isItemSelectable(item) && selectItem(item.id)"
+          >
+            <img :src="item.productImage" class="selector-image">
+            <div class="selector-info">
+              <div class="selector-name">{{ item.productName }}</div>
+              <div v-if="item.skuName" class="selector-spec">{{ item.skuName }}</div>
+              <div class="selector-tags">
+                <span v-if="selectorType === 'REVIEW' && item.isReviewed" class="tag reviewed">已评价</span>
+                <span v-else-if="selectorType !== 'REVIEW' && item.refundStatus === 'COMPLETED'" class="tag refund-done">已退款</span>
+                <span v-else-if="selectorType !== 'REVIEW' && item.refundStatus" class="tag refunding">{{ getRefundStatusText(item.refundStatus, item.refundType, item.returnStatus) }}</span>
+              </div>
+            </div>
+            <div class="selector-radio">
+              <i v-if="selectedItemId === item.id" class="fas fa-check-circle"></i>
+              <i v-else-if="isItemSelectable(item)" class="far fa-circle"></i>
+            </div>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn-cancel" @click="showItemSelector = false">取消</button>
+          <button class="btn-confirm" @click="confirmSelection" :disabled="!selectedItemId">确定</button>
+        </div>
       </div>
+    </div>
+
+    <!-- 底部固定操作栏 -->
+    <div v-if="showBottomBar" class="bottom-bar-fixed">
+      <template v-if="orderData?.status === 'PENDING'">
+        <button class="btn-primary" @click="goToPay">去支付</button>
+        <button class="btn-danger" @click="cancelOrder">取消订单</button>
+      </template>
+      <template v-if="['SHIPPED', 'DELIVERED'].includes(orderData?.status || '')">
+        <button class="btn-success" @click="confirmReceive">确认收货</button>
+      </template>
+      <template v-if="['SHIPPED', 'DELIVERED', 'COMPLETED'].includes(orderData?.status || '') && orderData?.trackingNumber">
+        <button class="btn-outline" @click="viewLogistics(orderData?.id)">查看物流</button>
+      </template>
+      <template v-if="['CANCELLED', 'REFUNDED'].includes(orderData?.status || '')">
+        <button class="btn-danger" @click="deleteOrder">删除订单</button>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
+  import { ref, computed, onMounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { authAPI } from '@/api/authAPI'
   import Message from '@/utils/message'
   import { useAuthStore } from '@/stores/auth'
+
 
   const authStore = useAuthStore()
   const route = useRoute()
@@ -201,9 +270,14 @@
     quantity: number
     price: number
     totalPrice: number
+    skuName?: string
     isReviewed: boolean
     reviewedAt: string | null
     createdAt: string
+    refundStatus?: string
+    refundId?: number
+    refundType?: string
+    returnStatus?: string
   }
 
   /** 订单实体 */
@@ -238,10 +312,37 @@
 
   // ==================== 响应式数据 ====================
 
-  const loading = ref(false)
+  const loading = ref(true)
   const orderData = ref<Order | null>(null)
   const orderItems = ref<OrderItem[]>([])
   const addressData = ref<Address | null>(null)
+
+  // 商品选择弹窗相关
+  const showItemSelector = ref(false)
+  const selectorTitle = ref('')
+  const selectedItemId = ref<number | null>(null)
+  const selectorType = ref<'REFUND' | 'AFTER_SALE' | 'REVIEW'>('REFUND')
+  const selectableItems = ref<OrderItem[]>([])
+
+  // ==================== 计算属性 ====================
+
+  const showBottomBar = computed(() => {
+    if (!orderData.value) return false
+    const status = orderData.value.status
+    return ['PENDING', 'SHIPPED', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'REFUNDED'].includes(status)
+  })
+
+  // 是否有未评价的商品
+  const hasUnreviewedItems = computed(() => {
+    return orderItems.value.some(item => item.isReviewed === false)
+  })
+
+  // 是否显示申请售后按钮
+  const showAfterSaleBtn = computed(() => {
+    if (!orderData.value) return false
+    const status = orderData.value.status
+    return ['SHIPPED', 'DELIVERED', 'COMPLETED'].includes(status)
+  })
 
   // ==================== 静态配置 ====================
 
@@ -397,17 +498,12 @@
       const response = await authAPI.payOrder(orderData.value!.id)
 
       if (response.success) {
-        const paymentHtml = response.data.paymentHtml
-        const div = document.createElement('div')
-        div.style.display = 'none'
-        div.innerHTML = paymentHtml
-        document.body.appendChild(div)
+        const paymentHtml = response.data?.paymentHtml
 
-        const form = div.querySelector('form')
-        if (form) {
-          form.submit()
-        } else {
-          Message.error('支付页面加载失败')
+        const payWindow = window.open('', '_blank')
+        if (payWindow) {
+          payWindow.document.write(paymentHtml)
+          payWindow.document.close()
         }
       } else {
         Message.error(response.message || '支付失败')
@@ -458,12 +554,97 @@
   }
 
   /**
+   * 处理申请退款
+   */
+  const handleRefund = (): void => {
+    showItemSelectorModal('申请退款', 'REFUND', orderItems.value)
+  }
+
+  /**
+   * 处理申请售后
+   */
+  const handleAfterSale = (): void => {
+    showItemSelectorModal('申请售后', 'AFTER_SALE', orderItems.value)
+  }
+
+  /**
+   * 处理评价
+   */
+  const goToReview = (): void => {
+    // 传入所有商品，弹窗内根据 isReviewed 状态显示标签和禁用
+    showItemSelectorModal('选择评价商品', 'REVIEW', orderItems.value)
+  }
+
+  /**
+   * 显示商品选择弹窗
+   * @param {string} title - 弹窗标题
+   * @param {'REFUND' | 'AFTER_SALE' | 'REVIEW'} type - 操作类型
+   * @param {OrderItem[]} items - 可选商品列表
+   */
+  const showItemSelectorModal = (title: string, type: 'REFUND' | 'AFTER_SALE' | 'REVIEW', items: OrderItem[]): void => {
+    selectorTitle.value = title
+    selectorType.value = type
+    selectableItems.value = items
+    selectedItemId.value = null
+    showItemSelector.value = true
+  }
+
+  /**
+   * 选择商品
+   * @param {number} itemId - 商品ID
+   */
+  const selectItem = (itemId: number): void => {
+    selectedItemId.value = itemId
+  }
+
+  /**
+   * 确认选择
+   */
+  const confirmSelection = (): void => {
+    if (!selectedItemId.value) return
+
+    switch (selectorType.value) {
+      case 'REFUND':
+        goToRefund(selectedItemId.value)
+        break
+      case 'AFTER_SALE':
+        goToAfterSale(selectedItemId.value)
+        break
+      case 'REVIEW':
+        router.push({ name: 'Review', params: { orderItemId: selectedItemId.value } })
+        break
+    }
+
+    showItemSelector.value = false
+    selectedItemId.value = null
+  }
+
+  /**
+   * 判断商品是否可选
+   * @param {OrderItem} item - 订单项
+   * @returns {boolean} 是否可选
+   */
+  const isItemSelectable = (item: OrderItem): boolean => {
+    if (selectorType.value === 'REVIEW') {
+      return item.isReviewed === false
+    }
+    if (selectorType.value === 'REFUND' || selectorType.value === 'AFTER_SALE') {
+      // 无退款记录 → 可选
+      if (!item.refundStatus) return true
+      // 已退款或退款失败 → 不可选
+      if (item.refundStatus === 'COMPLETED' || item.refundStatus === 'FAILED') return false
+      // 其他退款状态（退款中/售后中/待退货） → 不可选
+      return false
+    }
+    return true
+  }
+
+  /**
    * 申请退款
    * @param {number} orderItemId - 订单项ID
    */
   const goToRefund = (orderItemId: number): void => {
-    Message.error('还未扩展')
-    // router.push({ name: 'UserRefund', query: { orderItemId: String(orderItemId) } })
+    router.push({ name: 'Refund', query: { orderItemId: String(orderItemId), type: 'REFUND' } })
   }
 
   /**
@@ -471,8 +652,126 @@
    * @param {number} orderItemId - 订单项ID
    */
   const goToAfterSale = (orderItemId: number): void => {
-    Message.error('还未扩展')
-    // router.push({ name: 'UserAfterSale', query: { orderItemId: String(orderItemId) } })
+    router.push({ name: 'Refund', query: { orderItemId: String(orderItemId), type: 'AFTER_SALE' } })
+  }
+
+  /**
+   * 查看退款/售后进度
+   * @param {OrderItem} item - 订单项
+   */
+  const viewRefundProgress = async (item: OrderItem): Promise<void> => {
+    if (!item.refundId) {
+      Message.error('退款记录不存在')
+      return
+    }
+
+    try {
+      const response = await authAPI.getRefundDetail(item.refundId)
+
+      if (response.success && response.data) {
+        const refundData = response.data
+
+        if (refundData.returnStatus === 'RETURNING') {
+          router.push({
+            name: 'UserLogistics',
+            query: {
+              refundId: String(item.refundId),
+              trackingNumber: refundData.returnTrackingNumber,
+              logisticsName: refundData.returnLogisticsName
+            }
+          })
+          return
+        }
+
+        if (refundData.refundType === 'AFTER_SALE' &&
+            (refundData.refundStatus === 'APPROVED' || refundData.refundStatus === 'WAITING_RETURN') &&
+            (!refundData.returnStatus || refundData.returnStatus === 'NULL' || refundData.returnStatus === null)) {
+          router.push({
+            name: 'ReturnGoods',
+            query: {
+              refundId: String(item.refundId),
+              orderItemId: String(item.id)
+            }
+          })
+          return
+        }
+      }
+    } catch (error) {
+      console.error('获取退款详情失败', error)
+    }
+
+    router.push({ name: 'RefundChat', params: { refundId: String(item.refundId) } })
+  }
+
+  /**
+   * 获取退款状态显示文字（用户端）
+   * @param {string} status - 退款状态
+   * @param {string} refundType - 退款类型
+   * @param {string} returnStatus - 退货状态
+   * @returns {string} 显示文字
+   */
+  const getRefundStatusText = (status: string, refundType?: string, returnStatus?: string): string => {
+    if (refundType === 'AFTER_SALE' && status === 'PROCESSING') {
+      return '售后处理中'
+    }
+    if (refundType === 'AFTER_SALE' && status === 'APPROVED') {
+      return '商家已同意，请退货'
+    }
+    if (returnStatus === 'RETURNING') {
+      return '等待商家收货'
+    }
+    if (returnStatus === 'RECEIVED') {
+      return '退款成功'
+    }
+
+    const map: Record<string, string> = {
+      'REFUNDING': '退款中',
+      'AFTER_SALE': '售后处理中',
+      'WAITING_RETURN': '待退货',
+      'RETURNING': '等待商家收货',
+      'RECEIVED': '退款成功',
+      'APPROVED': '去退货',
+      'COMPLETED': '退款成功',
+      'FAILED': '已拒绝',
+      'SUCCESS': '退款成功'
+    }
+    return map[status] || status
+  }
+
+  /**
+   * 获取退款状态样式类
+   * @param {string} status - 退款状态
+   * @returns {string} CSS类名
+   */
+  const getRefundStatusClass = (status: string): string => {
+    const map: Record<string, string> = {
+      'REFUNDING': 'status-refunding',
+      'AFTER_SALE': 'status-after-sale',
+      'WAITING_RETURN': 'status-waiting-return',
+      'RETURNING': 'status-returning',
+      'APPROVED': 'status-approved',
+      'COMPLETED': 'status-completed',
+      'FAILED': 'status-failed'
+    }
+    return map[status] || ''
+  }
+
+  /**
+   * 获取退款状态图标
+   * @param {string} status - 退款状态
+   * @returns {string} FontAwesome图标类名
+   */
+  const getRefundStatusIcon = (status: string): string => {
+    const map: Record<string, string> = {
+      'REFUNDING': 'fa-clock',
+      'AFTER_SALE': 'fa-sync',
+      'WAITING_RETURN': 'fa-truck',
+      'RETURNING': 'fa-truck',
+      'APPROVED': 'fa-check-circle',
+      'COMPLETED': 'fa-check-double',
+      'FAILED': 'fa-times-circle'
+    }
+    return map[status] || 'fa-info-circle'
   }
 
   /**
@@ -497,6 +796,37 @@
     router.push({ name: 'UserOrders' })
   }
 
+  /**
+   * 跳转退货页面
+   */
+  const goToReturn = (item: OrderItem): void => {
+    if (item.refundId) {
+      router.push({
+        name: 'ReturnGoods',
+        query: {
+          refundId: String(item.refundId),
+          orderItemId: String(item.id)
+        }
+      })
+    }
+  }
+
+  /**
+   * 查看退货物流
+   */
+  const viewReturnLogistics = (item: OrderItem): void => {
+    if (item.refundId) {
+      router.push({
+        name: 'UserLogistics',
+        query: {
+          refundId: String(item.refundId),
+          trackingNumber: '',
+          logisticsName: ''
+        }
+      })
+    }
+  }
+
   // ==================== 工具函数 ====================
 
   /**
@@ -506,6 +836,47 @@
    */
   const getStatusClass = (status: OrderStatus): string => {
     return statusClassMap[status] || ''
+  }
+
+  /**
+   * 获取订单整体退款状态
+   * @returns {string | null} 退款状态文本或null
+   */
+  const getOrderRefundStatus = (): string | null => {
+    const items = orderItems.value || []
+    if (items.length === 0) return null
+
+    const refundingCount = items.filter(item =>
+      (item.refundStatus as string) === 'REFUNDING' || (item.refundStatus as string) === 'AFTER_SALE' ||
+      (item.refundStatus as string) === 'WAITING_RETURN' || (item.refundStatus as string) === 'RETURNING' ||
+      (item.refundStatus as string) === 'APPROVED'
+    ).length
+    const refundedCount = items.filter(item => (item.refundStatus as string) === 'COMPLETED').length
+
+    if (refundingCount === items.length) return '退款中'
+    if (refundedCount === items.length) return '已退款'
+    if (refundingCount > 0 || refundedCount > 0) return '部分退款'
+    return null
+  }
+
+  /**
+   * 获取退款状态徽章样式类
+   * @returns {string} CSS类名
+   */
+  const getRefundBadgeClass = (): string => {
+    const items = orderItems.value || []
+    if (items.length === 0) return ''
+
+    const refundingCount = items.filter(item =>
+      (item.refundStatus as string) === 'REFUNDING' || (item.refundStatus as string) === 'AFTER_SALE' ||
+      (item.refundStatus as string) === 'WAITING_RETURN' || (item.refundStatus as string) === 'RETURNING' ||
+      (item.refundStatus as string) === 'APPROVED'
+    ).length
+    const refundedCount = items.filter(item => (item.refundStatus as string) === 'COMPLETED').length
+
+    if (refundingCount === items.length) return 'badge-refunding'
+    if (refundedCount === items.length) return 'badge-refunded'
+    return 'badge-partial-refund'
   }
 
   /**

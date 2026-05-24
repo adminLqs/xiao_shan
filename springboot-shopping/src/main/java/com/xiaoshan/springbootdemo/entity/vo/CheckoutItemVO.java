@@ -33,5 +33,7 @@ public class CheckoutItemVO {
 
     private Integer stock;           // 商品库存
 
+    private Boolean isFreeShipping;  // 是否包邮
+
 
 }

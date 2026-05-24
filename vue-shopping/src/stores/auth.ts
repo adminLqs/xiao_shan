@@ -12,6 +12,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = ref(false) // 是否登录
   const role = ref('') // 角色: ROLE_USER / ROLE_SELLER / ROLE_ADMIN
   const status = ref(1) // 账号状态: 0-禁用, 1-启用
+  const userId = ref<number | null>(null) // 账号ID
 
   // ========== Getters - 权限判断 ==========
   const isUser = computed(() => role.value === 'ROLE_USER')
@@ -34,8 +35,9 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authAPI.getAccountProfile()
 
       if (response.success && response.data?.accountProfile) {
-        
+
         const userRole = response.data.accountProfile.role
+        const userIdValue = response.data.accountProfile.id
 
         const accountStatus = response.data.accountProfile.status
 
@@ -43,10 +45,12 @@ export const useAuthStore = defineStore('auth', () => {
         if (['ROLE_USER', 'ROLE_SELLER', 'ROLE_ADMIN'].includes(userRole)) {
           isLoggedIn.value = true // 是否登录
           role.value = userRole // 角色权限
+          userId.value = userIdValue // 用户ID
         } else {
           // 角色无效，保持未登录
           isLoggedIn.value = false
           role.value = ''
+          userId.value = null
         }
 
         // 无论角色是否有效，都记录状态（供组件判断封禁）
@@ -172,6 +176,17 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn.value = false
     role.value = ''
     status.value = 1
+    userId.value = null
+  }
+
+  // 登出
+  async function logout() {
+    try {
+      await authAPI.logout()
+    } catch (error) {
+      // 忽略登出API错误
+    }
+    clear()
   }
 
   // 初始化
@@ -184,6 +199,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn,
     role,
     status,
+    userId,
 
     // getters
     isUser,
@@ -200,6 +216,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // actions
     checkAndUpdate,
-    clear
+    clear,
+    logout
   }
 })

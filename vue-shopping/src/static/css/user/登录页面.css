@@ -1,3 +1,5 @@
+/* ========== 登录页 - 简洁版样式 ========== */
+
 * {
   padding: 0;
   margin: 0;
@@ -6,391 +8,406 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html {
-  font-size: calc(100vw / 37.5);
-}
-
-body {
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-/* ========== 页面容器 - 移动端全屏 ========== */
+/* 主容器 */
 .main-container {
   width: 100%;
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
-  padding: 0;
+  align-items: center;
+  position: relative;
+  background: #f5f7fa;
 }
 
-/* 商城主题背景 */
+/* 背景 - 纯色 */
 #main_background {
   position: fixed;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+  background: #f5f7fa;
   z-index: -2;
 }
 
-/* 购物主题装饰元素 */
-.shopping-elements {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: -1;
+/* 移除星环光晕和动画 */
+#main_background::before,
+#main_background::after {
+  display: none;
+  content: none;
 }
 
-/* 主容器 - 移动端全屏 */
-.main_section {
-  width: 100%;
-  min-height: 100vh;
-  box-shadow: none;
-  border-radius: 0;
-  overflow: hidden;
-  background: white;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 左侧欢迎区域 - 移动端隐藏 */
-.welcome-section {
+.ring-layer {
   display: none;
 }
 
-/* 右侧表单区域 - 全宽 */
-.form-section {
-  width: 100%;
-  padding: 24px 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  min-height: 100vh;
+/* 移除漂浮粒子 */
+.shopping-elements {
+  display: none;
 }
 
-/* Logo */
-.logo {
-  text-align: center;
-  margin-bottom: 24px;
-  padding-top: 20px;
-}
-
-.logo h2 {
-  color: #4b6cb7;
-  font-size: 20px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.logo h2 i {
-  font-size: 24px;
-}
-
-.logo p {
-  color: #666;
-  font-size: 13px;
-  margin-top: 6px;
-}
-
-/* 检查登录状态遮罩 */
-.checking-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+/* 主卡片容器 */
+.main_section {
+  width: 1000px;
+  min-height: 580px;
   background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 移除边框流光 */
+.main_section::before {
+  display: none;
+}
+
+/* 左侧欢迎区 */
+.welcome-section {
+  width: 45%;
+  padding: 48px 36px;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
-  z-index: 10;
+  color: white;
 }
 
-.checking-overlay i {
-  font-size: 28px;
-  color: #4b6cb7;
-  margin-bottom: 12px;
+.welcome-section::before {
+  display: none;
 }
 
-.checking-overlay span {
-  color: #666;
-  font-size: 14px;
-}
-
-/* 已登录用户卡片 */
-.existing-user-card {
-  text-align: center;
-  padding: 24px 16px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  border-radius: 12px;
-}
-
-.existing-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-bottom: 12px;
-}
-
-.existing-user-card h3 {
-  color: #333;
-  font-size: 16px;
-  margin-bottom: 8px;
-}
-
-.existing-username {
-  color: #4b6cb7;
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.existing-tip {
-  color: #666;
-  font-size: 13px;
+.welcome-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
   margin-bottom: 16px;
 }
 
-.existing-actions {
+.welcome-text {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+.shopping-benefits {
+  list-style: none;
+}
+
+.shopping-benefits li {
+  margin-bottom: 16px;
   display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.shopping-benefits i {
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  font-size: 12px;
+  color: white;
+}
+
+/* 右侧表单区 */
+.form-section {
+  width: 55%;
+  padding: 48px 40px;
+}
+
+/* Logo区域 */
+.logo {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.logo h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  display: inline-flex;
+  align-items: center;
   gap: 10px;
 }
 
-.existing-actions .btn {
-  flex: 1;
-  padding: 10px;
+.logo h2 i {
+  color: #4a6491;
+}
+
+.logo p {
   font-size: 14px;
-  min-height: 40px;
+  color: #64748b;
+  margin-top: 8px;
 }
 
-.continue-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.switch-btn {
-  background: #fff;
-  color: #4b6cb7;
-  border: 1px solid #4b6cb7;
-}
-
-/* 选项卡样式 */
+/* 选项卡 */
 .tabs {
   display: flex;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #eee;
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 32px;
 }
 
 .tab {
   flex: 1;
-  padding: 12px 16px;
-  cursor: pointer;
-  color: #666;
-  font-weight: 500;
-  font-size: 15px;
+  padding: 12px 0;
   text-align: center;
-  transition: all 0.3s;
-  position: relative;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  color: #64748b;
+  transition: all 0.2s;
+  border-radius: 8px;
 }
 
 .tab.active {
-  color: #4b6cb7;
-  font-weight: 600;
+  background: white;
+  color: #4a6491;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 2px;
-  background: #4b6cb7;
-  border-radius: 1px;
+  display: none;
 }
 
-/* 输入框样式 */
+/* 输入框 */
 .input-container {
   position: relative;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .input-icon {
   position: absolute;
-  left: 14px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: #4b6cb7;
+  color: #4a6491;
   z-index: 2;
   font-size: 16px;
 }
 
 .input-container input {
   width: 100%;
-  padding: 14px 14px 14px 44px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  padding: 14px 16px 14px 48px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   font-size: 15px;
-  transition: all 0.3s;
-  min-height: 48px;
+  color: #1e293b;
+  transition: all 0.2s;
 }
 
 .input-container input:focus {
   outline: none;
-  border-color: #4b6cb7;
-  box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.15);
+  border-color: #4a6491;
+  box-shadow: 0 0 0 3px rgba(74, 100, 145, 0.1);
 }
 
-/* 密码眼睛图标 */
-.password-container {
-  position: relative;
+.input-container input::placeholder {
+  color: #94a3b8;
 }
 
+/* 密码切换按钮 */
 .toggle-password {
   position: absolute;
-  right: 14px;
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: #8892b0;
+  color: #94a3b8;
   cursor: pointer;
   font-size: 16px;
-  transition: color 0.3s ease;
-  z-index: 2;
   padding: 8px;
 }
 
-.toggle-password:hover {
-  color: #4b6cb7;
+.toggle-password:active {
+  color: #4a6491;
 }
 
-/* 按钮样式 */
+/* 按钮 - 纯色 */
 .btn {
+  width: 100%;
   padding: 14px;
-  background: #4b6cb7;
+  background: #4a6491;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
-  text-align: center;
-  display: block;
-  width: 100%;
-  min-height: 48px;
+  transition: all 0.2s;
 }
 
 .btn:active {
-  transform: scale(0.98);
-  opacity: 0.9;
+  transform: scale(0.97);
+  background: #3a5479;
 }
 
-.btn:hover {
-  background: #3a5999;
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-/* 登录按钮 */
-.login_button,
-.register_button {
-  margin-top: 8px;
+.btn::before {
+  display: none;
 }
 
 /* 辅助链接 */
 .helper-links {
   display: flex;
   justify-content: space-between;
-  margin-top: 16px;
-  font-size: 13px;
+  margin-top: 20px;
 }
 
 .helper-links a {
-  color: #4b6cb7;
+  color: #64748b;
   text-decoration: none;
+  font-size: 13px;
 }
 
-.helper-links a:hover {
-  text-decoration: underline;
+.helper-links a:active {
+  color: #4a6491;
 }
 
-/* ========== 响应式调整 ========== */
-@media (min-width: 768px) {
-  /* 大屏幕保持原有布局 */
+/* 已登录用户卡片 */
+.existing-user-card {
+  text-align: center;
+  padding: 40px 24px;
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.existing-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #4a6491;
+  margin-bottom: 16px;
+}
+
+.existing-user-card h3 {
+  color: #1e293b;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.existing-username {
+  color: #4a6491;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.existing-tip {
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.existing-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.continue-btn {
+  background: #4a6491;
+  color: white;
+}
+
+.switch-btn {
+  background: transparent;
+  border: 1px solid #4a6491;
+  color: #4a6491;
+}
+
+/* 检查登录状态遮罩 */
+.checking-overlay {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.checking-overlay i {
+  font-size: 48px;
+  color: #4a6491;
+  margin-bottom: 16px;
+  animation: spin 1s linear infinite;
+}
+
+.checking-overlay span {
+  color: #64748b;
+  font-size: 14px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
   .main_section {
-    width: 750px;
-    min-height: 500px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    border-radius: 12px;
-    flex-direction: row;
-    margin: auto;
+    flex-direction: column;
+    width: calc(100% - 32px);
+    margin: 16px;
+    border-radius: 20px;
   }
 
   .welcome-section {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    width: 45%;
-    padding: 40px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-  }
-
-  .welcome-section h2.welcome-title {
-    font-size: 28px;
-    margin-bottom: 15px;
-    font-weight: 600;
-  }
-
-  .welcome-section p.welcome-text {
-    font-size: 16px;
-    line-height: 1.6;
-    margin-bottom: 30px;
-    opacity: 0.9;
-  }
-
-  .shopping-benefits {
-    list-style: none;
-  }
-
-  .shopping-benefits li {
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-  }
-
-  .shopping-benefits i {
-    margin-right: 10px;
-    color: #64ffda;
+    display: none;
   }
 
   .form-section {
-    width: 55%;
-    padding: 40px;
-    justify-content: center;
+    width: 100%;
+    padding: 32px 24px;
   }
 
-  .logo {
-    margin-bottom: 30px;
-  }
-
-  .logo h2 {
-    font-size: 24px;
-  }
-
-  .logo p {
-    font-size: 14px;
+  .tab {
+    padding: 10px 0;
   }
 
   .input-container input {
-    padding: 12px 45px 12px 45px;
+    padding: 12px 12px 12px 44px;
+  }
+
+  .existing-actions {
+    flex-direction: column;
+  }
+}
+
+/* 移动端小屏适配 */
+@media (max-width: 480px) {
+  .form-section {
+    padding: 24px 20px;
+  }
+
+  .tabs {
+    margin-bottom: 20px;
+  }
+
+  .existing-user-card {
+    padding: 24px 20px;
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .main-container {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@supports (padding-top: env(safe-area-inset-top)) {
+  .main-container {
+    padding-top: env(safe-area-inset-top);
   }
 }

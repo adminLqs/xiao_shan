@@ -16,9 +16,8 @@ public interface ReviewImageMapper {
      * @param reviewImage 评论图片实体
      * @return 影响行数
      */
-    @Insert("INSERT INTO review_images (review_id, image, sort_order, created_at) " +
-            "VALUES (#{reviewId}, #{image}, #{sortOrder}, #{createdAt})")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @Insert("INSERT INTO review_images (id, review_id, image, sort_order) " +
+            "VALUES (#{id}, #{reviewId}, #{image}, #{sortOrder})")
     int insert(ReviewImage reviewImage);
 
     /**
@@ -68,4 +67,25 @@ public interface ReviewImageMapper {
      */
     @Delete("DELETE FROM review_images WHERE review_id = #{reviewId}")
     int deleteByReviewId(Long reviewId);
+
+    /**
+     * 根据商品ID删除所有评论图片
+     * @param productId 商品ID
+     * @return 影响行数
+     */
+    @Delete("DELETE ri FROM review_images ri " +
+            "JOIN reviews r ON ri.review_id = r.id " +
+            "WHERE r.product_id = #{productId}")
+    int deleteByProductId(Long productId);
+
+    /**
+     * 统计商品有图片的评价数量
+     * @param productId 商品ID
+     * @return 有图片的评价数量
+     */
+    @Select("SELECT COUNT(DISTINCT r.id) FROM review_images ri " +
+            "JOIN reviews r ON ri.review_id = r.id " +
+            "WHERE r.product_id = #{productId}")
+    long countByProductId(Long productId);
+
 }

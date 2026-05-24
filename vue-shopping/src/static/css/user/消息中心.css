@@ -1,0 +1,307 @@
+/* ========== 消息中心 - 简洁版样式 ========== */
+
+.messages-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  position: relative;
+}
+
+/* 移除所有动态背景 */
+.messages-page::before,
+.messages-page::after {
+  display: none;
+  content: none;
+}
+
+/* ========== 页面导航栏 ========== */
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid #e8ecf0;
+}
+
+.page-nav-right {
+  width: 36px;
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.page-nav-title i {
+  color: #4a6491;
+}
+
+.page-nav-action {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #4a6491;
+  font-size: 18px;
+  transition: all 0.2s;
+}
+
+.page-nav-action:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
+}
+
+/* ========== 未读提醒 ========== */
+.unread-reminder {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 0 0 8px 0;
+  background: #f5f7fa;
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e8ecf0;
+}
+
+.unread-reminder:active {
+  transform: scale(0.98);
+  background: #e8ecf0;
+}
+
+.unread-reminder i:first-child {
+  font-size: 20px;
+  color: #4a6491;
+}
+
+.unread-reminder span {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.unread-reminder i:last-child {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ========== 消息列表 ========== */
+.message-list {
+  padding: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* 消息卡片 */
+.message-item {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e8ecf0;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.message-item:active {
+  transform: scale(0.98);
+  background: #fafbfc;
+}
+
+/* 未读消息卡片样式 */
+.message-item.unread {
+  background: white;
+  border-left: 3px solid #4a6491;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 消息头像/图标 */
+.msg-avatar {
+  width: 48px;
+  height: 48px;
+  background: #f5f7fa;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.message-item:active .msg-avatar {
+  transform: scale(0.95);
+}
+
+.msg-avatar i {
+  font-size: 22px;
+  color: #4a6491;
+}
+
+/* 消息内容区域 */
+.msg-content {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.msg-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.msg-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-item.unread .msg-title {
+  color: #4a6491;
+}
+
+.msg-time {
+  font-size: 11px;
+  color: #94a3b8;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.msg-preview {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 未读红点 - 简单样式 */
+.unread-dot {
+  position: absolute;
+  top: 2px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+}
+
+/* ========== 空状态 ========== */
+.empty-messages {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+  margin-top: 40px;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.empty-messages i {
+  font-size: 64px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.empty-messages p {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* ========== 设置入口 ========== */
+.settings-entry {
+  padding: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.settings-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.settings-card:active {
+  transform: scale(0.98);
+  background: #fafbfc;
+}
+
+.settings-icon {
+  width: 44px;
+  height: 44px;
+  background: #f5f7fa;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-icon i {
+  font-size: 20px;
+  color: #4a6491;
+}
+
+.settings-text {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.settings-card i:last-child {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* ========== 底部留空 ========== */
+.bottom-space {
+  height: 40px;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  .unread-reminder {
+    padding: 10px 14px;
+    margin: 8px;
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .messages-page {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}

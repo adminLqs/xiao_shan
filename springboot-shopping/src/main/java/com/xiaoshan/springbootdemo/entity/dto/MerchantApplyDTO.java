@@ -28,6 +28,10 @@ public class MerchantApplyDTO {
     @Size(max = 500, message = "店铺描述长度不能超过500个字符")
     private String storeDetail;                         // 店铺描述（可选）
 
+    @NotBlank(message = "详细地址不能为空")
+    @Size(max = 500, message = "详细地址长度不能超过500个字符")
+    private String address;                             // 详细地址
+
     @NotNull(message = "经营类型不能为空")
     private String businessType;                        // 经营类型
 

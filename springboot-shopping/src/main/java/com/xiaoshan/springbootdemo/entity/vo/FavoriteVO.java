@@ -39,4 +39,7 @@ public class FavoriteVO {
 
     // 商品主图
     private String productImage;
+
+    // 规格名称（最低价格规格）
+    private String skuName;
 }

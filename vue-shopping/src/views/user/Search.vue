@@ -1,113 +1,136 @@
 <template>
-  <div class="search-page">
-    <div class="search-bar">
-      <i class="fas fa-arrow-left" @click="$router.back()"></i>
-      <input v-model="keyword" placeholder="搜索商品" @keyup.enter="doSearch" ref="searchInput" />
-      <span @click="doSearch">搜索</span>
-    </div>
-
-    <div class="filter-bar">
-      <div class="sort-tags">
-        <span
-          v-for="item in sortOptions"
-          :key="item.value"
-          :class="{ active: currentSort === item.value }"
-          @click="changeSort(item.value)"
-        >{{ item.label }}</span>
-      </div>
-      <button class="filter-btn" @click="showFilter = true">
-        <i class="fas fa-filter"></i> 筛选
+  <div class="search-page page-container">
+    <!-- 搜索栏 -->
+    <div class="search-navbar">
+      <button class="search-back" @click="router.back()">
+        <i class="fas fa-chevron-left"></i>
       </button>
+      <div class="search-input-wrap">
+        <i class="fas fa-search search-input-icon"></i>
+        <input v-model="keyword" @input="onKeywordChange" placeholder="搜索商品" ref="searchInput" />
+        <button v-if="keyword" class="search-clear" @click="clearSearch">
+          <i class="fas fa-times-circle"></i>
+        </button>
+      </div>
     </div>
 
-    <div class="search-history" v-if="history.length > 0 && !keyword">
+    <!-- 筛选条 -->
+    <div v-if="keyword" class="filter-bar">
+      <div class="filter-item" :class="{ active: filter.sort === 'default' }" @click="setSort('default')">综合</div>
+      <div class="filter-item" :class="{ active: filter.sort === 'sales_desc' }" @click="setSort('sales_desc')">销量</div>
+      <div class="filter-item" :class="{ active: filter.sort === 'price_asc' || filter.sort === 'price_desc' }" @click="setSort('price_asc')">
+        价格 <i class="fas" :class="priceArrow"></i>
+      </div>
+      <div class="filter-item" :class="{ active: filter.sort === 'newest' }" @click="setSort('newest')">新品</div>
+      <div class="filter-btn" @click="showFilter = true">
+        <i class="fas fa-sliders-h"></i>
+        <span>筛选</span>
+      </div>
+    </div>
+
+    <!-- 搜索历史 -->
+    <div v-if="!keyword && products.length === 0 && searchHistory.length > 0" class="search-history">
       <div class="history-header">
         <span>搜索历史</span>
-        <span @click="clearHistory">清除</span>
+        <button @click="clearHistory">清空</button>
       </div>
-      <span v-for="item in history" :key="item.keyword" class="history-tag" @click="doSearchWithTag(item.keyword)">{{ item.keyword }}</span>
+      <div class="history-tags">
+        <span v-for="item in searchHistory" :key="item" class="history-tag" @click="keyword = item; doSearch()">{{ item }}</span>
+      </div>
     </div>
 
-    <div class="products-section" v-if="keyword">
-      <div v-if="loading" class="loading-container">
-        <i class="fas fa-spinner fa-spin"></i>
-        <span>加载中...</span>
+    <!-- 热门搜索 -->
+    <div v-if="!keyword && products.length === 0 && searchHistory.length === 0" class="hot-search-section">
+      <h4>热门搜索</h4>
+      <span v-for="tag in hotTags" :key="tag" class="hot-tag" @click="keyword = tag; doSearch()">{{ tag }}</span>
+    </div>
+
+    <!-- 骨架屏 -->
+    <div v-if="loading" class="products-grid">
+      <div v-for="i in 4" :key="i" class="product-card">
+        <div class="product-image">
+          <div class="image-skeleton"></div>
+        </div>
+        <div class="product-info">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
       </div>
-      <div v-else-if="products.length === 0" class="empty-result">
-        <i class="fas fa-search"></i>
-        <p>未找到相关商品</p>
-      </div>
-      <div v-else class="products-grid">
-        <div v-for="product in products" :key="product.id" class="product-card" @click="viewProduct(product.id)">
-          <img :src="product.images" :alt="product.name" />
-          <div class="product-info">
-            <div class="product-name">{{ product.name }}</div>
-            <div class="product-price">¥{{ formatPrice(product.price) }}</div>
+    </div>
+
+    <!-- 搜索结果 -->
+    <div v-else-if="products.length > 0" class="products-grid">
+      <div v-for="product in products" :key="product.id" class="product-card" @click="goToProduct(product.id)">
+        <div class="product-image">
+          <img :src="product.productImages?.[0]?.image || product.images" :alt="product.name" />
+        </div>
+        <div class="product-info">
+          <div class="product-name">{{ product.name }}</div>
+          <div class="product-price-container">
+            <div class="price-row">
+              <span class="current-price">¥{{ formatPrice(product.price) }}</span>
+              <span v-if="((product.originalPrice ?? product.original_price) !== undefined) && ((product.originalPrice ?? product.original_price) as number) > product.price"
+                class="original-price">¥{{ formatPrice((product.originalPrice ?? product.original_price) as number) }}</span>
+            </div>
             <div class="product-sales">已售 {{ product.salesCount || 0 }}</div>
           </div>
         </div>
       </div>
-      <div v-if="loadingMore" class="loading-more">
-        <i class="fas fa-spinner fa-spin"></i> 加载中...
-      </div>
-      <div v-else-if="!hasMore && products.length > 0" class="no-more">没有更多了</div>
     </div>
 
-    <div v-if="!keyword && history.length === 0" class="hot-search-section">
-      <h4>热门搜索</h4>
-      <span v-for="tag in hotTags" :key="tag" class="hot-tag" @click="doSearchWithTag(tag)">{{ tag }}</span>
+    <!-- 空状态 -->
+    <div v-else-if="keyword && !loading" class="empty-state">
+      <i class="fas fa-search"></i>
+      <p>未找到"{{ keyword }}"相关商品</p>
     </div>
 
-    <div v-if="showFilter" class="filter-overlay" @click="showFilter = false"></div>
-    <div class="filter-panel" :class="{ active: showFilter }">
-      <div class="filter-header">
-        <span>筛选</span>
-        <span @click="resetFilter">重置</span>
-      </div>
-      <div class="filter-content">
+    <!-- 筛选面板遮罩 -->
+    <div class="filter-overlay" v-if="showFilter" @click="showFilter = false">
+      <div class="filter-panel" @click.stop>
+        <div class="filter-header">
+          <span>筛选</span>
+          <button @click="resetFilter">重置</button>
+        </div>
+
         <div class="filter-section">
-          <h5>分类</h5>
-          <div class="filter-options">
-            <span
-              :class="{ active: !selectedCategory }"
-              @click="selectedCategory = null"
-            >全部</span>
-            <span
-              v-for="cat in level1Categories"
-              :key="cat.id"
-              :class="{ active: selectedCategory === cat.id }"
-              @click="selectedCategory = cat.id"
-            >{{ cat.name }}</span>
+          <div class="filter-label">价格区间</div>
+          <div class="price-range">
+            <input v-model.number="filter.minPrice" type="number" placeholder="最低价" />
+            <span>至</span>
+            <input v-model.number="filter.maxPrice" type="number" placeholder="最高价" />
           </div>
         </div>
+
         <div class="filter-section">
-          <h5>价格区间</h5>
-          <div class="filter-options">
-            <span
-              :class="{ active: !priceRange[0] && !priceRange[1] }"
-              @click="priceRange = [null, null]"
-            >不限</span>
-            <span
-              v-for="range in priceRanges"
-              :key="range.label"
-              :class="{ active: priceRange[0] === range.min && priceRange[1] === range.max }"
-              @click="priceRange = [range.min, range.max]"
-            >{{ range.label }}</span>
+          <div class="filter-label">排序方式</div>
+          <div class="filter-tags">
+            <span v-for="item in sortOptions" :key="item.value"
+              class="filter-tag" :class="{ active: filter.sort === item.value }"
+              @click="filter.sort = item.value">{{ item.label }}</span>
           </div>
         </div>
-      </div>
-      <div class="filter-footer">
-        <button @click="showFilter = false">取消</button>
-        <button class="confirm" @click="confirmFilter">确定</button>
+
+        <div class="filter-section">
+          <div class="filter-label">商品分类</div>
+          <div class="filter-tags">
+            <span class="filter-tag" :class="{ active: !filter.categoryId }" @click="filter.categoryId = null">全部</span>
+            <span v-for="cat in categories" :key="cat.id"
+              class="filter-tag" :class="{ active: filter.categoryId === cat.id }"
+              @click="filter.categoryId = cat.id">{{ cat.name }}</span>
+          </div>
+        </div>
+
+        <button class="filter-confirm" @click="applyFilter">确认筛选</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
+import Message from '@/utils/message'
 
 const router = useRouter()
 const route = useRoute()
@@ -116,208 +139,182 @@ interface Product {
   id: number
   name: string
   price: number
+  originalPrice?: number
+  original_price?: number
   images?: string
+  productImages?: Array<{ image: string }>
   salesCount?: number
 }
 
-interface Category {
-  id: number
-  name: string
-  parentId: number | null
-  icon?: string
-  isActive: boolean
-}
-
-interface SearchHistory {
-  keyword: string
-  timestamp: number
-}
-
 const keyword = ref('')
-const searchInput = ref<HTMLInputElement | null>(null)
-const showFilter = ref(false)
-const loading = ref(false)
-const loadingMore = ref(false)
-const hasMore = ref(true)
-
 const products = ref<Product[]>([])
-const page = ref(1)
-const pageSize = ref(20)
+const loading = ref(false)
+const searchInput = ref<HTMLInputElement | null>(null)
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-const currentSort = ref('')
-const selectedCategory = ref<number | null>(null)
-const priceRange = ref<[number | null, number | null]>([null, null])
-
-const level1Categories = ref<Category[]>([])
-
-const sortOptions = [
-  { label: '综合', value: '' },
-  { label: '价格↑', value: 'price_asc' },
-  { label: '价格↓', value: 'price_desc' },
-  { label: '销量', value: 'salesCount_desc' },
-  { label: '新品', value: 'createdAt_desc' },
-]
-
-const priceRanges = [
-  { label: '0-50', min: 0, max: 50 },
-  { label: '50-100', min: 50, max: 100 },
-  { label: '100-200', min: 100, max: 200 },
-  { label: '200-500', min: 200, max: 500 },
-  { label: '500+', min: 500, max: null },
-]
+// 搜索历史（存储字符串数组，最多5条）
+const searchHistory = ref<string[]>(JSON.parse(localStorage.getItem('searchHistory') || '[]'))
 
 const hotTags = ['春季促销', '数码', '新品', '水果', '服装', '手机']
 
-const history = ref<SearchHistory[]>([])
-const STORAGE_KEY = 'searchHistory'
-const MAX_HISTORY = 10
+// 筛选面板
+const showFilter = ref(false)
+const categories = ref<any[]>([])
 
-const loadHistory = () => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY)
-    if (data) {
-      history.value = JSON.parse(data)
-    }
-  } catch {}
+const filter = reactive({
+  minPrice: null as number | null,
+  maxPrice: null as number | null,
+  sort: 'default',
+  categoryId: null as number | null
+})
+
+const sortOptions = [
+  { label: '综合', value: 'default' },
+  { label: '销量优先', value: 'sales_desc' },
+  { label: '价格↑', value: 'price_asc' },
+  { label: '价格↓', value: 'price_desc' },
+  { label: '新品', value: 'newest' }
+]
+
+const resetFilter = () => {
+  filter.minPrice = null
+  filter.maxPrice = null
+  filter.sort = 'default'
+  filter.categoryId = null
 }
 
-const saveHistory = (kw: string) => {
-  const newItem: SearchHistory = { keyword: kw, timestamp: Date.now() }
-  history.value = history.value.filter(item => item.keyword !== kw)
-  history.value.unshift(newItem)
-  if (history.value.length > MAX_HISTORY) {
-    history.value = history.value.slice(0, MAX_HISTORY)
-  }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history.value))
+const applyFilter = () => {
+  showFilter.value = false
+  if (!keyword.value.trim()) return
+  products.value = []
+  doSearch()
 }
 
-const clearHistory = () => {
-  history.value = []
-  localStorage.removeItem(STORAGE_KEY)
-}
-
+// 加载分类列表
 const loadCategories = async () => {
   try {
-    const response = await authAPI.getAllCategories()
-    if (response.success && response.data?.categories) {
-      level1Categories.value = response.data.categories.filter(
-        (cat: Category) => cat.parentId === null && cat.isActive
-      )
+    const res = await authAPI.getAllCategories()
+    if (res.success) {
+      categories.value = res.data?.categories?.filter((c: any) => !c.parentId) || []
     }
-  } catch {}
+  } catch (e: any) {
+    Message.error('加载分类失败', e)
+  }
 }
 
-const loadProducts = async (reset = false) => {
-  if (reset) {
-    page.value = 1
-    products.value = []
-    hasMore.value = true
+const priceArrow = computed(() => {
+  if (filter.sort === 'price_asc') return 'fa-arrow-up'
+  if (filter.sort === 'price_desc') return 'fa-arrow-down'
+  return 'fa-arrow-up'
+})
+
+const setSort = (type: string) => {
+  if (type === 'price_asc' && filter.sort === 'price_asc') {
+    filter.sort = 'price_desc'
+  } else if (type === 'price_asc' && filter.sort === 'price_desc') {
+    filter.sort = 'price_asc'
+  } else {
+    filter.sort = type
   }
+  if (!keyword.value.trim()) return
+  products.value = []
+  doSearch()
+}
 
-  if (!hasMore.value && !reset) return
-  if (loading.value) return
+const onKeywordChange = () => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  if (!keyword.value.trim()) {
+    products.value = []
+    return
+  }
+  debounceTimer = setTimeout(() => doSearch(), 300)
+}
 
+const doSearch = async () => {
+  if (!keyword.value.trim()) return
   loading.value = true
   try {
     const params: any = {
-      page: page.value,
-      pageSize: pageSize.value
+      keyword: keyword.value.trim(),
+      page: 1,
+      pageSize: 20
     }
-    if (keyword.value) params.keyword = keyword.value
-    if (selectedCategory.value) params.level1CategoryId = selectedCategory.value
-    if (priceRange.value[0] !== null) params.minPrice = priceRange.value[0]
-    if (priceRange.value[1] !== null) params.maxPrice = priceRange.value[1]
-    if (currentSort.value) params.sort = currentSort.value
 
-    const response = await authAPI.getProducts(params)
-    if (response.success && response.data?.records) {
-      const records = response.data.records
-      if (reset) {
-        products.value = records
-      } else {
-        products.value.push(...records)
-      }
-      hasMore.value = records.length >= pageSize.value
-      page.value++
+    // 排序
+    if (filter.sort && filter.sort !== 'default') {
+      params.sort = filter.sort
     }
-  } catch {} finally {
+
+    // 价格区间
+    if (filter.minPrice !== null && filter.minPrice !== undefined && filter.minPrice !== 0) {
+      params.minPrice = Number(filter.minPrice)
+    }
+    if (filter.maxPrice !== null && filter.maxPrice !== undefined && filter.maxPrice !== 0) {
+      params.maxPrice = Number(filter.maxPrice)
+    }
+
+    // 分类
+    if (filter.categoryId) {
+      params.categoryId = Number(filter.categoryId)
+    }
+
+    const res = await authAPI.getProducts(params)
+
+    if (res.success) {
+      products.value = res.data?.records || []
+      saveHistory(keyword.value.trim())
+    } else {
+      Message.error(res.message || '搜索失败')
+    }
+  } catch (e: any) {
+    Message.error(e.message || '搜索失败')
+  } finally {
     loading.value = false
   }
 }
 
-const doSearch = () => {
-  if (!keyword.value.trim()) return
-  saveHistory(keyword.value)
-  loadProducts(true)
+const clearSearch = () => {
+  keyword.value = ''
+  products.value = []
+  searchInput.value?.focus()
 }
 
-const doSearchWithTag = (tag: string) => {
-  keyword.value = tag
-  saveHistory(tag)
-  loadProducts(true)
+const saveHistory = (word: string) => {
+  const history = searchHistory.value.filter(h => h !== word)
+  history.unshift(word)
+  searchHistory.value = history.slice(0, 5)
+  localStorage.setItem('searchHistory', JSON.stringify(searchHistory.value))
 }
 
-const changeSort = (sort: string) => {
-  currentSort.value = sort
-  if (keyword.value) {
-    loadProducts(true)
-  }
+const clearHistory = () => {
+  searchHistory.value = []
+  localStorage.removeItem('searchHistory')
 }
 
-const resetFilter = () => {
-  selectedCategory.value = null
-  priceRange.value = [null, null]
-}
-
-const confirmFilter = () => {
-  showFilter.value = false
-  if (keyword.value) {
-    loadProducts(true)
-  }
-}
-
-const viewProduct = (productId: number) => {
-  router.push({ name: 'ProductDetail', params: { productId } })
+const goToProduct = (id: number) => {
+  router.push({ name: 'ProductDetail', params: { productId: id } })
 }
 
 const formatPrice = (price: number | null | undefined): string => {
-  if (price == null || isNaN(price)) return '0.00'
-  return price.toFixed(2)
-}
-
-const handleScroll = () => {
-  if (loadingMore.value || !hasMore.value || loading.value || !keyword.value) return
-  const { scrollTop, scrollHeight, clientHeight } = document.documentElement
-  if (scrollTop + clientHeight >= scrollHeight - 100) {
-    loadingMore.value = true
-    loadProducts().then(() => {
-      loadingMore.value = false
-    })
-  }
+  if (!price && price !== 0) return '0.00'
+  return Number(price).toFixed(2)
 }
 
 onMounted(() => {
+  loadCategories()
   const queryKeyword = route.query.keyword as string
   if (queryKeyword) {
     keyword.value = queryKeyword
+    doSearch()
   }
-
-  loadCategories()
-  loadHistory()
   searchInput.value?.focus()
-
-  if (keyword.value) {
-    loadProducts()
-  }
-
-  window.addEventListener('scroll', handleScroll)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
+  if (debounceTimer) clearTimeout(debounceTimer)
 })
 </script>
 
 <style scoped>
-  @import url('@/static/css/user/搜索页.css');
+@import url('@/static/css/user/搜索页.css');
 </style>

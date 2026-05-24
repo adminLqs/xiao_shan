@@ -21,9 +21,8 @@ public interface CategoryMapper {
      * @param category 分类对象
      * @return 影响的行数（1表示插入成功，0表示失败）
      */
-    @Insert("INSERT INTO categories (name, parent_id, sort_order, is_active, created_at) " +
-            "VALUES (#{name}, #{parentId}, #{sortOrder}, #{isActive}, #{createdAt})")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @Insert("INSERT INTO categories (id, name, parent_id, sort_order, is_active, created_at) " +
+            "VALUES (#{id}, #{name}, #{parentId}, #{sortOrder}, #{isActive}, #{createdAt})")
     int insert(Category category);
 
     /**

@@ -22,9 +22,8 @@ public interface UserMapper {
      * @param user 用户对象
      * @return 影响的行数（1表示插入成功，0表示失败）
      */
-    @Insert("INSERT INTO users (account, password, status, created_at, role) " +
-            "VALUES (#{account}, #{password}, #{status}, #{createdAt}, #{role})")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @Insert("INSERT INTO users (id, account, password, status, created_at, role) " +
+            "VALUES (#{id}, #{account}, #{password}, #{status}, #{createdAt}, #{role})")
     int insert(User user);
 
     /**
@@ -219,4 +218,28 @@ public interface UserMapper {
             "</foreach>" +
             "</script>")
     int batchDeleteByIds(@Param("userIds") List<Long> userIds);
+
+    /**
+     * 获取用户账号信息（包含头像和昵称）
+     * 根据用户角色返回不同的头像和昵称：
+     * - 商家角色：返回 seller_profiles.store_avatar 和 store_name
+     * - 用户角色：返回 user_profiles.avatar 和 nickname
+     *
+     * @param userId 用户ID
+     * @return 用户账号信息（包含 id, account, role, status, created_at, avatar, nickname）
+     */
+    @Select("SELECT u.id, u.account, u.role, u.status, u.created_at, " +
+            "CASE " +
+            "  WHEN u.role = 'ROLE_SELLER' THEN sp.store_avatar " +
+            "  ELSE up.avatar " +
+            "END as avatar, " +
+            "CASE " +
+            "  WHEN u.role = 'ROLE_SELLER' THEN sp.store_name " +
+            "  ELSE up.nickname " +
+            "END as nickname " +
+            "FROM users u " +
+            "LEFT JOIN user_profiles up ON u.id = up.user_id " +
+            "LEFT JOIN seller_profiles sp ON u.id = sp.user_id " +
+            "WHERE u.id = #{userId}")
+    java.util.Map<String, Object> getAccountProfile(Long userId);
 }

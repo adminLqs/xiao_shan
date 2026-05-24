@@ -1,11 +1,14 @@
 package com.xiaoshan.springbootdemo.controller;
 
 import com.xiaoshan.springbootdemo.entity.Product;
+import com.xiaoshan.springbootdemo.entity.ProductParam;
 import com.xiaoshan.springbootdemo.entity.User;
 import com.xiaoshan.springbootdemo.entity.UserProfile;
+import com.xiaoshan.springbootdemo.entity.vo.ProductVO;
 import com.xiaoshan.springbootdemo.entity.dto.LoginDTO;
 import com.xiaoshan.springbootdemo.entity.dto.RegisterDTO;
 import com.xiaoshan.springbootdemo.entity.dto.UserProfileDTO;
+import com.xiaoshan.springbootdemo.mapper.ProductParamMapper;
 import com.xiaoshan.springbootdemo.mapper.UserMapper;
 import com.xiaoshan.springbootdemo.service.ProductService;
 import com.xiaoshan.springbootdemo.service.SellerProfileService;
@@ -36,6 +39,7 @@ public class UserController {
     private final UserMapper userMapper;
     private final ProductService productService;
     private final SellerProfileService sellerProfileService;
+    private final ProductParamMapper productParamMapper;
 
 
     /** ===================== 公共权限 ======================= */
@@ -91,7 +95,7 @@ public class UserController {
      * 获取当前登录用户的账号信息
      * 支持所有角色（USER、SELLER、ADMIN）调用
      * @param authentication Spring Security 认证信息
-     * @return 用户账号信息，包含账号、角色、状态等
+     * @return 用户账号信息，包含账号、角色、状态、头像、昵称等
      */
     @GetMapping("/account/profile")
     public ResponseEntity<Map<String, Object>> getAccountProfile(Authentication authentication) {
@@ -105,7 +109,7 @@ public class UserController {
 
             Long id = userService.getCurrentUserId(authentication);
 
-            User accountProfile = userService.getCurrentUser(id);
+            Map<String, Object> accountProfile = userService.getAccountProfile(id);
 
             if (accountProfile == null) {
                 return ResponseEntity.ok().body(Map.of(
@@ -132,10 +136,14 @@ public class UserController {
     // 退出账户
     @GetMapping("/auth/logout")
     @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_SELLER', 'ROLE_ADMIN')")
-    public ResponseEntity<?> logout(HttpServletResponse response) {
+    public ResponseEntity<?> logout(HttpServletResponse response, Authentication authentication) {
         try {
-            // 清除Cookie
-            userService.clearAuthCookie(response);
+            Long userId = null;
+            if (authentication != null && authentication.getPrincipal() instanceof Long) {
+                userId = (Long) authentication.getPrincipal();
+            }
+            // 清除Cookie和Redis会话
+            userService.clearAuthCookie(response, userId);
 
             return ResponseEntity.ok().body(Map.of(
                     "success", true,
@@ -150,69 +158,14 @@ public class UserController {
     }
 
     /**
-     * 首页商品列表（分页）
-     * GET /api/v1/products?page=1&size=20&keyword=&level1CategoryId=
-     */
-    @GetMapping("/products")
-    public ResponseEntity<Map<String, Object>> getHomeProducts(
-            @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(defaultValue = "20") Integer pageSize,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long level1CategoryId,  // 一级分类ID
-            @RequestParam(required = false) Long level2CategoryId   // 二级分类ID
-    ) {
-
-        try {
-            // 计算偏移量
-            int offset = (page - 1) * pageSize;
-
-            // 查询商品列表（只查询上架商品 status=1）
-            List<Product> products = productService.getProductsForHome(
-                    offset, pageSize, keyword, level1CategoryId, level2CategoryId
-            );
-
-            // 查询总数
-            long total = productService.countProductsForHome(keyword, level1CategoryId, level2CategoryId);
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", Map.of(
-                        "records", products,
-                        "total", total,
-                        "page", page,
-                        "size", pageSize,
-                        "totalPages", (int) Math.ceil((double) total / pageSize)
-                    )
-            ));
-
-        } catch (Exception e) {
-            log.error("获取首页商品列表失败: {}", e.getMessage());
-            return ResponseEntity.ok().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        }
-
-    }
-
-    /**
      * 获取商品详情（公共方法）
      * GET /api/v1/products/{productId}
      */
     @GetMapping("/products/{productId}")
     public ResponseEntity<?> getProductDetail(@PathVariable Long productId) {
         try {
-
-            // 查询商品详情（带分类名和所有图片）
-            Product product = productService.getProductDetail(productId);
-
-            // 验证商品是否存在
-            if (product == null) {
-                return ResponseEntity.ok(Map.of(
-                        "success", false,
-                        "message", "商品不存在"
-                ));
-            }
+            // 查询商品详情（包含图片和参数）
+            ProductVO product = productService.getProductDetail(productId);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -221,6 +174,29 @@ public class UserController {
 
         } catch (Exception e) {
             log.error("获取商品详情失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * 获取商品参数
+     * GET /api/v1/products/{productId}/params
+     */
+    @GetMapping("/products/{productId}/params")
+    public ResponseEntity<?> getProductParams(@PathVariable Long productId) {
+        try {
+            List<ProductParam> params = productParamMapper.findByProductId(productId);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of("params", params)
+            ));
+
+        } catch (Exception e) {
+            log.error("获取商品参数失败: {}", e.getMessage());
             return ResponseEntity.ok(Map.of(
                     "success", false,
                     "message", e.getMessage()

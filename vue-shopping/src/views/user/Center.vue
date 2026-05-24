@@ -1,34 +1,128 @@
 <template>
-  <div class="user-center">
-    <div class="center-header">
-      <div class="header-actions">
-        <i class="fas fa-cog" @click="goToSetting"></i>
-        <i class="fas fa-bell"></i>
+  <div class="identity-center">
+    <!-- 导航栏 -->
+    <div class="identity-nav">
+      <div class="nav-left"></div>
+      <div class="nav-center">
+        <div class="nav-logo">
+          <i class="fas fa-store-alt"></i>
+          <span>云杉购</span>
+        </div>
+        <div class="nav-title">个人中心</div>
+      </div>
+      <div class="nav-right">
+        <div class="nav-icon" @click="goToSetting">
+          <i class="fas fa-cog"></i>
+        </div>
       </div>
     </div>
 
-    <div class="user-info-card" @click="goToProfile">
-      <img :src="userProfile.avatar || defaultAvatar" class="user-avatar" />
-      <div class="user-text">
-        <span class="user-name">{{ userProfile.nickname || '用户' }}</span>
-        <span class="user-tip">查看个人资料 ></span>
+    <!-- 骨架屏 -->
+    <div v-if="loading" class="skeleton-container">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-grid">
+        <div v-for="i in 4" :key="i" class="skeleton-item"></div>
+      </div>
+      <div class="skeleton-grid-3">
+        <div v-for="i in 6" :key="i" class="skeleton-item"></div>
       </div>
     </div>
 
-    <div class="order-status-bar">
-      <div v-for="item in orderStatusItems" :key="item.status" class="status-item" @click="goToOrders(item.status)">
-        <i :class="item.icon"></i>
-        <span>{{ item.label }}</span>
-        <span class="badge" v-if="item.count > 0">{{ item.count }}</span>
+    <!-- 真实内容 -->
+    <div v-else class="content-wrapper">
+      <!-- 用户身份卡片 -->
+      <div class="identity-card" @click="router.push({ name: 'UserProfile' })">
+        <div class="card-content">
+          <div class="avatar-section">
+            <div class="avatar-ring">
+              <img :src="userProfile.avatar || defaultAvatar" class="avatar-img" />
+            </div>
+            <div class="avatar-badge">
+              <i class="fas fa-check"></i>
+            </div>
+          </div>
+          <div class="user-info">
+            <h3 class="user-name">{{ userProfile.nickname || '云杉用户' }}</h3>
+            <p class="user-since">加入云杉购 · 探索好物</p>
+          </div>
+          <div class="stats-section">
+            <div class="stat-item" @click.stop="goToOrders('all')">
+              <span class="stat-value">{{ orderCount }}</span>
+              <span class="stat-label">订单</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item" @click.stop="router.push({ name: 'UserFavorites' })">
+              <span class="stat-value">{{ favoriteCount }}</span>
+              <span class="stat-label">收藏</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+              <span class="stat-value">{{ couponCount }}</span>
+              <span class="stat-label">优惠券</span>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="menu-list">
-      <div v-for="item in menuItems" :key="item.name" class="menu-item" @click="goTo(item.name)">
-        <i :class="item.icon"></i>
-        <span>{{ item.label }}</span>
-        <span class="badge" v-if="item.count > 0">{{ item.count }}</span>
-        <i class="fas fa-chevron-right arrow"></i>
+      <!-- 我的订单栏 -->
+      <div class="section-header" @click="goToOrders('all')">
+        <span class="section-title">我的订单</span>
+        <span class="section-more">查看全部 <i class="fas fa-chevron-right"></i></span>
+      </div>
+
+      <!-- 订单状态胶囊 -->
+      <div class="order-status-wrap">
+        <div class="status-capsules">
+          <div class="status-capsule" @click="goToOrders('all')">
+            <div class="capsule-icon all"><i class="fas fa-list"></i></div>
+            <span class="capsule-text">全部</span>
+          </div>
+          <div
+            v-for="item in orderStatusItems"
+            :key="item.status"
+            class="status-capsule"
+            @click="goToOrders(item.status)"
+          >
+            <div class="capsule-icon" :class="getStatusClass(item.status)">
+              <i :class="item.icon"></i>
+              <span v-if="item.count > 0" class="capsule-count">{{ item.count > 99 ? '99+' : item.count }}</span>
+            </div>
+            <span class="capsule-text">{{ item.label }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 常用工具标题 -->
+      <div class="section-header">
+        <span class="section-title">常用工具</span>
+      </div>
+
+      <!-- 常用工具网格 -->
+      <div class="tool-grid">
+        <div class="tool-item" v-for="item in commonTools" :key="item.name" @click="goTo(item.name)">
+          <div class="tool-icon-wrapper">
+            <div class="tool-icon" :style="{ background: item.gradient }">
+              <i :class="item.icon"></i>
+            </div>
+            <span v-if="item.badge > 0" class="tool-badge">{{ item.badge > 99 ? '99+' : item.badge }}</span>
+          </div>
+          <span class="tool-label">{{ item.label }}</span>
+        </div>
+      </div>
+
+      <!-- 交易服务标题 -->
+      <div class="section-header">
+        <span class="section-title">交易服务</span>
+      </div>
+
+      <!-- 交易服务网格 -->
+      <div class="tool-grid">
+        <div class="tool-item" v-for="item in tradeTools" :key="item.name" @click="goTo(item.name)">
+          <div class="tool-icon" :style="{ background: item.gradient }">
+            <i :class="item.icon"></i>
+          </div>
+          <span class="tool-label">{{ item.label }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -45,41 +139,83 @@ import defaultAvatar from '@/static/images/user-avatar.jpg'
 const authStore = useAuthStore()
 const router = useRouter()
 
+const { isSeller, isAdmin } = authStore
+
+// 状态类映射
+const getStatusClass = (status: string) => {
+  const map: Record<string, string> = {
+    PENDING: 'pending',
+    PAID: 'paid',
+    SHIPPED: 'shipped',
+    COMPLETED: 'completed',
+    AFTER_SALE: 'after-sale'
+  }
+  return map[status] || ''
+}
+
 const userProfile = ref<any>({
   avatar: '',
   nickname: ''
 })
 
+const loading = ref(true)
+
 const orderCount = ref(0)
 const favoriteCount = ref(0)
 const couponCount = ref(0)
+
+const afterSaleCount = ref(0)
+const pendingReviewCount = ref(0)
 
 const orderStatusItems = ref([
   { status: 'PENDING', label: '待付款', icon: 'fas fa-wallet', count: 0 },
   { status: 'PAID', label: '待发货', icon: 'fas fa-box', count: 0 },
   { status: 'SHIPPED', label: '待收货', icon: 'fas fa-truck', count: 0 },
-  { status: 'COMPLETED', label: '待评价', icon: 'fas fa-star', count: 0 },
 ])
 
-const menuItems = computed(() => [
-  { name: 'UserOrders', label: '我的订单', icon: 'fas fa-clipboard-list', count: orderCount.value },
-  { name: 'UserFavorites', label: '我的收藏', icon: 'fas fa-heart', count: favoriteCount.value },
-  { name: 'UserAddresses', label: '收货地址', icon: 'fas fa-map-marker-alt', count: 0 },
-  { name: '', label: '优惠券', icon: 'fas fa-tag', count: couponCount.value },
-  { name: 'UserProfile', label: '个人资料', icon: 'fas fa-user-edit', count: 0 },
-  { name: 'UserSetting', label: '账户设置', icon: 'fas fa-cog', count: 0 },
+const commonTools = computed(() => [
+  { name: 'UserFavorites', label: '我的收藏', icon: 'fas fa-heart', badge: favoriteCount.value, gradient: 'linear-gradient(135deg, #ff6b6b, #ee5a24)' },
+  { name: 'UserAddresses', label: '收货地址', icon: 'fas fa-map-marker-alt', badge: 0, gradient: 'linear-gradient(135deg, #4facfe, #00f2fe)' },
+  { name: '', label: '优惠券', icon: 'fas fa-tag', badge: couponCount.value, gradient: 'linear-gradient(135deg, #f093fb, #f5576c)' },
+  { name: 'ReviewList', label: '评价', icon: 'fas fa-star', badge: pendingReviewCount.value, gradient: 'linear-gradient(135deg, #4facfe, #00f2fe)' },
+  { name: 'AfterSaleList', label: '售后', icon: 'fas fa-headset', badge: afterSaleCount.value, gradient: 'linear-gradient(135deg, #fee2e2, #dc2626)' },
 ])
+
+const tradeTools = computed(() => {
+  const items: { name: string; label: string; icon: string; badge: number; gradient: string }[] = [
+    { name: '', label: '客服中心', icon: 'fas fa-comments', badge: 0, gradient: 'linear-gradient(135deg, #ff9a9e, #fecfef)' },
+  ]
+  if (isSeller || isAdmin) {
+    items.push({ name: 'SellerDashboard', label: '商家中心', icon: 'fas fa-store', badge: 0, gradient: 'linear-gradient(135deg, #43e97b, #38f9d7)' })
+  } else {
+    items.push({ name: 'MerchantApply', label: '商家入驻', icon: 'fas fa-store-alt', badge: 0, gradient: 'linear-gradient(135deg, #43e97b, #38f9d7)' })
+  }
+  return items
+})
 
 const goTo = (name: string) => {
   if (!name) {
-    Message.info('优惠券功能正在扩展中，敬请期待...')
+    Message.info('该功能正在扩展中，敬请期待...')
+    return
+  }
+  if (name === 'AfterSaleList') {
+    router.push({ name: 'AfterSaleList' })
+    return
+  }
+  if (name === 'MerchantApply') {
+    router.push({ name: 'MerchantApply' })
     return
   }
   router.push({ name })
 }
 
-const goToOrders = (status: string) => router.push({ name: 'UserOrders', query: { status } })
-const goToProfile = () => router.push({ name: 'UserProfile' })
+const goToOrders = (status: string) => {
+  if (status === 'AFTER_SALE') {
+    router.push({ name: 'AfterSaleList' })
+    return
+  }
+  router.push({ name: 'UserOrders', query: { status } })
+}
 const goToSetting = () => router.push({ name: 'UserSetting' })
 
 const loadUserProfile = async () => {
@@ -91,9 +227,7 @@ const loadUserProfile = async () => {
         nickname: response.data.profile.nickname || ''
       }
     }
-  } catch {
-    // 静默处理
-  }
+  } catch {}
 }
 
 const loadStats = async () => {
@@ -101,40 +235,51 @@ const loadStats = async () => {
     const response = await authAPI.getOrderCounts()
     if (response.success && response.data?.counts) {
       const counts = response.data.counts
+      const { total, ...statusCounts } = counts
+
+      // 待评价数量 = 已完成的订单中未评价的订单项数量
+      // 后端接口 GET /api/v1/orders/counts 需要包含 pendingReview 字段
+      pendingReviewCount.value = counts.pendingReview || counts.PENDING_REVIEW || 0
+
       orderStatusItems.value = [
         { status: 'PENDING', label: '待付款', icon: 'fas fa-wallet', count: counts.PENDING || 0 },
         { status: 'PAID', label: '待发货', icon: 'fas fa-box', count: counts.PAID || 0 },
         { status: 'SHIPPED', label: '待收货', icon: 'fas fa-truck', count: counts.SHIPPED || 0 },
-        { status: 'COMPLETED', label: '待评价', icon: 'fas fa-star', count: counts.COMPLETED || 0 },
       ]
-      orderCount.value = Object.values(counts).reduce((sum: number, val: any) => sum + (val || 0), 0)
+      orderCount.value = total || Object.values(statusCounts).reduce((sum: number, val: any) => sum + (val || 0), 0)
     }
-  } catch {
-    // 静默处理
-  }
+  } catch {}
 
   try {
     const favResponse = await authAPI.getFavorites({ page: 1, pageSize: 1 })
     if (favResponse.success) {
       favoriteCount.value = favResponse.data?.total || 0
     }
-  } catch {
-    // 静默处理
-  }
+  } catch {}
+}
 
-  // TODO: 后期扩展 - 优惠券功能
+const loadAfterSaleCount = async () => {
+  try {
+    const response = await authAPI.getPendingRefundCount()
+    if (response.success && response.data) {
+      afterSaleCount.value = response.data.count || 0
+    }
+  } catch {}
 }
 
 onMounted(async () => {
   if (!authStore.validateUserPermission()) return
 
+  loading.value = true
   await Promise.all([
     loadUserProfile(),
-    loadStats()
+    loadStats(),
+    loadAfterSaleCount()
   ])
+  loading.value = false
 })
 </script>
 
 <style scoped>
-  @import url('@/static/css/user/个人中心.css');
+@import url('@/static/css/user/个人中心.css');
 </style>

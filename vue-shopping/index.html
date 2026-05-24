@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>杉哥商城</title>
+    <script>
+      // 兼容：将浏览器的全局对象 window 暴露为 global，供 Node.js 风格代码使用
+      window.global = window;
+    </script>
     <style>
       * { 
           padding: 0; 

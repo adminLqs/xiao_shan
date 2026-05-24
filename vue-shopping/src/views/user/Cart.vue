@@ -1,99 +1,185 @@
 <template>
   <div class="cart-container">
-    <!-- 加载状态，数据加载时显示 -->
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>加载中...</p>
+    <!-- 购物车导航栏 -->
+    <div class="cart-navbar">
+      <button class="cart-nav-back" @click="router.back()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="cart-nav-title">
+        <i class="fas fa-shopping-bag"></i>
+        <span>购物袋</span>
+      </div>
+
     </div>
 
-    <!-- 空购物车状态，购物车为空时显示 -->
+    <!-- 操作栏融入导航下方 -->
+    <div class="cart-actions-bar" v-if="cartItems.length > 0">
+      <div class="select-all" @click="toggleSelectAll">
+        <i :class="isAllSelected ? 'fas fa-check-circle' : 'far fa-circle'"></i>
+        <span>全选</span>
+      </div>
+      <span class="cart-items-count">共{{ cartItems.length }}件</span>
+      <button class="delete-btn" @click="batchDelete">删除</button>
+    </div>
+
+    <!-- 骨架屏 -->
+    <div v-if="loading" class="cart-content">
+      <div class="cart-list">
+        <div v-for="i in 3" :key="i" class="cart-item skeleton-product-card">
+          <div class="cart-item-top">
+            <div class="skeleton-image" style="width:80px;height:80px;border-radius:8px;"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+              <div class="skeleton-line medium"></div>
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line short"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-else-if="cartItems.length === 0" class="empty-cart">
       <i class="fas fa-shopping-cart"></i>
       <p>购物车还是空的</p>
-      <RouterLink to="/" class="btn btn-primary">去逛逛</RouterLink>
+      <RouterLink :to="{name: 'UserDashboard'}" class="btn btn-primary">去逛逛</RouterLink>
     </div>
 
-    <!-- 购物车内容，有商品时显示 -->
     <div v-else class="cart-content">
-      <!-- 全选操作栏 -->
-      <div class="cart-actions">
-        <label class="select-all">
-          <input
-            type="checkbox"
-            :checked="isAllSelected"
-            @change="toggleSelectAll"
-          />
-          <span>全选</span>
-          <!-- 显示缺货商品数量提示 -->
-          <span v-if="outOfStockCount > 0" class="stock-tip">
-            （缺货{{ outOfStockCount }}件商品不可选）
-          </span>
-        </label>
-        <button class="delete-btn" @click="batchDelete" :disabled="selectedIds.length === 0">
-          <i class="fas fa-trash-alt"></i>
-          删除选中
-        </button>
-      </div>
-
-      <!-- 购物车商品列表 -->
       <div class="cart-list">
-        <div v-for="item in cartItems" :key="item.id" class="cart-item" :class="{ 'out-of-stock': item.stock <= 0 }">
-          <!-- 商品复选框，缺货时禁用勾选 -->
-          <div class="item-checkbox">
-            <input
-              type="checkbox"
-              :value="item.id"
-              v-model="selectedIds"
-              :disabled="item.stock <= 0"
-            />
-          </div>
-
-          <!-- 商品图片，点击跳转商品详情 -->
-          <div class="item-image" @click="goToProduct(item.productId)">
+        <div
+          v-for="item in cartItems"
+          :key="item.id"
+          class="cart-item"
+          :class="{
+            'out-of-stock': item.stock <= 0,
+            'selected': selectedIds.includes(item.id)
+          }"
+          @click="toggleSelectItem(item)"
+        >
+        <div class="cart-item-top">
+          <div class="item-image" @click.stop="goToProduct(item.productId)">
             <img :src="item.productImage" :alt="item.productName" />
           </div>
-
-          <!-- 商品信息区域 -->
-          <div class="item-info" @click="goToProduct(item.productId)">
-            <div class="item-name">{{ item.productName }}</div>
-            <div v-if="item.skuName" class="item-sku">{{ item.skuName }}</div>
-            <span v-if="item.stock <= 0" class="out-of-stock-tag">缺货</span>
-          </div>
-
-          <!-- 商品价格区域 -->
-          <div class="item-price-row">
-            <div class="item-price">¥{{ formatPrice(item.price) }}</div>
-            <!-- 数量控制器，缺货时禁用 -->
-            <div class="item-quantity">
-              <button @click="decreaseQuantity(item)" :disabled="item.quantity <= 1 || item.stock <= 0">-</button>
-              <span>{{ item.quantity }}</span>
-              <button @click="increaseQuantity(item)" :disabled="item.quantity >= item.stock || item.stock <= 0">+</button>
+          <div class="item-info">
+            <div class="item-name" @click.stop="goToProduct(item.productId)">{{ item.productName }}</div>
+            <div class="tags-group">
+              <span v-if="item.skuName" class="item-sku">{{ item.skuName }}</span>
+              <span v-if="item.stock <= 0" class="out-of-stock-tag">缺货</span>
             </div>
           </div>
-
-          <!-- 商品小计金额 -->
-          <div class="item-subtotal">
-            小计：¥{{ formatPrice(item.price * item.quantity) }}
+          <div class="price-col">
+            <div class="current-price">¥{{ formatPrice(item.price) }}</div>
+            <div v-if="item.originalPrice && item.originalPrice > item.price" class="original-price">¥{{ formatPrice(item.originalPrice) }}</div>
           </div>
+        </div>
 
-          <!-- 操作按钮 -->
-          <button class="action-btn" @click="removeItem(item.id)" title="删除">
-            <i class="fas fa-trash-alt"></i>
-          </button>
+          <div class="item-bottom">
+            <div class="item-status">
+              <span v-if="item.stock <= 0" class="stock-text">暂时缺货</span>
+              <template v-else>
+                <span v-if="selectedIds.includes(item.id)" class="selected-text">
+                  <i class="fas fa-check"></i> 已选
+                </span>
+                <span v-else class="unselected-text">点此选择</span>
+              </template>
+            </div>
+
+            <div class="item-quantity-tags">
+              <span class="qty-tag" :class="{ active: item.quantity === 1 }" @click.stop="setQuantity(item, 1)">1件</span>
+              <span v-if="item.stock >= 2" class="qty-tag" :class="{ active: item.quantity === 2 }" @click.stop="setQuantity(item, 2)">2件</span>
+              <span v-if="item.stock >= 3" class="qty-tag" :class="{ active: item.quantity === 3 }" @click.stop="setQuantity(item, 3)">3件</span>
+
+              <!-- 当前数量按钮（大于3时显示） -->
+              <span v-if="item.quantity >= 4" class="qty-tag active" @click.stop="showQtyPicker(item)">
+                {{ item.quantity }}件
+              </span>
+
+              <!-- +更多按钮（库存大于当前显示的最大预设时显示） -->
+              <span v-if="item.stock > Math.max(3, item.quantity)" class="qty-tag qty-tag-more" @click.stop="showQtyPicker(item)">
+                +更多
+              </span>
+            </div>
+
+            <div class="item-right-actions">
+              <span
+                class="delete-text-btn"
+                @click.stop="removeItem(item.id)"
+              >删除</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- 结算栏 -->
-      <div class="cart-summary">
-        <div class="summary-left">
-          <span class="summary-text">合计：</span>
-          <span class="total-amount">¥{{ formatPrice(totalAmount) }}</span>
-          <span class="selected-count">({{ selectedCount }}件)</span>
+      <!-- 悬浮胶囊结算条 -->
+      <div class="floating-checkout-capsule" :class="{ active: selectedCount > 0 }">
+        <div class="capsule-inner">
+          <!-- 左侧选中信息 -->
+          <div class="capsule-left">
+            <div class="capsule-count-badge">
+              <span class="count-num">{{ selectedCount }}</span>
+            </div>
+            <div class="capsule-price-info">
+              <span class="capsule-total-label">合计</span>
+              <span class="capsule-total-price">¥{{ formatPrice(totalAmount) }}</span>
+            </div>
+          </div>
+          
+          <i class="fas fa-chevron-up capsule-arrow" :class="{ expanded: showSelectedDetail }" @click="showSelectedDetail = !showSelectedDetail"></i>
+
+          <!-- 右侧结算按钮 -->
+          <button
+            class="capsule-checkout-btn"
+            @click="goToCheckout"
+            :disabled="selectedCount === 0"
+          >
+            <span>去结算</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
         </div>
-        <!-- 去结算按钮，无选中商品时禁用 -->
-        <button class="checkout-btn" @click="goToCheckout" :disabled="selectedCount === 0">
-          去结算 ({{ selectedCount }})
-        </button>
+
+        <!-- 选中商品预览浮层 -->
+        <div class="capsule-preview" v-if="showSelectedDetail && selectedCount > 0">
+          <div class="preview-list">
+            <div v-for="item in selectedItemsPreview" :key="item.id" class="preview-item">
+              <img :src="item.productImage" class="preview-img" />
+              <span class="preview-name">{{ item.productName }}</span>
+              <span class="preview-qty">x{{ item.quantity }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 数量选择弹窗 -->
+      <div class="qty-picker-overlay" v-if="showQtyPickerModal" @click="closeQtyPicker">
+        <div class="qty-picker-content" @click.stop>
+          <div class="qty-picker-header">
+            <span>选择数量</span>
+            <button @click="closeQtyPicker"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="qty-picker-body">
+            <div class="qty-preset-list">
+              <span
+                v-for="n in qtyPresets"
+                :key="n"
+                class="qty-preset-item"
+                :class="{ active: pickerValue === n }"
+                @click="pickerValue = n"
+              >{{ n }}件</span>
+            </div>
+            <div class="qty-custom-row">
+              <span>自定义数量</span>
+              <div class="qty-input-group">
+                <button @click="pickerValue = Math.max(1, pickerValue - 1)">-</button>
+                <input type="number" v-model.number="pickerValue" min="1" :max="pickerMaxStock" />
+                <button @click="pickerValue = Math.min(pickerMaxStock, pickerValue + 1)">+</button>
+              </div>
+            </div>
+            <div class="qty-stock-info">库存 {{ pickerMaxStock }} 件</div>
+          </div>
+          <div class="qty-picker-footer">
+            <button class="btn-confirm-qty" @click="confirmQtyPicker">确定</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -132,11 +218,28 @@
 
   // ========== 响应式数据 ==========
   /** 加载状态 */
-  const loading = ref(false)
+  const loading = ref(true)
   /** 购物车列表数据 */
   const cartItems = ref<CartItem[]>([])
   /** 已选中的购物车项ID列表 */
   const selectedIds = ref<number[]>([])
+
+
+  // 数量选择弹窗相关
+  const showQtyPickerModal = ref(false)
+  const pickerValue = ref(1)
+  const pickerMaxStock = ref(99)
+  const currentPickerItem = ref<CartItem | null>(null)
+  const qtyPresets = [1, 2, 3, 5, 10, 20]
+
+  // 选中商品预览展开/收起
+  const showSelectedDetail = ref(false)
+
+  // 选中商品的简要预览
+  const selectedItemsPreview = computed(() => {
+    const items = cartItems.value.filter(item => selectedIds.value.includes(item.id))
+    return items
+  })
 
   // ========== 计算属性 ==========
 
@@ -209,6 +312,21 @@
   }
 
   /**
+   * 切换单个商品选中状态
+   * @param item - 目标购物车项
+   */
+  const toggleSelectItem = (item: CartItem) => {
+    if (item.stock <= 0) return
+
+    const index = selectedIds.value.indexOf(item.id)
+    if (index > -1) {
+      selectedIds.value.splice(index, 1)
+    } else {
+      selectedIds.value.push(item.id)
+    }
+  }
+
+  /**
    * 全选/取消全选
    * 只操作可选商品（库存大于0的商品），缺货商品不会被选中
    */
@@ -277,6 +395,49 @@
   }
 
   /**
+   * 直接设置数量
+   * @param item - 目标购物车项
+   * @param qty - 目标数量
+   */
+  const setQuantity = (item: CartItem, qty: number) => {
+    if (qty > item.stock) {
+      Message.error(`库存不足，最多${item.stock}件`)
+      return
+    }
+    item.quantity = qty
+    updateQuantity(item)
+  }
+
+  /**
+   * 弹出数量选择器（超过3件时）
+   * @param item - 目标购物车项
+   */
+  const showQtyPicker = (item: CartItem) => {
+    currentPickerItem.value = item
+    pickerMaxStock.value = item.stock
+    pickerValue.value = Math.min(item.quantity, item.stock)
+    showQtyPickerModal.value = true
+  }
+
+  /**
+   * 关闭数量选择器
+   */
+  const closeQtyPicker = () => {
+    showQtyPickerModal.value = false
+    currentPickerItem.value = null
+  }
+
+  /**
+   * 确认数量选择
+   */
+  const confirmQtyPicker = () => {
+    if (currentPickerItem.value && pickerValue.value >= 1) {
+      setQuantity(currentPickerItem.value, pickerValue.value)
+    }
+    closeQtyPicker()
+  }
+
+  /**
    * 删除单个购物车商品（带二次确认）
    * @param cartItemId - 购物车项ID
    */
@@ -339,7 +500,7 @@
       return
     }
     router.push({
-      path: '/checkout',
+      name: 'Checkout',
       query: {
         source: 'cart',
         cartItemIds: selectedIds.value.join(',')
@@ -355,13 +516,12 @@
   }
 
   // ========== 生命周期 ==========
-  onMounted(async () => {
-    // 未登录则跳转登录页（方法内部处理）
-    if (!authStore.validateUserPermission()) return
-    await loadCartList()
-  })
+  onMounted(() => {
+  if (!authStore.validateUserPermission()) return
+  loadCartList()
+})
 </script>
 
 <style scoped>
-  @import url('@/static/css/user/购物车.css');
+@import url('@/static/css/user/购物车.css');
 </style>

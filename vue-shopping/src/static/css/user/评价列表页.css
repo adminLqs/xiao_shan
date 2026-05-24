@@ -1,0 +1,415 @@
+/* ========== 评价列表页 ========== */
+
+.review-list-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
+}
+
+/* ========== 页面导航栏 ========== */
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid #e8ecf0;
+}
+
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #4a6491;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.page-nav-back:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.page-nav-title i {
+  color: #4a6491;
+}
+
+.page-nav-right {
+  width: 36px;
+}
+
+/* ========== Tab切换 ========== */
+.review-tabs {
+  display: flex;
+  background: white;
+  padding: 0 16px;
+  gap: 24px;
+  border-bottom: 1px solid #e8ecf0;
+  position: relative;
+}
+
+.tab-item {
+  position: relative;
+  padding: 14px 0;
+  font-size: 15px;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.tab-item.active {
+  color: #4a6491;
+  font-weight: 600;
+}
+
+.tab-underline {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: #4a6491;
+  border-radius: 1px;
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========== 下拉刷新 ========== */
+.refresh-indicator {
+  transition: height 0.2s;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pull-hint {
+  padding: 8px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.starlight-refresh {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+}
+
+.loader-ring-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  animation: spin 1s linear infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-ring-sm .brand-icon-sm {
+  color: white;
+  font-size: 14px;
+}
+
+.loader-text-sm {
+  font-size: 12px;
+  color: #4a6491;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 列表内容 ========== */
+.review-content {
+  padding: 0;
+}
+
+/* ========== 待评价项 ========== */
+.pending-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.pending-item .item-image {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f5f7fa;
+}
+
+.pending-item .item-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: flex-start;
+  align-self: flex-start;
+}
+
+.pending-item .item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  width: 100%;
+}
+
+.pending-item .item-spec {
+  font-size: 12px;
+  color: #64748b;
+  background: #f0f2f5;
+  padding: 2px 8px;
+  border-radius: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  width: fit-content;
+}
+
+.pending-item .review-btn {
+  padding: 8px 16px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pending-item .review-btn:active {
+  transform: scale(0.95);
+  background: #3a5479;
+}
+
+/* ========== 已评价项 ========== */
+.reviewed-item {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.reviewed-item .item-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f5f7fa;
+  flex-shrink: 0;
+}
+
+.reviewed-item .item-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-self: flex-start;
+}
+
+.reviewed-item .item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.reviewed-item .item-spec {
+  font-size: 12px;
+  color: #64748b;
+  background: #f0f2f5;
+  padding: 2px 8px;
+  border-radius: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  width: fit-content;
+}
+
+.review-content-text {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.5;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.review-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.review-rating {
+  display: flex;
+  gap: 2px;
+}
+
+.review-rating i {
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.review-rating i.active {
+  color: #f59e0b;
+}
+
+.review-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+}
+
+.empty-state i {
+  font-size: 48px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  font-size: 16px;
+  color: #475569;
+  margin: 0 0 8px 0;
+}
+
+.empty-state span {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* ========== 骨架屏 ========== */
+.skeleton-list {
+  padding: 8px;
+}
+
+.skeleton-item {
+  height: 100px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  background: linear-gradient(90deg, #f0f2f5 25%, #e2e8f0 50%, #f0f2f5 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ========== 加载状态 ========== */
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.no-more {
+  text-align: center;
+  padding: 16px;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+/* ========== 底部留空 ========== */
+.bottom-space {
+  height: 40px;
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .review-list-page {
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ========== Tab内容区淡入过渡 ========== */
+.tab-content {
+  animation: tabContentIn 0.25s ease;
+}
+
+@keyframes tabContentIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== 评价项加载动画 ========== */
+.pending-item,
+.reviewed-item {
+  animation: cardSlideUp 0.25s ease backwards;
+}
+
+.pending-item:nth-child(1),
+.reviewed-item:nth-child(1) { animation-delay: 0s; }
+.pending-item:nth-child(2),
+.reviewed-item:nth-child(2) { animation-delay: 0.05s; }
+.pending-item:nth-child(3),
+.reviewed-item:nth-child(3) { animation-delay: 0.1s; }
+.pending-item:nth-child(4),
+.reviewed-item:nth-child(4) { animation-delay: 0.15s; }
+.pending-item:nth-child(5),
+.reviewed-item:nth-child(5) { animation-delay: 0.2s; }
+
+@keyframes cardSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

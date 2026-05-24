@@ -1,18 +1,24 @@
 <template>
-  <div class="address-container">
-    <!-- 页面头部 -->
-    <div class="address-header">
-      <h3>收货地址</h3>
-      <!-- 新增地址按钮 -->
-      <button class="btn-primary" @click="openAddressModal()">
-        <i class="fas fa-plus"></i> 新增地址
+  <div class="address-container page-container">
+    <div class="page-navbar">
+      <button class="page-nav-back" @click="router.back()">
+        <i class="fas fa-chevron-left"></i>
       </button>
+      <div class="page-nav-title">
+        <i class="fas fa-map-marker-alt"></i>
+        <span>收货地址</span>
+      </div>
+      <div class="page-nav-right"></div>
     </div>
 
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading-state">
-      <div class="loading-spinner"></div>
-      <p>加载中...</p>
+    <!-- 骨架屏加载 -->
+    <div v-if="loading" class="address-list">
+      <div v-for="n in 3" :key="n" class="address-card skeleton-card">
+        <div class="address-info">
+          <div class="skeleton-line medium"></div>
+          <div class="skeleton-line short" style="margin-top: 8px;"></div>
+        </div>
+      </div>
     </div>
 
     <!-- 地址列表 -->
@@ -22,6 +28,7 @@
         v-for="address in addresses"
         :key="address.id"
         class="address-card"
+        :class="{ 'default-address': address.isDefault }"
       >
         <!-- 地址信息区域 -->
         <div class="address-info">
@@ -29,36 +36,38 @@
           <div class="address-recipient">
             <span class="name">{{ address.recipientName }}</span>
             <span class="phone">{{ address.recipientPhone }}</span>
-            <!-- 默认地址标签 -->
             <span v-if="address.isDefault" class="default-badge">默认</span>
           </div>
           <!-- 详细地址 -->
-          <div class="address-detail">
-            {{ address.province }} {{ address.city }} {{ address.district }} {{ address.detailAddress }}
+          <div class="address-detail text-ellipsis">
+            {{ address.province }}{{ address.city }}{{ address.district }}{{ address.detailAddress }}
           </div>
-          <!-- 地址标签（家/公司/学校） -->
-          <div class="address-label" v-if="address.label">
-            <i class="fas fa-tag"></i>
-            <span>{{ address.label }}</span>
-          </div>
+          <!-- 地址标签 -->
+          <span class="address-tag" v-if="address.label">{{ address.label }}</span>
         </div>
         <!-- 操作按钮区域 -->
         <div class="address-actions">
-          <button class="edit-btn" @click="openAddressModal(address)">编辑</button>
-          <!-- 非默认地址才显示"设为默认"按钮 -->
-          <button class="set-default-btn" v-if="!address.isDefault" @click="setDefaultAddress(address.id)">
-            设为默认
+          <button class="action-icon edit-btn" @click="openAddressModal(address)" title="编辑">
+            <i class="fas fa-pen"></i>
           </button>
-          <button class="delete-btn" @click="deleteAddress(address.id)">删除</button>
+          <button class="action-icon delete-btn" @click="deleteAddress(address.id)" title="删除">
+            <i class="fas fa-trash"></i>
+          </button>
         </div>
       </div>
 
       <!-- 空状态 -->
-      <div v-if="addresses.length === 0" class="empty-state">
+      <div v-if="addresses.length === 0" class="empty-cart" style="margin-top: 40px;">
         <i class="fas fa-map-marker-alt"></i>
         <p>暂无收货地址</p>
-        <button class="btn-primary" @click="openAddressModal()">立即添加</button>
       </div>
+    </div>
+
+    <!-- 底部固定新增按钮 -->
+    <div class="bottom-fixed-bar">
+      <button class="btn-primary" @click="openAddressModal()">
+        <i class="fas fa-plus"></i> 新增收货地址
+      </button>
     </div>
 
     <!-- 新增/编辑地址弹窗 -->
@@ -83,20 +92,10 @@
             <label>联系电话</label>
             <input type="tel" v-model="addressForm.recipientPhone" placeholder="请输入联系电话">
           </div>
-          <!-- 地区选择（省/市/区） -->
-          <div class="form-row">
-            <div class="form-group">
-              <label>省份</label>
-              <input type="text" v-model="addressForm.province" placeholder="省份">
-            </div>
-            <div class="form-group">
-              <label>城市</label>
-              <input type="text" v-model="addressForm.city" placeholder="城市">
-            </div>
-            <div class="form-group">
-              <label>区县</label>
-              <input type="text" v-model="addressForm.district" placeholder="区县">
-            </div>
+          <!-- 地区选择 -->
+          <div class="form-group">
+            <label>所在地区</label>
+            <AddressSelector v-model="addressRegion" @change="onRegionChange" />
           </div>
           <!-- 详细地址 -->
           <div class="form-group">
@@ -113,11 +112,12 @@
               <span class="label-option" :class="{ active: addressForm.label === '其他' }" @click="addressForm.label = '其他'">📍 其他</span>
             </div>
           </div>
-          <!-- 设为默认地址复选框 -->
-          <div class="form-group">
-            <label class="checkbox-label">
-              <span>设为默认地址</span>
+          <!-- 设为默认地址 -->
+          <div class="form-group switch-row">
+            <span>设为默认地址</span>
+            <label class="switch">
               <input type="checkbox" v-model="addressForm.isDefault">
+              <span class="slider"></span>
             </label>
           </div>
         </div>
@@ -137,6 +137,8 @@
   import { authAPI } from '@/api/authAPI'
   import Message from '@/utils/message'
   import { useAuthStore } from '@/stores/auth'
+  import AddressSelector from '@/components/user/AddressSelector.vue'
+
 
   const authStore = useAuthStore()
   const router = useRouter()
@@ -169,7 +171,7 @@
 
   // ==================== 响应式数据 ====================
 
-  const loading = ref(false)
+  const loading = ref(true)
   const addresses = ref<Address[]>([])
 
   const showAddressModal = ref(false)
@@ -186,6 +188,18 @@
     label: '',
     isDefault: false
   })
+
+  const addressRegion = ref({
+    province: '',
+    city: '',
+    district: ''
+  })
+
+  const onRegionChange = () => {
+    addressForm.value.province = addressRegion.value.province
+    addressForm.value.city = addressRegion.value.city
+    addressForm.value.district = addressRegion.value.district
+  }
 
   // ==================== 数据加载 ====================
 
@@ -227,6 +241,11 @@
         label: address.label || '',
         isDefault: address.isDefault
       }
+      addressRegion.value = {
+        province: address.province,
+        city: address.city,
+        district: address.district
+      }
     } else {
       isEditing.value = false
       editingId.value = null
@@ -239,6 +258,11 @@
         detailAddress: '',
         label: '',
         isDefault: false
+      }
+      addressRegion.value = {
+        province: '',
+        city: '',
+        district: ''
       }
     }
     showAddressModal.value = true
@@ -265,6 +289,10 @@
       Message.error('请输入联系电话')
       return
     }
+    if (!addressForm.value.province || !addressForm.value.city || !addressForm.value.district) {
+      Message.error('请选择完整的省市区信息')
+      return
+    }
     if (!addressForm.value.detailAddress) {
       Message.error('请输入详细地址')
       return
@@ -272,7 +300,7 @@
 
     try {
       let response
-      if (isEditing.value) {
+      if (isEditing.value && editingId.value !== null) {
         response = await authAPI.updateAddress({
           id: editingId.value,
           ...addressForm.value
@@ -338,5 +366,5 @@
 </script>
 
 <style scoped>
-  @import url('@/static/css/user/地址页.css');
+@import url('@/static/css/user/收货地址.css');
 </style>

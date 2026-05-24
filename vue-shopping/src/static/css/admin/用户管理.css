@@ -1,0 +1,39 @@
+/* ========== 用户管理页面 ========== */
+
+.users-page {
+  max-width: 1400px;
+}
+
+.dev-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 60px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.dev-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  background: #f1f5f9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: #64748b;
+}
+
+.dev-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px;
+}
+
+.dev-desc {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}

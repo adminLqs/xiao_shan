@@ -16,9 +16,8 @@ public interface ReviewMapper {
      * @param review 评论实体
      * @return 影响行数
      */
-    @Insert("INSERT INTO reviews (user_id, product_id, order_item_id, rating, comment, created_at) " +
-            "VALUES (#{userId}, #{productId}, #{orderItemId}, #{rating}, #{comment}, NOW() )")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @Insert("INSERT INTO reviews (id, user_id, product_id, order_id, order_item_id, rating, comment, sku_spec, ip, location) " +
+            "VALUES (#{id}, #{userId}, #{productId}, #{orderId}, #{orderItemId}, #{rating}, #{comment}, #{skuSpec}, #{ip}, #{location})")
     int insert(Review review);
 
     /**
@@ -26,7 +25,7 @@ public interface ReviewMapper {
      * @param id 评论ID
      * @return 评论实体
      */
-    @Select("SELECT id, user_id, product_id, order_item_id, rating, comment, created_at " +
+    @Select("SELECT id, user_id, product_id, order_id, order_item_id, rating, comment, sku_spec, ip, location, created_at " +
             "FROM reviews WHERE id = #{id}")
     Review findById(Long id);
 
@@ -35,7 +34,7 @@ public interface ReviewMapper {
      * @param orderItemId 订单项ID
      * @return 评论实体
      */
-    @Select("SELECT id, user_id, product_id, order_item_id, rating, comment, created_at " +
+    @Select("SELECT id, user_id, product_id, order_id, order_item_id, rating, comment, sku_spec, ip, location, created_at " +
             "FROM reviews WHERE order_item_id = #{orderItemId}")
     Review findByOrderItemId(Long orderItemId);
 
@@ -44,32 +43,57 @@ public interface ReviewMapper {
      * @param productId 商品ID
      * @param offset 偏移量
      * @param limit 每页数量
-     * @param rating 评分筛选
+     * @param rating 评分筛选（精确匹配）
+     * @param minRating 最小评分（范围筛选）
+     * @param maxRating 最大评分（范围筛选）
+     * @param hasImages 是否只查询有图片的评论
      * @return 评论列表
      */
     @Select("<script>" +
-            "SELECT id, user_id, product_id, order_item_id, rating, comment, created_at " +
-            "FROM reviews WHERE product_id = #{productId} " +
-            "<if test='rating != null'>AND rating = #{rating}</if> " +
-            "ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}" +
+            "SELECT r.id, r.user_id, r.product_id, r.order_id, r.order_item_id, r.rating, r.comment, r.sku_spec, r.ip, r.location, r.created_at, " +
+            "p.name as product_name, " +
+            "(SELECT image FROM product_images WHERE product_id = r.product_id ORDER BY sort_order LIMIT 1) as product_image, " +
+            "oi.sku_name " +
+            "FROM reviews r " +
+            "LEFT JOIN products p ON r.product_id = p.id " +
+            "LEFT JOIN order_items oi ON r.order_item_id = oi.id " +
+            "<if test='hasImages != null and hasImages'>" +
+            "JOIN review_images ri ON r.id = ri.review_id " +
+            "</if>" +
+            "WHERE r.product_id = #{productId} " +
+            "<if test='rating != null'>AND r.rating = #{rating}</if> " +
+            "<if test='minRating != null'>AND r.rating <![CDATA[ >= ]]> #{minRating}</if> " +
+            "<if test='maxRating != null'>AND r.rating <![CDATA[ <= ]]> #{maxRating}</if> " +
+            "GROUP BY r.id " +
+            "ORDER BY r.created_at DESC LIMIT #{limit} OFFSET #{offset}" +
             "</script>")
     List<Review> findByProductId(@Param("productId") Long productId,
                                  @Param("offset") int offset,
                                  @Param("limit") int limit,
-                                 @Param("rating") Integer rating);
+                                 @Param("rating") Integer rating,
+                                 @Param("minRating") Integer minRating,
+                                 @Param("maxRating") Integer maxRating,
+                                 @Param("hasImages") Boolean hasImages);
 
     /**
      * 统计商品评价数量
      * @param productId 商品ID
-     * @param rating 评分筛选
+     * @param rating 评分筛选（精确匹配）
+     * @param minRating 最小评分（范围筛选）
+     * @param maxRating 最大评分（范围筛选）
      * @return 评价数量
      */
     @Select("<script>" +
-            "SELECT COUNT(*) FROM reviews WHERE product_id = #{productId} " +
-            "<if test='rating != null'>AND rating = #{rating}</if>" +
+            "SELECT COUNT(*) FROM reviews r " +
+            "WHERE r.product_id = #{productId} " +
+            "<if test='rating != null'>AND r.rating = #{rating}</if> " +
+            "<if test='minRating != null'>AND r.rating <![CDATA[ >= ]]> #{minRating}</if> " +
+            "<if test='maxRating != null'>AND r.rating <![CDATA[ <= ]]> #{maxRating}</if>" +
             "</script>")
     long countByProductId(@Param("productId") Long productId,
-                          @Param("rating") Integer rating);
+                          @Param("rating") Integer rating,
+                          @Param("minRating") Integer minRating,
+                          @Param("maxRating") Integer maxRating);
 
     /**
      * 查询用户评价列表（分页）
@@ -78,9 +102,15 @@ public interface ReviewMapper {
      * @param limit 每页数量
      * @return 评论列表
      */
-    @Select("SELECT id, product_id, order_item_id, rating, comment, created_at " +
-            "FROM reviews WHERE user_id = #{userId} ORDER BY created_at DESC " +
-            "LIMIT #{limit} OFFSET #{offset}")
+    @Select("SELECT r.id, r.user_id, r.product_id, r.order_id, r.order_item_id, r.rating, r.comment, r.sku_spec, r.ip, r.location, r.created_at, " +
+            "p.name as product_name, " +
+            "(SELECT image FROM product_images WHERE product_id = r.product_id ORDER BY sort_order LIMIT 1) as product_image, " +
+            "oi.sku_name " +
+            "FROM reviews r " +
+            "LEFT JOIN products p ON r.product_id = p.id " +
+            "LEFT JOIN order_items oi ON r.order_item_id = oi.id " +
+            "WHERE r.user_id = #{userId} " +
+            "ORDER BY r.created_at DESC LIMIT #{limit} OFFSET #{offset}")
     List<Review> findByUserId(@Param("userId") Long userId,
                               @Param("offset") int offset,
                               @Param("limit") int limit);
@@ -100,9 +130,13 @@ public interface ReviewMapper {
      * @param limit 每页数量
      * @return 评论列表
      */
-    @Select("SELECT r.id, r.user_id, r.product_id, r.order_item_id, r.rating, r.comment, r.created_at " +
+    @Select("SELECT r.id, r.user_id, r.product_id, r.order_item_id, r.rating, r.comment, r.ip, r.location, r.created_at, " +
+            "p.name as product_name, " +
+            "(SELECT image FROM product_images WHERE product_id = r.product_id ORDER BY sort_order LIMIT 1) as product_image, " +
+            "oi.sku_name " +
             "FROM reviews r " +
-            "JOIN products p ON r.product_id = p.id " +
+            "LEFT JOIN products p ON r.product_id = p.id " +
+            "LEFT JOIN order_items oi ON r.order_item_id = oi.id " +
             "WHERE p.seller_id = #{sellerId} " +
             "ORDER BY r.created_at DESC LIMIT #{limit} OFFSET #{offset}")
     List<Review> findBySellerId(@Param("sellerId") Long sellerId,
@@ -134,4 +168,12 @@ public interface ReviewMapper {
      */
     @Delete("DELETE FROM reviews WHERE id = #{id}")
     int deleteById(Long id);
+
+    /**
+     * 根据商品ID删除所有评论
+     * @param productId 商品ID
+     * @return 影响行数
+     */
+    @Delete("DELETE FROM reviews WHERE product_id = #{productId}")
+    int deleteByProductId(Long productId);
 }

@@ -432,6 +432,52 @@ public class LogisticsController {
     }
 
     /**
+     * 根据物流单号查询物流信息（退货物流使用）
+     * GET /api/v1/logistics/query
+     *
+     * @param trackingNumber 物流单号
+     * @param logisticsName 物流公司名称（可选）
+     * @param refundId 退款ID（可选，用于退货物流）
+     * @return 物流信息
+     */
+    @GetMapping("/logistics/query")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER','ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> queryLogisticsByTrackingNumber(
+            @RequestParam String trackingNumber,
+            @RequestParam(required = false) String logisticsName,
+            @RequestParam(required = false) Long refundId
+    ) {
+        try {
+            if (trackingNumber == null || trackingNumber.trim().isEmpty()) {
+                return ResponseEntity.ok(Map.of(
+                        "success", false,
+                        "message", "物流单号不能为空"
+                ));
+            }
+
+            // 调用物流服务查询物流轨迹，传入物流公司名称进行编码映射和退款ID
+            LogisticsVO logistics = logisticsService.queryLogistics(trackingNumber, null, logisticsName, null, refundId);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of(
+                            "trackingNumber", trackingNumber,
+                            "logisticsName", logistics.getLogisticsName(),
+                            "logisticsCode", logistics.getLogisticsCode(),
+                            "traces", logistics.getTraces()
+                    )
+            ));
+
+        } catch (Exception e) {
+            log.error("查询物流信息失败: {}", e.getMessage());
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
      * MD5加密并转为Base64（快递鸟签名规则）
      * 规则：MD5(RequestData + AppKey) 得到32位小写字符串，再对这个字符串做Base64编码
      */

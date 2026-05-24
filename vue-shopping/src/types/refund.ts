@@ -1,0 +1,1 @@
+export type RefundStatus = 'REFUNDING' | 'AFTER_SALE' | 'WAITING_RETURN' | 'RETURNING' | 'APPROVED' | 'COMPLETED' | 'FAILED'

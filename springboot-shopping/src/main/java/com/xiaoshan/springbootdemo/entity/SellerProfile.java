@@ -23,9 +23,6 @@ public class SellerProfile {
     // 店铺Logo
     private String storeAvatar;
 
-    // 店铺横幅
-    private String storeBanner;
-
     // 店铺简介
     private String storeDetail;
 
@@ -34,6 +31,9 @@ public class SellerProfile {
 
     // 联系电话
     private String contactPhone;
+
+    // 店铺地址
+    private String address;
 
     // 创建时间
     private LocalDateTime createdAt = LocalDateTime.now();

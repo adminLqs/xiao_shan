@@ -1,4 +1,5 @@
-/* ========== 移动端基础样式重置 ========== */
+/* ========== 结算页 - 简洁版样式 ========== */
+
 * {
   padding: 0;
   margin: 0;
@@ -11,57 +12,97 @@ html {
   font-size: calc(100vw / 37.5);
 }
 
-/* ========== 页面容器 - 移动端全屏 ========== */
+/* ========== 页面容器 ========== */
 .checkout-container {
   max-width: 100%;
   margin: 0 auto;
   padding: 0;
   min-height: 100vh;
-  background: #f5f5f5;
+  background: #f5f7fa;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  position: relative;
 }
 
-/* ========== 加载状态 ========== */
-.loading-container {
+/* ========== 顶部导航栏 ========== */
+.page-navbar {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid #e8ecf0;
 }
 
-.loading-spinner {
+.page-nav-back {
   width: 36px;
   height: 36px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  border: none;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 12px;
+  cursor: pointer;
+  color: #4a6491;
+  font-size: 16px;
+  transition: all 0.2s;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.page-nav-back:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.page-nav-title i {
+  color: #4a6491;
+}
+
+.page-nav-right {
+  width: 36px;
 }
 
 /* ========== 结算内容布局 ========== */
 .checkout-content {
-  padding-top: 54px;
+  padding-top: 12px;
+  position: relative;
+  z-index: 1;
 }
 
 /* ========== 收货地址卡片 ========== */
 .address-card {
   background: white;
-  margin: 0 12px 12px;
+  margin: 0 0 8px 0;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 0;
   display: flex;
   align-items: center;
   cursor: pointer;
+  border: 1px solid #e8ecf0;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.address-card:active {
+  transform: scale(0.98);
 }
 
 .address-icon {
   font-size: 24px;
   margin-right: 12px;
+  color: #4a6491;
 }
 
 .address-info {
@@ -74,30 +115,31 @@ html {
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+  flex-wrap: wrap;
 }
 
 .address-recipient .name {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: #1e293b;
 }
 
 .address-recipient .phone {
   font-size: 13px;
-  color: #999;
+  color: #64748b;
 }
 
 .default-badge {
-  background: #ef4444;
+  background: #4a6491;
   color: white;
   font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
 .address-detail {
   font-size: 13px;
-  color: #666;
+  color: #64748b;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -106,25 +148,29 @@ html {
 
 .address-empty p {
   font-size: 14px;
-  color: #999;
+  color: #94a3b8;
 }
 
 .address-card i:last-child {
-  color: #ccc;
-  font-size: 16px;
+  color: #94a3b8;
+  font-size: 14px;
   margin-left: 8px;
 }
 
 /* ========== 灰色间隔 ========== */
 .gray-divider {
   height: 8px;
-  background: #f5f5f5;
+  background: transparent;
 }
 
 /* ========== 商品信息区域 ========== */
 .product-section {
   background: white;
+  margin: 0 0 8px 0;
   padding: 16px;
+  border-radius: 0;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .section-header {
@@ -134,22 +180,27 @@ html {
 .section-header h3 {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: #1e293b;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
+.section-header i {
+  color: #4a6491;
+}
+
+/* 商品列表 */
 .product-list {
   padding: 0;
 }
 
 .product-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f2f5;
 }
 
 .product-item:last-child {
@@ -157,11 +208,12 @@ html {
 }
 
 .product-image {
-  width: 70px;
-  height: 70px;
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
   object-fit: cover;
-  border-radius: 8px;
   flex-shrink: 0;
+  background: #f5f7fa;
 }
 
 .product-info {
@@ -171,22 +223,58 @@ html {
 
 .product-name {
   font-size: 14px;
-  color: #333;
-  margin-bottom: 4px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.product-spec {
-  font-size: 13px;
-  color: #999;
+.tags-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.tag-spec {
+  padding: 2px 8px;
+  background: #f0f2f5;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #64748b;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  width: fit-content;
+}
+
+.tag-quantity {
+  padding: 2px 6px;
+  font-size: 12px;
+  color: #64748b;
+  background: transparent;
+}
+
+.product-price {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ef4444;
+  flex-shrink: 0;
+  align-self: center;   
 }
 
 /* ========== 支付方式选择 ========== */
 .payment-section {
   background: white;
+  margin: 0 0 8px 0;
   padding: 16px;
+  border-radius: 0;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .payment-options {
@@ -200,36 +288,48 @@ html {
   align-items: center;
   gap: 12px;
   padding: 14px;
-  border: 2px solid #f0f0f0;
-  border-radius: 8px;
+  border: 1px solid #e8ecf0;
+  border-radius: 14px;
   cursor: pointer;
   transition: all 0.2s;
+  background: white;
+}
+
+.payment-option:active {
+  transform: scale(0.98);
+  background: #f5f7fa;
 }
 
 .payment-option.active {
-  border-color: #ef4444;
-  background: #fff5f5;
+  border-color: #4a6491;
+  background: rgba(74, 100, 145, 0.05);
 }
 
-.payment-option i:first-child {
-  font-size: 24px;
+.icon-svg {
+  flex-shrink: 0;
 }
 
 .payment-option span {
   flex: 1;
   font-size: 14px;
-  color: #333;
+  font-weight: 500;
+  color: #1e293b;
 }
 
 .check-icon {
-  color: #ef4444;
+  color: #4a6491;
   font-size: 16px;
+  flex-shrink: 0;
 }
 
 /* ========== 订单信息 ========== */
 .order-info-section {
   background: white;
+  margin: 0 0 8px 0;
   padding: 16px;
+  border-radius: 0;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .order-info-list {
@@ -242,44 +342,46 @@ html {
   align-items: center;
   padding: 8px 0;
   font-size: 14px;
-  color: #666;
+  color: #64748b;
 }
 
 .info-row.total {
   padding-top: 12px;
   margin-top: 8px;
-  border-top: 1px dashed #e0e0e0;
+  border-top: 1px dashed #e2e8f0;
 }
 
 .info-row.total span:first-child {
   font-weight: 600;
-  color: #333;
+  color: #1e293b;
 }
 
 .total-amount {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: #ef4444;
 }
 
 /* ========== 底部留空 ========== */
 .bottom-space {
-  height: 70px;
+  height: 80px;
 }
 
 /* ========== 底部固定操作栏 ========== */
 .bottom-bar {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 50px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: 12px;
+  right: 12px;
+  height: 54px;
   background: white;
   display: flex;
   align-items: center;
   padding: 0 16px;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-  padding-bottom: env(safe-area-inset-bottom);
+  border-radius: 27px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e8ecf0;
+  z-index: 50;
 }
 
 .total-info {
@@ -291,7 +393,7 @@ html {
 
 .total-label {
   font-size: 14px;
-  color: #666;
+  color: #64748b;
 }
 
 .total-price {
@@ -301,29 +403,28 @@ html {
 }
 
 .submit-btn {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #ef4444, #ff6b6b);
+  padding: 10px 24px;
+  background: #4a6491;
   color: white;
   border: none;
-  border-radius: 25px;
+  border-radius: 24px;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
+  height: 40px;
+  transition: all 0.2s;
+}
+
+.submit-btn:active {
+  transform: scale(0.96);
+  background: #3a5479;
 }
 
 .submit-btn:disabled {
   opacity: 0.5;
 }
 
-.submit-btn.is-loading {
-  opacity: 0.7;
-}
-
-.submit-btn.is-loading i {
-  margin-right: 8px;
-}
-
-/* ========== 地址选择面板（底部弹出） ========== */
+/* ========== 地址选择面板 ========== */
 .address-panel {
   position: fixed;
   top: 0;
@@ -344,7 +445,7 @@ html {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -359,12 +460,13 @@ html {
   left: 0;
   right: 0;
   background: white;
-  border-radius: 16px 16px 0 0;
+  border-radius: 20px 20px 0 0;
   transform: translateY(100%);
-  transition: transform 0.3s;
+  transition: transform 0.3s ease;
   max-height: 70vh;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .address-panel.show .panel-content {
@@ -375,46 +477,94 @@ html {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f2f5;
 }
 
 .panel-header span {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .panel-header i {
-  font-size: 20px;
-  color: #999;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  color: #64748b;
   cursor: pointer;
+  background: #f5f7fa;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.panel-header i:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
 }
 
 .panel-body {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 16px;
+  padding: 12px 16px;
 }
 
 .addr-item {
   display: flex;
   align-items: center;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  background: #fafafa;
+  justify-content: space-between;
+  padding: 14px;
+  border-radius: 16px;
+  margin-bottom: 10px;
+  background: white;
+  border: 1px solid #e8ecf0;
+  transition: all 0.2s;
+}
+
+.addr-item:active {
+  transform: scale(0.98);
+  background: #fafbfc;
 }
 
 .addr-item.active {
-  background: #fff5f5;
-  border: 1px solid #ef4444;
+  border: 2px solid #4a6491;
+  background: rgba(74, 100, 145, 0.03);
 }
 
 .addr-info {
   flex: 1;
+  cursor: pointer;
   min-width: 0;
+}
+
+.addr-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.addr-edit-btn {
+  width: 32px;
+  height: 32px;
+  background: #f5f7fa;
+  border: none;
+  border-radius: 50%;
+  color: #4a6491;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.addr-edit-btn:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
 }
 
 .addr-recipient {
@@ -422,30 +572,31 @@ html {
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+  flex-wrap: wrap;
 }
 
 .addr-recipient .name {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: #1e293b;
 }
 
 .addr-recipient .phone {
   font-size: 13px;
-  color: #999;
+  color: #64748b;
 }
 
 .default-tag {
-  background: #ef4444;
+  background: #4a6491;
   color: white;
   font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
 .addr-detail {
   font-size: 13px;
-  color: #666;
+  color: #64748b;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -453,10 +604,10 @@ html {
 }
 
 .addr-check {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: #ef4444;
+  background: #4a6491;
   color: white;
   display: flex;
   align-items: center;
@@ -470,20 +621,31 @@ html {
 }
 
 .empty-addr p {
-  color: #999;
+  color: #94a3b8;
   font-size: 14px;
 }
 
 .add-addr-btn {
   width: calc(100% - 32px);
   margin: 16px;
-  padding: 14px;
-  background: white;
-  border: 1px dashed #ddd;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #666;
+  height: 46px;
+  background: #4a6491;
+  border: none;
+  border-radius: 23px;
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.add-addr-btn:active {
+  transform: scale(0.97);
+  background: #3a5479;
 }
 
 /* ========== 弹窗样式 ========== */
@@ -493,19 +655,18 @@ html {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   z-index: 300;
 }
 
 .modal-content {
+  width: 100%;
   background: white;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 400px;
-  max-height: 80vh;
+  border-radius: 20px 20px 0 0;
+  max-height: 85vh;
   overflow-y: auto;
 }
 
@@ -513,138 +674,223 @@ html {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f2f5;
 }
 
 .modal-header h3 {
   font-size: 17px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .modal-close {
-  background: none;
+  width: 32px;
+  height: 32px;
+  background: #f5f7fa;
   border: none;
-  font-size: 18px;
+  border-radius: 50%;
   cursor: pointer;
-  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.modal-close:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
 }
 
 .modal-body {
-  padding: 16px;
+  padding: 20px;
 }
 
 .modal-footer {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 16px;
-  border-top: 1px solid #f0f0f0;
+  gap: 12px;
+  padding: 16px 20px 24px;
+  border-top: 1px solid #f0f2f5;
 }
 
 /* ========== 表单样式 ========== */
 .form-group {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 14px;
-  min-height: 44px;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #1e293b;
+  background: white;
+  transition: all 0.2s;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #ef4444;
+  border-color: #4a6491;
+  box-shadow: 0 0 0 3px rgba(74, 100, 145, 0.1);
 }
 
-.form-row {
+/* 地区选择器 */
+.region-group {
+  margin-bottom: 16px;
+}
+
+.region-label {
+  font-size: 12px;
+  color: #4a6491;
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.region-select {
+  width: 100%;
+  height: 44px;
+  padding: 0 32px 0 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #1e293b;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%234a6491' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.region-select:focus {
+  border-color: #4a6491;
+  box-shadow: 0 0 0 3px rgba(74, 100, 145, 0.1);
+  outline: none;
+}
+
+.region-select:disabled {
+  background-color: #f5f7fa;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 地址标签 */
+.label-options {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
-.form-row .form-group {
-  flex: 1;
-}
-
-.label-options {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .label-option {
-  padding: 6px 12px;
-  background: #f5f5f5;
-  border-radius: 16px;
-  font-size: 12px;
+  padding: 8px 16px;
+  background: #f5f7fa;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #64748b;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.label-option:active {
+  transform: scale(0.96);
+  background: #e8ecf0;
 }
 
 .label-option.active {
-  background: #ef4444;
+  background: #4a6491;
   color: white;
 }
 
-/* ========== 修正复选框垂直对齐并向右偏移 ========== */
-.checkbox-label {
+/* 开关 */
+.switch-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  padding: 8px 0;
+}
+
+.switch {
+  position: relative;
+  width: 50px;
+  height: 28px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch .slider {
+  position: absolute;
   cursor: pointer;
-  line-height: 1;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  border-radius: 28px;
+  transition: 0.3s;
 }
 
-.checkbox-label span {
-  display: inline-block;
-  line-height: 20px;
+.switch .slider:before {
+  position: absolute;
+  content: "";
+  height: 24px;
+  width: 24px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.3s;
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  accent-color: #ef4444;
-  margin: 0;
-  margin-left: 12px; /* 添加左边距，向右偏移12px */
-  vertical-align: middle;
-  flex-shrink: 0;
+.switch input:checked + .slider {
+  background: #4a6491;
 }
 
-/* ========== 按钮样式 ========== */
+.switch input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+/* 按钮 */
+.btn-cancel, .btn-confirm {
+  flex: 1;
+  padding: 14px;
+  border-radius: 28px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:active, .btn-confirm:active {
+  transform: scale(0.97);
+}
+
 .btn-cancel {
-  padding: 10px 20px;
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-  min-height: 40px;
+  background: #f5f7fa;
+  color: #64748b;
 }
 
 .btn-confirm {
-  padding: 10px 20px;
-  background: #ef4444;
+  background: #4a6491;
   color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  min-height: 40px;
 }
 
 /* ========== 支付状态确认弹窗 ========== */
@@ -663,7 +909,7 @@ html {
 
 .pay-confirm-dialog {
   background: white;
-  border-radius: 16px;
+  border-radius: 20px;
   width: 85%;
   max-width: 340px;
   padding: 32px 24px;
@@ -672,25 +918,25 @@ html {
 
 .pay-icon {
   font-size: 64px;
-  color: #22c55e;
+  color: #10b981;
   margin-bottom: 16px;
 }
 
 .pay-confirm-dialog h3 {
   font-size: 18px;
-  font-weight: 600;
-  color: #333;
+  font-weight: 700;
+  color: #1e293b;
   margin-bottom: 12px;
 }
 
 .pay-confirm-dialog p {
   font-size: 14px;
-  color: #666;
+  color: #64748b;
   margin-bottom: 8px;
 }
 
 .pay-tip {
-  color: #999 !important;
+  color: #94a3b8 !important;
   font-size: 12px !important;
 }
 
@@ -703,32 +949,48 @@ html {
 .btn-pay-done {
   flex: 1;
   padding: 14px;
-  background: linear-gradient(135deg, #ef4444, #ff6b6b);
+  background: #4a6491;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 28px;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pay-done:active {
+  transform: scale(0.97);
+  background: #3a5479;
 }
 
 .btn-pay-later {
   flex: 1;
   padding: 14px;
   background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 28px;
   font-size: 15px;
-  color: #666;
+  color: #64748b;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-/* ========== 支付宝/微信图标颜色 ========== */
-.fab.fa-alipay {
-  color: #1677ff;
+.btn-pay-later:active {
+  transform: scale(0.97);
+  background: #f5f7fa;
 }
 
-.fab.fa-weixin {
-  color: #07c160;
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  .bottom-bar {
+    padding: 0 12px;
+  }
 }
 
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .checkout-container {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}

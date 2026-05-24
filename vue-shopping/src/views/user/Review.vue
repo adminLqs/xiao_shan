@@ -1,346 +1,446 @@
 <template>
-  <!-- 评价页面容器 -->
-  <div class="review-container">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <h1 class="page-title">
+  <div class="review-page page-container">
+    <!-- 顶部导航栏 -->
+    <div class="page-navbar">
+      <button class="page-nav-back" @click="router.back()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="page-nav-title">
         <i class="fas fa-edit"></i>
-        发表评价
-      </h1>
-      <div class="breadcrumb">
-        <RouterLink to="/">首页</RouterLink>
-        <i class="fas fa-chevron-right"></i>
-        <RouterLink :to="{ name: 'UserOrders' }">我的订单</RouterLink>
-        <i class="fas fa-chevron-right"></i>
-        <span class="current">发表评价</span>
+        <span>发表评价</span>
       </div>
+      <div class="page-nav-right"></div>
     </div>
 
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading-state">
-      <div class="loading-spinner"></div>
-      <p>加载中...</p>
-    </div>
-
-    <!-- 评价表单 -->
-    <div v-else class="review-form-card">
-      <!-- 商品信息 -->
-      <div class="product-info-section">
-        <img :src="productInfo.image" class="product-image">
+    <!-- 骨架屏 -->
+    <div v-if="loading" class="skeleton-form">
+      <div class="product-card skeleton-card">
+        <div class="skeleton" style="width: 100px; height: 100px; border-radius: 8px;"></div>
         <div class="product-detail">
-          <div class="product-name">{{ productInfo.name }}</div>
-          <div class="product-spec">数量：{{ productInfo.quantity }}</div>
-          <div class="product-price">¥{{ productInfo.price }}</div>
+          <div class="skeleton-line long"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
         </div>
       </div>
+      <div class="review-section skeleton-card">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton" style="width: 180px; height: 32px;"></div>
+      </div>
+      <div class="review-section skeleton-card">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton" style="width: 100%; height: 100px;"></div>
+      </div>
+    </div>
 
-      <!-- 评分区域 -->
-      <div class="rating-section">
-        <div class="rating-label">商品评分</div>
-        <div class="rating-stars">
-          <i
-            v-for="star in 5"
-            :key="star"
-            class="star-icon"
-            :class="{ 'fas fa-star active': star <= form.rating, 'far fa-star': star > form.rating }"
-            @click="form.rating = star"
-          ></i>
+    <!-- 商品信息 -->
+    <div v-else>
+      <div class="product-card" v-if="orderItem">
+      <img :src="orderItem.productImage" class="product-image" :alt="orderItem.productName" />
+      <div class="product-detail">
+        <div class="product-name">{{ orderItem.productName }}</div>
+        <div class="product-spec" v-if="orderItem.skuName">{{ orderItem.skuName }}</div>
+        <div class="product-price-row">
+          <span class="product-price">¥{{ formatPrice(orderItem.price) }}</span>
+          <span class="product-quantity">x{{ orderItem.quantity }}</span>
         </div>
-        <div class="rating-tip">{{ getRatingText(form.rating) }}</div>
       </div>
+    </div>
 
-      <!-- 评价内容 -->
-      <div class="comment-section">
-        <div class="comment-label">评价内容</div>
-        <textarea
-          v-model="form.comment"
-          class="comment-input"
-          placeholder="分享使用感受，帮助更多买家选择（最多500字）"
-          maxlength="500"
-          rows="5"
-        ></textarea>
-        <div class="comment-count">{{ form.comment.length }}/500</div>
+    <!-- 评分选择 -->
+    <div class="review-section">
+      <div class="section-title">商品评分 <span class="required">*</span></div>
+      <div class="rating-select">
+        <i
+          v-for="i in 5"
+          :key="i"
+          class="fas fa-star"
+          :class="{ active: i <= rating }"
+          @click="rating = i"
+        ></i>
       </div>
+      <div class="rating-label">{{ ratingLabels[rating] }}</div>
+    </div>
 
-      <!-- 图片上传 -->
-      <div class="image-section">
-        <div class="image-label">上传图片（最多9张）</div>
-        <div class="image-list">
-          <div
-            v-for="(img, index) in form.images"
-            :key="index"
-            class="image-item"
-          >
-            <img :src="img.url" class="uploaded-image">
-            <i class="fas fa-times-circle remove-icon" @click="removeImage(index)"></i>
+    <!-- 评价内容 -->
+    <div class="review-section">
+      <div class="section-title">评价内容</div>
+      <textarea
+        v-model="content"
+        class="content-textarea"
+        rows="5"
+        maxlength="500"
+        placeholder="请分享您的使用体验和感受..."
+      ></textarea>
+      <div class="textarea-footer">
+        <span class="char-count">{{ content.length }}/500</span>
+      </div>
+    </div>
+
+    <!-- 媒体上传 -->
+    <div class="review-section">
+      <div class="section-title">晒单媒体</div>
+      <div class="media-upload-area">
+        <!-- 已选媒体预览 -->
+        <div v-for="(file, index) in mediaFiles" :key="index" class="media-preview-item">
+          <img v-if="file.type === 'image'" :src="file.previewUrl" @click="previewMedia(index)" />
+          <div v-else class="video-preview-wrapper" @click="previewMedia(index)">
+            <img v-if="file.coverUrl" :src="file.coverUrl" class="video-cover" alt="视频封面" />
+            <video v-else :src="file.previewUrl"></video>
+            <div class="video-play-icon">
+              <i class="fas fa-play"></i>
+            </div>
           </div>
-          <div
-            v-if="form.images.length < 9"
-            class="upload-btn"
-            @click="triggerFileInput"
-          >
-            <i class="fas fa-plus"></i>
-            <span>添加图片</span>
-          </div>
+          <button class="remove-media-btn" @click="removeMedia(index)">
+            <i class="fas fa-times"></i>
+          </button>
+          <span v-if="file.type === 'video'" class="video-tag">视频</span>
         </div>
-        <input
-          ref="fileInputRef"
-          type="file"
-          accept="image/jpeg,image/png,image/jpg"
-          multiple
-          class="hidden-input"
-          @change="handleImageUpload"
-        >
-        <div class="image-tip">支持jpg、png格式，单张不超过5MB</div>
-      </div>
 
-      <!-- 提交按钮 -->
-      <div class="submit-section">
-        <button class="btn-submit" :disabled="submitting" @click="submitReview">
-          {{ submitting ? '提交中...' : '提交评价' }}
-        </button>
+        <!-- 上传按钮 -->
+        <div v-if="mediaFiles.length < 9" class="upload-actions">
+          <button class="upload-option" @click="selectImage">
+            <i class="fas fa-image"></i>
+            <span>相册</span>
+          </button>
+          <button class="upload-option" @click="takePhoto">
+            <i class="fas fa-camera"></i>
+            <span>拍照</span>
+          </button>
+          <button v-if="videoCount < 3" class="upload-option" @click="selectVideo">
+            <i class="fas fa-video"></i>
+            <span>视频</span>
+            <span v-if="videoCount > 0" class="upload-count">({{ videoCount }}/3)</span>
+          </button>
+        </div>
       </div>
+    </div>
+
+    <!-- 提交按钮 -->
+    <button
+      class="submit-btn"
+      :disabled="!canSubmit || submitting"
+      @click="submitReview"
+    >
+      <i v-if="submitting" class="fas fa-spinner fa-spin"></i>
+      {{ submitting ? '提交中...' : '提交评价' }}
+    </button>
+
+    <!-- 提示信息 -->
+    <div class="tips-section">
+      <div class="tips-title">
+        <i class="fas fa-info-circle"></i>
+        温馨提示
+      </div>
+      <ul class="tips-list">
+        <li>评价内容需符合法律法规和公序良俗</li>
+        <li>上传真实图片有助于其他用户参考</li>
+        <li>提交后将无法修改，请认真填写</li>
+      </ul>
+    </div>
+
+    <!-- 底部留空 -->
+    <div class="bottom-space"></div>
+    </div>
+
+    <!-- 媒体预览弹窗 -->
+    <div v-if="previewVisible" class="media-preview-overlay" @click="previewVisible = false">
+      <img v-if="previewMediaObj?.type === 'image'" :src="previewMediaObj?.previewUrl" />
+      <video v-else :src="previewMediaObj?.previewUrl" controls autoplay></video>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
-  import { authAPI } from '@/api/authAPI'
-  import Message from '@/utils/message'
-  import { useAuthStore } from '@/stores/auth'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { authAPI } from '@/api/authAPI'
+import Message from '@/utils/message'
 
-  const route = useRoute()
-  const router = useRouter()
-  const authStore = useAuthStore()
+interface MediaFile {
+  type: 'image' | 'video'
+  file: File
+  previewUrl: string
+  coverUrl?: string  // 视频封面
+}
 
-  const loading = ref(false)
-  const submitting = ref(false)
-  const fileInputRef = ref(null)
+const router = useRouter()
+const route = useRoute()
 
-  const productInfo = ref({
-    id: 0,
-    name: '',
-    image: '',
-    price: '',
-    quantity: 0
-  })
+const orderItemId = computed(() => {
+  const id = route.params.orderItemId as string
+  return id ? Number(id) : null
+})
 
-  const form = ref({
-    orderItemId: 0,
-    rating: 5,
-    comment: '',
-    images: []
-  })
+const loading = ref(true)
+const orderItem = ref<any>(null)
+const rating = ref(5)
+const content = ref('')
+const mediaFiles = ref<MediaFile[]>([])
+const submitting = ref(false)
+const previewVisible = ref(false)
+const previewMediaObj = ref<MediaFile | null>(null)
 
-  /**
-   * 获取评分对应的文字描述
-   * @param {number} rating - 评分值（1-5）
-   * @returns {string} 评分文字描述
-   */
-  const getRatingText = (rating) => {
-    const texts = {
-      1: '很差',
-      2: '较差',
-      3: '一般',
-      4: '满意',
-      5: '非常满意'
+const hasVideo = computed(() => mediaFiles.value.some(f => f.type === 'video'))
+const videoCount = computed(() => mediaFiles.value.filter(f => f.type === 'video').length)
+
+const ratingLabels: Record<number, string> = {
+  1: '非常差',
+  2: '差',
+  3: '一般',
+  4: '好',
+  5: '非常好'
+}
+
+const canSubmit = computed(() => {
+  return rating.value > 0
+})
+
+const formatPrice = (price: number): string => {
+  if (price == null || isNaN(price)) return '0.00'
+  return price.toFixed(2)
+}
+
+// 生成视频封面
+const generateVideoCover = (file: File, seconds: number = 1): Promise<string> => {
+  return new Promise((resolve) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.muted = true
+    video.playsInline = true
+    
+    const url = URL.createObjectURL(file)
+    video.src = url
+    
+    video.onloadeddata = () => {
+      video.currentTime = seconds
     }
-    return texts[rating] || ''
+    
+    video.onseeked = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      }
+      
+      // 转为 Blob URL 用于预览
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url)
+        if (blob) {
+          const coverUrl = URL.createObjectURL(blob)
+          resolve(coverUrl)
+        } else {
+          // 如果生成失败，使用视频本身作为预览
+          resolve(url)
+        }
+      }, 'image/jpeg', 0.8)
+    }
+    
+    video.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve('')
+    }
+  })
+}
+
+const loadData = async () => {
+  loading.value = true
+  if (!orderItemId.value) {
+    Message.error('参数错误')
+    router.back()
+    loading.value = false
+    return
   }
 
-  /**
-   * 触发文件选择器
-   */
-  const triggerFileInput = () => {
-    fileInputRef.value?.click()
+  try {
+    const response = await authAPI.getOrderItemDetail(orderItemId.value)
+    if (response.success) {
+      orderItem.value = response.data?.orderItem
+    } else {
+      throw new Error(response.message || '加载失败')
+    }
+  } catch (error: any) {
+    Message.error(error.message || '加载失败')
   }
 
-  /**
-   * 处理图片上传
-   * @description 校验图片数量、大小、类型，生成预览URL
-   * @param {Event} event - 文件上传事件
-   */
-  const handleImageUpload = (event) => {
-    const input = event.target
-    const files = input.files
+  loading.value = false
+}
 
-    if (!files) return
+const imageInput = ref<HTMLInputElement | null>(null)
+const videoInput = ref<HTMLInputElement | null>(null)
 
-    // 最多9张图片限制
-    if (form.value.images.length + files.length > 9) {
-      Message.error('最多只能上传9张图片')
-      return
+// 选择图片
+const selectImage = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.multiple = true
+  input.onchange = selectImages
+  input.style.display = 'none'
+  document.body.appendChild(input)
+  input.click()
+  input.remove()
+}
+
+// 拍照
+const takePhoto = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.capture = 'environment'
+  input.onchange = selectImages
+  input.style.display = 'none'
+  document.body.appendChild(input)
+  input.click()
+  input.remove()
+}
+
+// 选择视频
+const selectVideo = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'video/mp4,video/mov,video/avi,video/webm'
+  input.multiple = true
+  input.onchange = selectVideos
+  input.style.display = 'none'
+  document.body.appendChild(input)
+  input.click()
+  input.remove()
+}
+
+// 多选图片处理
+const selectImages = async (e: Event) => {
+  const files = (e.target as HTMLInputElement).files
+  if (!files) return
+  
+  for (const file of Array.from(files)) {
+    if (mediaFiles.value.length >= 9) {
+      Message.warning('最多上传9张图片')
+      break
     }
-
-    Array.from(files).forEach(file => {
-      // 单张图片不超过5MB
-      if (file.size > 5 * 1024 * 1024) {
-        Message.error(`${file.name} 超过5MB限制`)
-        return
-      }
-
-      if (!file.type.startsWith('image/')) {
-        Message.error(`${file.name} 不是图片文件`)
-        return
-      }
-
-      // 创建本地预览URL，避免上传前无法预览
-      const url = URL.createObjectURL(file)
-      form.value.images.push({ file, url })
+    if (file.size > 5 * 1024 * 1024) {
+      Message.warning(`${file.name} 超过5MB`)
+      continue
+    }
+    mediaFiles.value.push({ 
+      type: 'image', 
+      file, 
+      previewUrl: URL.createObjectURL(file) 
     })
-
-    // 清空input，允许重复上传同一文件
-    input.value = ''
   }
+}
 
-  /**
-   * 删除已选图片
-   * @description 释放Blob URL避免内存泄漏
-   * @param {number} index - 图片索引
-   */
-  const removeImage = (index) => {
-    URL.revokeObjectURL(form.value.images[index].url)
-    form.value.images.splice(index, 1)
+// 多选视频处理
+const selectVideos = async (e: Event) => {
+  const files = (e.target as HTMLInputElement).files
+  if (!files) return
+  
+  for (const file of Array.from(files)) {
+    if (videoCount.value >= 3) {
+      Message.warning('最多上传3个视频')
+      break
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      Message.warning(`${file.name} 超过50MB`)
+      continue
+    }
+    const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm']
+    if (!allowedTypes.includes(file.type)) {
+      Message.warning(`${file.name} 格式不支持，仅支持 MP4、MOV、AVI、WEBM 格式`)
+      continue
+    }
+    
+    const coverUrl = await generateVideoCover(file, 1)
+    mediaFiles.value.push({ 
+      type: 'video', 
+      file, 
+      previewUrl: URL.createObjectURL(file),
+      coverUrl: coverUrl 
+    })
   }
+}
 
-  /**
-   * 加载待评价订单项信息
-   * @description 根据路由参数获取商品信息，用于评价页展示
-   * @returns {Promise<void>}
-   */
-  const loadOrderItemInfo = async () => {
-    loading.value = true
-    const hasError = ref(false)
-
-    try {
-      const orderItemId = Number(route.params.orderItemId)
-
-      if (!orderItemId || isNaN(orderItemId)) {
-        Message.error('参数错误：订单项ID无效')
-        hasError.value = true
-        return
-      }
-
-      form.value.orderItemId = orderItemId
-
-      const response = await authAPI.getOrderItemDetail(orderItemId)
-
-      if (!response || !response.success) {
-        Message.error(response?.message || '获取订单项信息失败')
-        hasError.value = true
-        return
-      }
-
-      if (!response.data?.orderItem) {
-        Message.error('订单项不存在')
-        hasError.value = true
-        return
-      }
-
-      const orderItem = response.data.orderItem
-
-      // 检查订单项是否已被评价
-      if (orderItem.isReviewed === true) {
-        Message.error('该商品已完成评价，无法重复评价')
-        hasError.value = true
-        return
-      }
-
-      productInfo.value = {
-        id: orderItem.productId,
-        name: orderItem.productName,
-        image: orderItem.productImage,
-        price: typeof orderItem.price === 'number' ? orderItem.price.toFixed(2) : String(orderItem.price),
-        quantity: orderItem.quantity
-      }
-    } catch (error: any) {
-      Message.error(error.message || '加载失败')
-      hasError.value = true
-    } finally {
-      loading.value = false
-    }
-
-    // 如果有错误，延迟回退
-    if (hasError.value) {
-      setTimeout(() => {
-        router.back()
-      }, 1500)
-    }
+// 删除媒体
+const removeMedia = (index: number) => {
+  const mediaFile = mediaFiles.value[index]
+  if (mediaFile?.previewUrl) {  // 添加空值检查
+    URL.revokeObjectURL(mediaFile.previewUrl)
   }
+  mediaFiles.value.splice(index, 1)
+}
 
-  /**
-   * 提交评价
-   * @description 校验评分和内容，使用FormData同时提交文本和图片
-   * @returns {Promise<void>}
-   */
-  const submitReview = async () => {
-    if (!form.value.rating) {
-      Message.error('请选择评分')
-      return
-    }
+// 预览
+const previewMedia = (index: number) => {
+    const mediaFile = mediaFiles.value[index]
+  if (mediaFile) {  // 添加空值检查
+    previewMediaObj.value = mediaFile
+    previewVisible.value = true
+  }
+  previewVisible.value = true
+}
 
-    if (!form.value.comment.trim()) {
-      Message.error('请填写评价内容')
-      return
-    }
-
-    // 使用 try-catch 捕获用户取消操作
-    try {
-      await Message.confirm('确认提交评价吗？提交后无法修改', '提交评价')
-    } catch (error) {
-      return
-    }
-
-    submitting.value = true
-
-    try {
-      const formData = new FormData()
-
-      const reviewData = {
-        orderItemId: form.value.orderItemId,
-        rating: form.value.rating,
-        comment: form.value.comment
+// 提交
+const submitReview = async () => {
+  if (!canSubmit.value || submitting.value) return
+  submitting.value = true
+  try {
+    const formData = new FormData()
+    formData.append('orderItemId', String(orderItemId.value))
+    formData.append('rating', String(rating.value))
+    if (content.value) formData.append('comment', content.value)
+    
+    // 分离图片和视频
+    const imageFiles = mediaFiles.value.filter(f => f.type === 'image')
+    const videoFiles = mediaFiles.value.filter(f => f.type === 'video')
+    
+    // 添加图片（可多张）
+    imageFiles.forEach(f => {
+      formData.append('images', f.file)
+    })
+    
+    // 添加视频和封面（可多个，最多3个）
+    videoFiles.forEach(f => {
+      formData.append('videos', f.file)
+      // 如果有封面，也一起上传
+      if (f.coverUrl && f.coverUrl.startsWith('blob:')) {
+        // 将 blob URL 转换为 File
+        fetch(f.coverUrl)
+          .then(res => res.blob())
+          .then(blob => {
+            const coverFile = new File([blob], f.file.name.replace(/\.\w+$/, '_cover.jpg'), { type: 'image/jpeg' })
+            formData.append('videoCovers', coverFile)
+          })
       }
-
-      // 将JSON数据以Blob形式添加到FormData，避免嵌套对象丢失
-      formData.append('reviewData', new Blob([JSON.stringify(reviewData)], {
-        type: 'application/json'
-      }))
-
-      form.value.images.forEach(item => {
-        formData.append('images', item.file)
+    })
+    
+    // 等待所有封面上传准备完成
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    const response = await authAPI.submitReviewFormData(formData)
+    if (response.success) {
+      Message.success('评价提交成功')
+      // 清理预览URL
+      mediaFiles.value.forEach(f => {
+        if (f.previewUrl) URL.revokeObjectURL(f.previewUrl)
+        if (f.coverUrl) URL.revokeObjectURL(f.coverUrl)
       })
-
-      const response = await authAPI.submitReview(formData)
-
-      if (response.success) {
-        Message.success('评价成功')
-
-        // 延迟跳转，确保提示可见
-        setTimeout(() => {
-          router.push({ name: 'UserOrders' })
-        }, 1500)
-      }
-    } catch (error: any) {
-      Message.error(error.message || '提交失败')
-    } finally {
-      submitting.value = false
+      router.back()
+    } else {
+      throw new Error(response.message || '提交失败')
     }
+  } catch (error: any) {
+    Message.error(error.message || '提交失败')
+  } finally {
+    submitting.value = false
   }
+}
 
-  /**
-   * 页面初始化
-   * @description 校验登录权限后加载待评价订单信息
-   */
-  onMounted(() => {
-    if (!authStore.validateUserPermission()) return
-
-    loadOrderItemInfo()
-  })
+onMounted(() => {
+  loadData()
+})
 </script>
 
 <style scoped>
- @import url('@/static/css/user/评论页.css');
+@import url('@/static/css/user/评论页.css');
 </style>

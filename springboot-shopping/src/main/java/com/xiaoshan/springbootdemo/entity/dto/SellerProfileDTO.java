@@ -21,4 +21,7 @@ public class SellerProfileDTO {
 
     // 联系电话
     private String contactPhone;
+
+    // 店铺地址
+    private String address;
 }

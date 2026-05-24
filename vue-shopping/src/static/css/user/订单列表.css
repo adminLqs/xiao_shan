@@ -1,0 +1,763 @@
+/* ========== 订单列表页 - 简洁版样式 ========== */
+
+.orders-container {
+  background: #f5f7fa;
+  min-height: 100vh;
+  padding-top: 60px;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  position: relative;
+}
+
+/* ========== 页面导航栏 ========== */
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  border-bottom: 1px solid #e8ecf0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #4a6491;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.page-nav-back:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.page-nav-title i {
+  color: #4a6491;
+}
+
+.page-nav-right {
+  width: 36px;
+}
+
+/* ========== 订单状态标签页 ========== */
+.order-tabs-scroll {
+  display: flex;
+  background: white;
+  padding: 0 16px;
+  gap: 24px;
+  border-bottom: 1px solid #e8ecf0;
+  overflow-x: auto;                    /* 允许横向滚动 */
+  overflow-y: hidden;
+  white-space: nowrap;                 /* 不换行 */
+  -webkit-overflow-scrolling: touch;   /* iOS 平滑滚动 */
+  scrollbar-width: none;               /* 隐藏滚动条 */
+  position: fixed !important;
+  top: 60px !important;
+  z-index: 99 !important;
+  left: 0;
+  right: 0;
+}
+
+.order-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.order-tab {
+  flex-shrink: 0;                      /* 不压缩 */
+  position: relative;
+  padding: 14px 0;
+  font-size: 15px;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.order-tab.active {
+  color: #4a6491;
+  font-weight: 600;
+}
+
+.tab-underline {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: #4a6491;
+  border-radius: 1px;
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 9px;
+  padding: 0 5px;
+  margin-left: 4px;
+}
+
+/* ========== 订单列表 ========== */
+.order-list {
+  padding: 0;
+  padding-top: 60px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========== 订单卡片 ========== */
+.order-card {
+  background: white;
+  border-radius: 0;
+  margin: 0 0 8px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+
+
+.order-card:active {
+  transform: scale(0.98);
+}
+
+/* ========== 订单头部 ========== */
+.order-header {
+  padding: 12px 16px;
+  background: #fafbfc;
+  border-bottom: 1px solid #e8ecf0;
+}
+
+.order-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.order-number {
+  font-size: 13px;
+  color: #64748b;
+  word-break: break-all;
+  line-height: 1.3;
+  display: block;
+}
+
+/* ========== 订单状态组 ========== */
+.order-status-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 状态颜色 - 纯色背景 */
+.status-pending { background: #fef3c7; color: #d97706; }
+.status-paid { background: #dbeafe; color: #2563eb; }
+.status-processing { background: #f3e8ff; color: #9333ea; }
+.status-shipped { background: #cffafe; color: #0891b2; }
+.status-delivered { background: #e0e7ff; color: #4f46e5; }
+.status-completed { background: #dcfce7; color: #16a34a; }
+.status-cancelled { background: #fee2e2; color: #dc2626; }
+.status-refunded { background: #fee2e2; color: #dc2626; }
+
+/* 退款状态徽章 */
+.status-refunding { background: #fef3c7; color: #d97706; }
+.status-refunded { background: #fee2e2; color: #dc2626; }
+.status-partial-refund { background: #fef3c7; color: #d97706; }
+
+/* ========== 订单商品 ========== */
+.order-items {
+  padding: 0 16px;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f2f5;
+  gap: 12px;
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.item-image {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #f5f7fa;
+  flex-shrink: 0;
+}
+
+.item-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: flex-start;
+  align-self: flex-start;
+}
+
+.item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  width: 100%;
+}
+
+/* 标签组 */
+.tags-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.tag-spec {
+  font-size: 12px;
+  color: #64748b;
+  background: #f0f2f5;
+  padding: 2px 8px;
+  border-radius: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  width: fit-content;
+}
+
+.tag-quantity {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  background: transparent;
+  padding: 2px 4px;
+  white-space: nowrap;
+}
+
+/* 退款标签 */
+.tag-refund {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tag-refund.refund-pending { background: #fef3c7; color: #d97706; }
+.tag-refund.refund-processing { background: #dbeafe; color: #2563eb; }
+.tag-refund.refund-waiting { background: #fef3c7; color: #d97706; }
+.tag-refund.refund-success { background: #dcfce7; color: #16a34a; }
+.tag-refund.refund-approved { background: #fef3c7; color: #d97706; }
+.tag-refund.refund-failed { background: #fee2e2; color: #dc2626; }
+
+.item-price {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ef4444;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: center;
+  margin-left: 8px;
+}
+
+/* ========== 订单底部 ========== */
+.order-footer {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fafbfc;
+  border-top: 1px solid #f0f2f5;
+}
+
+.order-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.order-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.order-actions .btn-primary,
+.order-actions .btn-outline,
+.order-actions .btn-success,
+.order-actions .btn-pay,
+.order-actions .btn-more {
+  white-space: nowrap;
+  flex-shrink: 0;
+  flex: none;
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+/* ========== 按钮样式 ========== */
+.btn-primary {
+  padding: 6px 16px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+
+.btn-primary:active {
+  transform: scale(0.95);
+  background: #dc2626;
+}
+
+.btn-outline {
+  padding: 6px 16px;
+  background: white;
+  border: 1px solid #d0d5dc;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-outline:active {
+  background: #f5f7fa;
+  transform: scale(0.95);
+}
+
+.btn-outline.btn-danger {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.btn-success {
+  padding: 6px 16px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-success:active {
+  transform: scale(0.95);
+  background: #059669;
+}
+
+.btn-pay {
+  padding: 6px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-pay:active {
+  background: #dc2626;
+  transform: scale(0.95);
+}
+
+.btn-more {
+  width: 32px;
+  height: 32px;
+  background: white;
+  border: 1px solid #d0d5dc;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-more i {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.btn-more:active {
+  background: #f5f7fa;
+  transform: scale(0.92);
+}
+
+.btn-outline.btn-expired {
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* ========== 更多操作下拉 ========== */
+.more-actions-dropdown {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 100;
+  min-width: 120px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid #e8ecf0;
+}
+
+.more-actions-dropdown::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  right: 14px;
+  width: 10px;
+  height: 10px;
+  background: white;
+  transform: rotate(45deg);
+  border-right: 1px solid #e8ecf0;
+  border-bottom: 1px solid #e8ecf0;
+}
+
+.dropdown-item {
+  white-space: nowrap;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dropdown-item:active {
+  background: #f5f7fa;
+}
+
+/* ========== 骨架屏 ========== */
+.skeleton-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.skeleton-line {
+  height: 14px;
+  background: linear-gradient(90deg, #f0f2f5 25%, #e2e8f0 50%, #f0f2f5 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.skeleton-line.short { width: 40%; }
+.skeleton-line.medium { width: 70%; }
+
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ========== 空状态 ========== */
+.empty-cart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: 40px 20px;
+  text-align: center;
+  background: white;
+  border-radius: 16px;
+  margin: 16px;
+}
+
+.empty-cart i {
+  font-size: 64px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.empty-cart p {
+  font-size: 15px;
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.empty-cart .btn-primary {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ========== 加载更多 ========== */
+.load-more-wrapper {
+  width: 100%;
+  padding: 20px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-more-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.loading-more-bar i {
+  animation: spin 1s linear infinite;
+}
+
+.no-more-bar {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 支付确认弹窗 ========== */
+.pay-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.pay-confirm-dialog {
+  background: white;
+  border-radius: 16px;
+  width: 85%;
+  max-width: 320px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.pay-icon {
+  font-size: 56px;
+  color: #10b981;
+  margin-bottom: 16px;
+}
+
+.pay-confirm-dialog h3 {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.pay-tip {
+  color: #64748b;
+  font-size: 13px;
+  margin: 8px 0 20px;
+}
+
+.pay-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-pay-done {
+  width: 100%;
+  padding: 12px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-pay-done:active {
+  transform: scale(0.97);
+  background: #3a5479;
+}
+
+.btn-pay-done:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-pay-later {
+  width: 100%;
+  padding: 12px;
+  background: #f5f7fa;
+  color: #64748b;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-pay-later:active {
+  background: #e8ecf0;
+  transform: scale(0.97);
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px) {
+  .order-tabs-scroll {
+    top: 56px !important;
+  }
+
+  .order-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-actions {
+    width: 100%;
+  }
+
+  .order-actions .btn-primary,
+  .order-actions .btn-outline,
+  .order-actions .btn-success {
+    flex: none;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .orders-container {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f2f5;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ========== Tab切换过渡动画 ========== */
+.tab-content {
+  animation: tabFadeIn 0.2s ease;
+}
+
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== 订单卡片加载动画 ========== */
+.order-card {
+  animation: cardSlideUp 0.25s ease backwards;
+}
+
+.order-card:nth-child(1) { animation-delay: 0s; }
+.order-card:nth-child(2) { animation-delay: 0.05s; }
+.order-card:nth-child(3) { animation-delay: 0.1s; }
+.order-card:nth-child(4) { animation-delay: 0.15s; }
+.order-card:nth-child(5) { animation-delay: 0.2s; }
+
+@keyframes cardSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== Tab内容区淡入过渡 ========== */
+.tab-content {
+  animation: tabContentIn 0.25s ease;
+}
+
+@keyframes tabContentIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -106,6 +106,7 @@
                   v-model="formData.businessType"
                   :value="item.value"
                   class="radio-input"
+                  @change="validateField('businessType')"
                 />
                 <span class="radio-label">{{ item.label }}</span>
               </label>
@@ -160,6 +161,27 @@
               maxlength="500"
             ></textarea>
             <span class="input-hint">{{ formData.storeDetail.length }}/500</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span class="required">*</span> 店铺地址
+            </label>
+            <AddressSelector v-model="formData.addressRegion" @change="validateField('address')" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              <span class="required">*</span> 详细地址
+            </label>
+            <input
+              v-model="formData.addressDetail"
+              type="text"
+              class="form-input"
+              placeholder="请输入街道、门牌号等详细信息（不要包含省市区名称）"
+              maxlength="200"
+              @input="validateField('address')"
+            />
+            <span v-if="errors.address" class="error-text">{{ errors.address }}</span>
           </div>
         </div>
 
@@ -257,10 +279,16 @@
       <button v-if="currentStep > 1" type="button" class="btn btn-prev" @click="prevStep">
         <i class="fas fa-arrow-left"></i> 上一步
       </button>
-      <button v-if="currentStep < 3" type="button" class="btn btn-next" @click="nextStep">
+      <button v-if="currentStep < 3" type="button" class="btn btn-next"
+        :class="{ 'btn-disabled': currentStep === 1 ? !canNextStep1 : !canNextStep2 }"
+        :disabled="currentStep === 1 ? !canNextStep1 : !canNextStep2"
+        @click="nextStep">
         下一步 <i class="fas fa-arrow-right"></i>
       </button>
-      <button v-if="currentStep === 3" type="button" class="btn btn-submit" @click="handleSubmit" :disabled="submitting">
+      <button v-if="currentStep === 3" type="button" class="btn btn-submit"
+        :class="{ 'btn-disabled': !canNextStep3 }"
+        :disabled="!canNextStep3 || submitting"
+        @click="handleSubmit">
         <i v-if="submitting" class="fas fa-spinner fa-spin"></i>
         <span v-else>提交申请</span>
       </button>
@@ -280,12 +308,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
+import AddressSelector from '@/components/user/AddressSelector.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -302,6 +331,8 @@ const formData = reactive({
   contactEmail: '',
   storeName: '',
   storeDetail: '',
+  addressRegion: undefined as { province: string; city: string; district: string } | undefined,
+  addressDetail: '',
   businessType: '',
   mainCategory: '',
   businessLicense: null as File | null,
@@ -322,6 +353,7 @@ const errors = reactive({
   contactPhone: '',
   contactEmail: '',
   storeName: '',
+  address: '',
   businessType: '',
   mainCategory: '',
   businessLicense: '',
@@ -337,16 +369,49 @@ const businessTypes = [
 ]
 
 const mainCategories = [
-  { label: '服装鞋帽', value: 'CLOTHING' },
-  { label: '数码家电', value: 'DIGITAL' },
-  { label: '食品饮料', value: 'FOOD' },
+  { label: '手机数码', value: 'DIGITAL' },
+  { label: '电脑办公', value: 'COMPUTER' },
+  { label: '家用电器', value: 'APPLIANCE' },
+  { label: '服饰鞋包', value: 'CLOTHING' },
   { label: '美妆护肤', value: 'BEAUTY' },
-  { label: '家居生活', value: 'HOME' },
+  { label: '食品生鲜', value: 'FOOD' },
+  { label: '母婴玩具', value: 'BABY' },
+  { label: '家居家装', value: 'HOME' },
   { label: '运动户外', value: 'SPORTS' },
-  { label: '图书文具', value: 'BOOKS' },
-  { label: '母婴用品', value: 'BABY' },
+  { label: '图书文娱', value: 'BOOKS' },
+  { label: '蛋糕烘焙', value: 'BAKERY' },
+  { label: '宠物生活', value: 'PET' },
+  { label: '医药健康', value: 'HEALTH' },
+  { label: '汽车用品', value: 'AUTO' },
+  { label: '花卉绿植', value: 'PLANTS' },
+  { label: '礼品鲜花', value: 'GIFT' },
+  { label: '酒水冲调', value: 'DRINKS' },
+  { label: '农资园艺', value: 'FARMING' },
+  { label: '二手闲置', value: 'SECONDHAND' },
+  { label: '钟表珠宝', value: 'JEWELRY' },
   { label: '其他', value: 'OTHER' }
 ]
+
+// ==================== 步骤可用状态 ====================
+const canNextStep1 = computed(() => {
+  return formData.contactName.trim().length >= 2
+    && /^1[3-9]\d{9}$/.test(formData.contactPhone)
+    && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)
+    && formData.businessType !== ''
+    && formData.mainCategory !== ''
+})
+
+const canNextStep2 = computed(() => {
+  return formData.storeName.trim().length >= 2
+    && formData.addressRegion && formData.addressRegion.province
+    && formData.addressDetail.trim().length > 0
+})
+
+const canNextStep3 = computed(() => {
+  return formData.businessLicense !== null
+    && formData.idCardFront !== null
+    && formData.idCardBack !== null
+})
 
 // ==================== 文件上传引用 ====================
 const businessLicenseInput = ref<HTMLInputElement>()
@@ -354,15 +419,13 @@ const idCardFrontInput = ref<HTMLInputElement>()
 const idCardBackInput = ref<HTMLInputElement>()
 
 // ==================== 权限检查 ====================
-onMounted(async () => {
-  // 检查登录状态
+onMounted(() => {
   if (!isLoggedIn.value) {
     Message.error('请先登录')
     setTimeout(() => router.replace({ name: 'Login' }), 1500)
     return
   }
 
-  // 检查是否已经是商家
   if (isSeller.value || isAdmin.value) {
     Message.confirm('您已经是商家账号，无需重复申请', '提示').then(() => {
       router.replace({ name: 'SellerDashboard' })
@@ -372,14 +435,18 @@ onMounted(async () => {
     return
   }
 
-  // 检查是否有待处理的申请
+  loadApplicationStatus()
+})
+
+// ==================== 加载申请状态 ====================
+const loadApplicationStatus = async (): Promise<void> => {
   try {
     const response = await authAPI.getMerchantApplicationStatus()
     if (response.success && response.data?.status) {
       const status = response.data.status
       if (status === 'PENDING') {
         Message.confirm('您已提交过入驻申请，正在审核中，请耐心等待', '提示').then(() => {
-          router.replace({ name: 'MerchantApplyStatus' })
+          router.replace({ name: 'UserDashboard' })
         }).catch(() => {
           router.replace({ name: 'UserDashboard' })
         })
@@ -392,10 +459,10 @@ onMounted(async () => {
         })
       }
     }
-  } catch (error) {
+  } catch {
     // 没有申请记录，可以继续申请
   }
-})
+}
 
 // ==================== 步骤导航 ====================
 const nextStep = () => {
@@ -473,7 +540,39 @@ const validateField = (field: string) => {
         errors.mainCategory = ''
       }
       break
+
+    case 'address':
+      if (!formData.addressRegion || !formData.addressRegion.province) {
+        errors.address = '请选择店铺地址'
+      } else if (!formData.addressDetail.trim()) {
+        errors.address = '请输入详细地址'
+      } else {
+        const isValid = validateAddressDetail(formData.addressDetail, formData.addressRegion.province, formData.addressRegion.city, formData.addressRegion.district)
+        if (!isValid) {
+          // 错误信息由 validateAddressDetail 内部通过 Message 显示
+        } else {
+          errors.address = ''
+        }
+      }
+      break
   }
+}
+
+// 验证详细地址是否包含省市区名称
+const validateAddressDetail = (detail: string, province?: string, city?: string, district?: string): boolean => {
+  if (!detail) return true
+  const forbiddenWords: string[] = []
+  if (province) forbiddenWords.push(province)
+  if (city) forbiddenWords.push(city)
+  if (district) forbiddenWords.push(district)
+  
+  for (const word of forbiddenWords) {
+    if (word && detail.includes(word)) {
+      Message.error(`详细地址不能包含"${word}"，请去掉省市区信息`)
+      return false
+    }
+  }
+  return true
 }
 
 const validateStep1 = (): boolean => {
@@ -489,7 +588,8 @@ const validateStep1 = (): boolean => {
 
 const validateStep2 = (): boolean => {
   validateField('storeName')
-  return !errors.storeName
+  validateField('address')
+  return !errors.storeName && !errors.address
 }
 
 const validateStep3 = (): boolean => {
@@ -599,7 +699,17 @@ const removeFile = (type: string) => {
 
 // ==================== 提交申请 ====================
 const handleSubmit = async () => {
-  // 验证第三步
+  // 验证所有步骤
+  if (!validateStep1()) {
+    currentStep.value = 1
+    window.scrollTo({ top: 0 })
+    return
+  }
+  if (!validateStep2()) {
+    currentStep.value = 2
+    window.scrollTo({ top: 0 })
+    return
+  }
   if (!validateStep3()) return
 
   submitting.value = true
@@ -612,6 +722,11 @@ const handleSubmit = async () => {
     formDataToSend.append('contactEmail', formData.contactEmail.trim())
     formDataToSend.append('storeName', formData.storeName.trim())
     formDataToSend.append('storeDetail', formData.storeDetail.trim())
+    // 拼接完整地址：省市区 + 详细地址
+    const addressStr = formData.addressRegion
+      ? `${formData.addressRegion.province}${formData.addressRegion.city}${formData.addressRegion.district}${formData.addressDetail.trim()}`
+      : ''
+    formDataToSend.append('address', addressStr)
     formDataToSend.append('businessType', formData.businessType)
     formDataToSend.append('mainCategory', formData.mainCategory)
 
@@ -644,5 +759,5 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-@import url('@/static/css/user/入驻申请.css');
+@import url('@/static/css/user/商家入驻.css');
 </style>

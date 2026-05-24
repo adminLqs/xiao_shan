@@ -14,8 +14,7 @@ public interface FavoriteMapper {
     /**
      * 添加收藏
      */
-    @Insert("INSERT INTO favorites (user_id, product_id, created_at) VALUES (#{userId}, #{productId}, #{createdAt})")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @Insert("INSERT INTO favorites (id, user_id, product_id, created_at) VALUES (#{id}, #{userId}, #{productId}, #{createdAt})")
     int insert(Favorite favorite);
 
     // ========== 删 ==========
@@ -27,6 +26,12 @@ public interface FavoriteMapper {
     int deleteByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
     /**
+     * 取消收藏（根据用户ID和商品ID）
+     */
+    @Delete("DELETE FROM favorites WHERE user_id = #{userId} AND product_id = #{productId}")
+    int deleteByUserIdAndProductId(@Param("userId") Long userId, @Param("productId") Long productId);
+
+    /**
      * 批量删除收藏
      */
     @Delete("<script>" +
@@ -36,6 +41,12 @@ public interface FavoriteMapper {
             "</foreach>" +
             "</script>")
     int batchDeleteByIds(@Param("ids") List<Long> ids);
+
+    /**
+     * 根据商品ID删除收藏中的该商品（删除所有用户的收藏）
+     */
+    @Delete("DELETE FROM favorites WHERE product_id = #{productId}")
+    int deleteByProductId(Long productId);
 
     // ========== 查 ==========
 
@@ -55,8 +66,12 @@ public interface FavoriteMapper {
      * 分页查询用户收藏列表（关联商品信息）
      */
     @Select("SELECT f.id, f.user_id, f.product_id, f.created_at, " +
-            "p.name as product_name, p.brand, p.price, p.original_price, p.stock, " +
-            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as product_image " +
+            "p.name as product_name, p.brand, " +
+            "(SELECT MIN(ps.price) FROM product_skus ps WHERE ps.product_id = p.id) as price, " +
+            "(SELECT MIN(ps.original_price) FROM product_skus ps WHERE ps.product_id = p.id) as original_price, " +
+            "(SELECT COALESCE(SUM(ps.stock), 0) FROM product_skus ps WHERE ps.product_id = p.id) as stock, " +
+            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as product_image, " +
+            "(SELECT ps.sku_name FROM product_skus ps WHERE ps.product_id = p.id ORDER BY ps.price ASC LIMIT 1) as sku_name " +
             "FROM favorites f " +
             "LEFT JOIN products p ON f.product_id = p.id " +
             "WHERE f.user_id = #{userId} " +
@@ -76,8 +91,12 @@ public interface FavoriteMapper {
      * 查询用户所有收藏（不分页）- 管理后台使用
      */
     @Select("SELECT f.id, f.user_id, f.product_id, f.created_at, " +
-            "p.name as product_name, p.brand, p.price, p.original_price, p.stock, " +
-            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as product_image " +
+            "p.name as product_name, p.brand, " +
+            "(SELECT MIN(ps.price) FROM product_skus ps WHERE ps.product_id = p.id) as price, " +
+            "(SELECT MIN(ps.original_price) FROM product_skus ps WHERE ps.product_id = p.id) as original_price, " +
+            "(SELECT COALESCE(SUM(ps.stock), 0) FROM product_skus ps WHERE ps.product_id = p.id) as stock, " +
+            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as product_image, " +
+            "(SELECT ps.sku_name FROM product_skus ps WHERE ps.product_id = p.id ORDER BY ps.price ASC LIMIT 1) as sku_name " +
             "FROM favorites f " +
             "LEFT JOIN products p ON f.product_id = p.id " +
             "WHERE f.user_id = #{userId} " +

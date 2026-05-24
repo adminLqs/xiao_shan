@@ -1,0 +1,470 @@
+/* ========== 售后列表页 - 简洁版样式 ========== */
+
+/* 页面容器 */
+.after-sale-list {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  position: relative;
+}
+
+/* ========== 页面导航栏 ========== */
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid #e8ecf0;
+}
+
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #4a6491;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.page-nav-back:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.page-nav-title i {
+  color: #4a6491;
+}
+
+.page-nav-right {
+  width: 36px;
+}
+
+/* ========== 筛选条（Tab标签） ========== */
+.order-tabs-scroll {
+  display: flex;
+  background: white;
+  padding: 0 16px;
+  gap: 24px;
+  border-bottom: 1px solid #e8ecf0;
+  position: sticky;
+  top: 60px;
+  z-index: 99;
+}
+
+.order-tab {
+  position: relative;
+  padding: 14px 0;
+  font-size: 15px;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.2s;
+  background: transparent;
+  border-radius: 0;
+}
+
+.order-tab.active {
+  color: #4a6491;
+  font-weight: 600;
+}
+
+.tab-underline {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: #4a6491;
+  border-radius: 1px;
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 9px;
+  padding: 0 5px;
+  margin-left: 4px;
+}
+
+/* ========== 售后列表 ========== */
+.refund-list {
+  padding: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 售后卡片 - 纯白背景 */
+.refund-card {
+  background: white;
+  border-radius: 0;
+  overflow: hidden;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  margin: 0 0 8px 0;
+}
+
+.refund-card:active {
+  transform: scale(0.98);
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fafbfc;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.apply-time {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+
+
+/* 卡片主体 */
+.card-body {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  gap: 12px;
+}
+
+/* 商品图片 - 72×72px */
+.product-image {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f5f7fa;
+  transition: transform 0.2s;
+}
+
+.refund-card:active .product-image {
+  transform: scale(0.96);
+}
+
+/* 商品信息 */
+.product-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: flex-start;
+  align-self: flex-start;
+}
+
+.product-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  width: 100%;
+}
+
+.tags-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.tag-spec {
+  font-size: 12px;
+  color: #64748b;
+  background: #f0f2f5;
+  padding: 2px 8px;
+  border-radius: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  width: fit-content;
+}
+
+.tag-quantity {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  background: transparent;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
+.tag-refund {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+}
+
+.tag-refund.status-processing { background: #fef3c7; color: #d97706; }
+.tag-refund.status-approved { background: #dbeafe; color: #2563eb; }
+.tag-refund.status-success { background: #dcfce7; color: #16a34a; }
+.tag-refund.status-failed { background: #fee2e2; color: #dc2626; }
+.tag-refund.status-returning { background: #f3e8ff; color: #9333ea; }
+.tag-refund.status-received { background: #cffafe; color: #0891b2; }
+.tag-refund.status-default { background: #f1f5f9; color: #64748b; }
+
+/* 价格区域 */
+.product-price {
+  flex-shrink: 0;
+  align-self: center;
+  margin-left: auto;
+  text-align: right;
+}
+
+.refund-amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+/* 卡片底部 */
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 16px;
+  border-top: 1px solid #f0f2f5;
+  background: #fafbfc;
+}
+
+/* 操作按钮 - 和订单列表一致 */
+.action-btn {
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: white;
+  border: 1px solid #d0d5dc;
+  color: #4a6491;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:active {
+  background: #f5f7fa;
+  transform: scale(0.95);
+}
+
+/* ========== 骨架屏 ========== */
+.skeleton-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-item {
+  display: flex;
+  gap: 12px;
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.skeleton-image {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f0f2f5 25%, #e2e8f0 50%, #f0f2f5 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+}
+
+.skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeleton-line {
+  height: 14px;
+  background: linear-gradient(90deg, #f0f2f5 25%, #e2e8f0 50%, #f0f2f5 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+.skeleton-line.short { width: 40%; }
+.skeleton-line.medium { width: 60%; }
+
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: 60px 20px;
+  text-align: center;
+  background: white;
+  border-radius: 16px;
+  margin: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  background: #f5f7fa;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.empty-icon i {
+  font-size: 40px;
+  color: #4a6491;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-bottom: 20px;
+}
+
+.empty-state .btn-primary {
+  padding: 6px 16px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.empty-state .btn-primary:active {
+  transform: scale(0.95);
+  background: #3a5479;
+}
+
+/* ========== 加载更多 ========== */
+.loading-more {
+  padding: 20px;
+  text-align: center;
+}
+
+.loading-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+  background: white;
+  padding: 8px 20px;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.loading-text i {
+  color: #4a6491;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 底部留空 ========== */
+.bottom-space {
+  height: 20px;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  /* 只保留布局相关响应式 */
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .after-sale-list {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+
+  .page-navbar {
+    padding-top: calc(12px + env(safe-area-inset-top));
+  }
+}
+
+/* ========== Tab内容区淡入过渡 ========== */
+.tab-content {
+  animation: tabContentIn 0.25s ease;
+}
+
+@keyframes tabContentIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== 售后卡片加载动画 ========== */
+.refund-card {
+  animation: cardSlideUp 0.25s ease backwards;
+}
+
+.refund-card:nth-child(1) { animation-delay: 0s; }
+.refund-card:nth-child(2) { animation-delay: 0.05s; }
+.refund-card:nth-child(3) { animation-delay: 0.1s; }
+.refund-card:nth-child(4) { animation-delay: 0.15s; }
+.refund-card:nth-child(5) { animation-delay: 0.2s; }
+
+@keyframes cardSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -1,0 +1,663 @@
+/* ========== 账户设置页 - 深色星环流光主题 ========== */
+
+.setting-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 30%, #f0f4fe 60%, #eef2fc 100%);
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 星环背景装饰层 - 浅白底色 */
+.setting-page::before {
+  content: '';
+  position: fixed;
+  top: -30%;
+  left: -30%;
+  width: 160%;
+  height: 160%;
+  background: radial-gradient(ellipse at 30% 40%,
+    rgba(74, 100, 145, 0.04) 0%,
+    rgba(107, 138, 181, 0.03) 30%,
+    rgba(139, 92, 246, 0.02) 60%,
+    transparent 80%);
+  pointer-events: none;
+  z-index: 0;
+  animation: auroraPulse 12s ease-in-out infinite;
+}
+
+@keyframes auroraPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1) rotate(0deg); }
+  50% { opacity: 0.8; transform: scale(1.02) rotate(1deg); }
+}
+
+.setting-page::after {
+  content: '';
+  position: fixed;
+  bottom: 15%;
+  right: -25%;
+  width: 75%;
+  height: 75%;
+  background: conic-gradient(from 0deg,
+    transparent,
+    rgba(74, 100, 145, 0.06),
+    rgba(139, 92, 246, 0.08),
+    rgba(107, 138, 181, 0.05),
+    transparent);
+  border-radius: 50%;
+  animation: ringRotate 30s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes ringRotate {
+  to { transform: rotate(360deg); }
+}
+
+/* 第二层星环 - 反向旋转 */
+.setting-page .star-ring-2 {
+  position: fixed;
+  top: 60%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(from 120deg,
+    transparent,
+    rgba(74, 100, 145, 0.04),
+    rgba(255, 255, 255, 0.1),
+    rgba(74, 100, 145, 0.04),
+    transparent);
+  border-radius: 50%;
+  animation: ringRotateReverse 40s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes ringRotateReverse {
+  to { transform: translate(-50%, -50%) rotate(-360deg); }
+}
+
+/* 漂浮光点粒子 */
+.setting-page .float-particle {
+  position: fixed;
+  width: 4px;
+  height: 4px;
+  background: linear-gradient(135deg, #4a6491, #8b5cf6);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  animation: particleDrift 10s ease-in-out infinite;
+}
+
+@keyframes particleDrift {
+  0% {
+    opacity: 0;
+    transform: translateY(0) translateX(0) scale(0.5);
+  }
+  15% {
+    opacity: 0.5;
+  }
+  85% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-120px) translateX(40px) scale(1);
+  }
+}
+
+/* ========== 导航栏 - 毛玻璃 ========== */
+.setting-page .page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(24px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(74, 100, 145, 0.08);
+}
+
+.setting-page .page-nav-back {
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: rgba(74, 100, 145, 0.06);
+  backdrop-filter: blur(4px);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid rgba(74, 100, 145, 0.08);
+}
+
+.setting-page .page-nav-back:active {
+  background: rgba(74, 100, 145, 0.15);
+  transform: scale(0.92);
+  border-color: rgba(74, 100, 145, 0.2);
+}
+
+.setting-page .page-nav-back i {
+  color: #4a6491;
+  font-size: 15px;
+}
+
+.setting-page .page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1e293b, #4a6491, #6b8ab5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: 0.5px;
+}
+
+.setting-page .page-nav-title i {
+  background: linear-gradient(135deg, #4a6491, #8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.setting-page .page-nav-right {
+  width: 38px;
+}
+
+/* ========== 用户信息卡片 - 毛玻璃 + 边框光晕 ========== */
+.user-info-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 20px;
+  margin: 20px 16px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  border-radius: 28px;
+  border: 1px solid rgba(74, 100, 145, 0.12);
+  box-shadow: 0 8px 28px rgba(74, 100, 145, 0.06);
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: cardGlowIn 0.5s ease-out;
+}
+
+@keyframes cardGlowIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 卡片内发光效果 */
+.user-info-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 28px;
+  background: radial-gradient(circle at 20% 30%, rgba(74, 100, 145, 0.05), transparent 70%);
+  pointer-events: none;
+}
+
+/* 边框光晕动画 */
+.user-info-row {
+  position: relative;
+  overflow: hidden;
+}
+
+.user-info-row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  padding: 1px;
+  background: linear-gradient(135deg,
+    transparent 0%,
+    rgba(74, 100, 145, 0.3) 30%,
+    rgba(139, 92, 246, 0.4) 50%,
+    rgba(74, 100, 145, 0.3) 70%,
+    transparent 100%);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.user-info-row:hover::after {
+  opacity: 1;
+  animation: borderShine 3s linear infinite;
+}
+
+@keyframes borderShine {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+.user-info-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(74, 100, 145, 0.12);
+}
+
+.user-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+  box-shadow: 0 6px 18px rgba(74, 100, 145, 0.15);
+  transition: all 0.3s ease;
+}
+
+.user-avatar:active {
+  transform: scale(0.96);
+}
+
+/* 头像装饰星环 */
+.user-info-row .avatar-ring {
+  position: absolute;
+  top: 50%;
+  left: 56px;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(74, 100, 145, 0.25);
+  pointer-events: none;
+  animation: spinRing 20s linear infinite;
+}
+
+@keyframes spinRing {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.user-name {
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1e293b, #4a6491);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  flex: 1;
+}
+
+/* ========== 设置列表 - 毛玻璃卡片 ========== */
+.setting-list {
+  margin: 12px 16px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  border-radius: 28px;
+  border: 1px solid rgba(74, 100, 145, 0.1);
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  animation: listSlideUp 0.5s ease-out 0.1s backwards;
+}
+
+@keyframes listSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 列表内发光 */
+.setting-list::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(74, 100, 145, 0.2), transparent);
+  pointer-events: none;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: transparent;
+  border-bottom: 1px solid rgba(74, 100, 145, 0.06);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+/* 悬浮流光特效 */
+.setting-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(74, 100, 145, 0.06), transparent);
+  transition: left 0.5s ease;
+}
+
+.setting-item:active::before {
+  left: 100%;
+}
+
+.setting-item:active {
+  background: rgba(74, 100, 145, 0.04);
+  transform: scale(0.98);
+}
+
+.setting-item i:first-child {
+  width: 28px;
+  font-size: 18px;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transition: all 0.2s;
+}
+
+.setting-item:active i:first-child {
+  transform: scale(1.1);
+}
+
+.setting-item span {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.arrow {
+  color: #cbd5e1;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.setting-item:active .arrow {
+  transform: translateX(4px);
+  color: #4a6491;
+}
+
+/* ========== 主题切换开关 - 星环机械风格 ========== */
+.theme-toggle-item {
+  justify-content: flex-start;
+}
+
+.theme-toggle-item span {
+  flex: 1;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  margin-left: auto;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(203, 213, 225, 0.5);
+  backdrop-filter: blur(4px);
+  border-radius: 34px;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid rgba(74, 100, 145, 0.15);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 24px;
+  width: 24px;
+  left: 2px;
+  bottom: 1px;
+  background: linear-gradient(135deg, #fff, #f0f4ff);
+  border-radius: 50%;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+input:checked + .toggle-slider {
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  border-color: transparent;
+  box-shadow: 0 0 8px rgba(74, 100, 145, 0.4);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+  background: white;
+  box-shadow: 0 2px 8px rgba(74, 100, 145, 0.3);
+}
+
+/* 开关光晕效果 */
+.toggle-switch:hover .toggle-slider {
+  box-shadow: 0 0 0 4px rgba(74, 100, 145, 0.08);
+}
+
+/* ========== 退出登录按钮 - 毛玻璃脉冲 ========== */
+.logout-btn {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 28px 16px 40px;
+  padding: 15px;
+  background: rgba(239, 68, 68, 0.06);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(239, 68, 68, 0.25);
+  border-radius: 40px;
+  color: #ef4444;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  z-index: 1;
+  letter-spacing: 1px;
+}
+
+/* 按钮内发光 */
+.logout-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 40px;
+  background: radial-gradient(circle at 30% 50%, rgba(239, 68, 68, 0.08), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.logout-btn:hover::before {
+  opacity: 1;
+}
+
+/* 边框光晕动画 */
+.logout-btn {
+  animation: logoutPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes logoutPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.04);
+    border-color: rgba(239, 68, 68, 0.4);
+  }
+}
+
+.logout-btn:active {
+  transform: scale(0.96);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ef4444;
+}
+
+/* ========== 底部留白 ========== */
+.setting-page .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 28px;
+  margin: 20px 16px;
+}
+
+.setting-page .empty-state i {
+  font-size: 48px;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 16px;
+}
+
+/* ========== 滚动条美化 ========== */
+.setting-page::-webkit-scrollbar {
+  width: 4px;
+}
+
+.setting-page::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.8);
+  border-radius: 4px;
+}
+
+.setting-page::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  border-radius: 4px;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  .user-info-row {
+    padding: 18px 16px;
+    margin: 16px 12px;
+  }
+  
+  .user-avatar {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .user-info-row .avatar-ring {
+    width: 68px;
+    height: 68px;
+    left: 48px;
+  }
+  
+  .user-name {
+    font-size: 16px;
+  }
+  
+  .setting-list {
+    margin: 12px 12px;
+  }
+  
+  .setting-item {
+    padding: 14px 16px;
+  }
+  
+  .setting-item i:first-child {
+    width: 24px;
+    font-size: 16px;
+  }
+  
+  .setting-item span {
+    font-size: 14px;
+  }
+  
+  .logout-btn {
+    width: calc(100% - 24px);
+    margin: 24px 12px 32px;
+    padding: 13px;
+    font-size: 15px;
+  }
+}
+
+/* ========== 安全区域适配 ========== */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .setting-page {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ========== 深色模式适配（跟随系统） ========== */
+@media (prefers-color-scheme: dark) {
+  .setting-page {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 30%, #0f3460 70%, #1a1a2e 100%);
+  }
+  
+  .setting-page .page-navbar {
+    background: rgba(26, 26, 46, 0.88);
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .user-info-row {
+    background: rgba(26, 26, 46, 0.9);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .setting-list {
+    background: rgba(26, 26, 46, 0.9);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .setting-item {
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .setting-item span {
+    color: #e2e8f0;
+  }
+  
+  .user-name {
+    background: linear-gradient(135deg, #cbd5e1, #8aa6c4);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  
+  .logout-btn {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.35);
+  }
+}
+

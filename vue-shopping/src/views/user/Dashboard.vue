@@ -1,90 +1,65 @@
 <template>
-  <div class="outer-container">
-    <!-- ========== 顶部搜索栏（正常流，滚动时渐隐） ========== -->
-    <div class="mobile-search-section" :style="{ opacity: showSearchBar ? 0 : 1 }">
-      <div class="search-box">
-        <i class="fas fa-search search-icon" @click="router.push({name:'UserSearch'})"></i>
-        <input
-          type="text"
-          class="search-input"
-          placeholder="搜索商品..."
-          @focus="router.push({name:'UserSearch'})"
-          readonly
-        >
+  <div class="outer-container" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
+    <!-- ========== 下拉刷新指示器 ========== -->
+    <div class="refresh-indicator" :style="{ height: pullDistance + 'px', opacity: pullDistance / 60 }">
+      <div class="refresh-content" v-if="pullDistance > 0">
+        <div class="mini-ring" v-if="!isRefreshing"></div>
+        <i v-if="isRefreshing" class="fas fa-sparkles brand-icon-pulse"></i>
+        <span>{{ isRefreshing ? '云杉购·刷新中' : (pullDistance > 60 ? '释放刷新' : '下拉刷新') }}</span>
       </div>
-      <i class="fas fa-sync-alt refresh-icon" @click="handleRefresh" :class="{ rotating: loading }"></i>
     </div>
 
-    <!-- ========== 固定搜索栏（滚动时渐隐出现） ========== -->
-    <div class="mobile-search-fixed" :style="{ opacity: showSearchBar ? 1 : 0, pointerEvents: showSearchBar ? 'auto' : 'none' }">
-      <div class="search-box">
-        <i class="fas fa-search search-icon" @click="router.push({name:'UserSearch'})"></i>
-        <input
-          type="text"
-          class="search-input"
-          placeholder="搜索商品..."
-          @focus="router.push({name:'UserSearch'})"
-          readonly
-        >
+    <!-- ========== 呼吸式导航栏 ========== -->
+    <div class="breathe-nav" :style="{
+      opacity: navOpacity,
+      background: `rgba(255, 255, 255, ${navOpacity > 0.5 ? 0.98 : navOpacity * 1.5})`,
+      backdropFilter: `blur(${navOpacity * 10}px)`,
+      transform: `translateY(${Math.max(0, (1 - navOpacity) * -10)}px)`
+    }">
+      <div class="nav-left">
+        <div class="nav-logo">
+          <i class="fas fa-store-alt"></i>
+          <span class="logo-text">云杉购</span>
+        </div>
       </div>
-      <i class="fas fa-sync-alt refresh-icon" @click="handleRefresh" :class="{ rotating: loading }"></i>
-    </div>
-
-    <!-- ========== 一级分类导航 ========== -->
-    <div class="level1-category-section">
-      <div class="category-container">
-        <div class="category-scroll">
-          <div
-            class="level1-category-item"
-            :class="{ active: activeLevel1Id === null }"
-            @click="selectLevel1Category(null)"
-          >
-            <i class="fas fa-fire"></i>
-            <span>全部</span>
-          </div>
-          <div
-            v-for="category in level1Categories"
-            :key="category.id"
-            class="level1-category-item"
-            :class="{ active: activeLevel1Id === category.id }"
-            @click="selectLevel1Category(category.id)"
-          >
-            <i :class="category.icon || 'fas fa-tag'"></i>
-            <span>{{ category.name }}</span>
+      <div class="nav-center">
+        <div class="search-wrapper">
+          <div class="search-box" @click="router.push({name:'UserSearch'})">
+            <i class="fas fa-search search-icon"></i>
+            <span class="search-placeholder">搜索商品...</span>
           </div>
         </div>
       </div>
+
     </div>
 
-    <!-- ========== 二级分类导航 ========== -->
-    <div class="level2-category-section" v-if="activeLevel1Id && level2Categories.length > 0">
-      <div class="category-scroll">
-        <div
-          class="level2-category-item"
-          :class="{ active: activeLevel2Id === null }"
-          @click="selectLevel2Category(null)"
-        >
-          <span>全部</span>
-        </div>
-        <div
-          v-for="category in level2Categories"
-          :key="category.id"
-          class="level2-category-item"
-          :class="{ active: activeLevel2Id === category.id }"
-          @click="selectLevel2Category(category.id)"
-        >
-          <span>{{ category.name }}</span>
-        </div>
+    <!-- ========== 悬浮胶囊导航（滚动200px+出现） ========== -->
+    <div class="floating-capsule" :class="{ visible: showFloatingCapsule }">
+      <button class="capsule-back" @click="router.back()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span class="capsule-title">云杉购</span>
+      <div class="capsule-actions">
+        <RouterLink :to="{name:'Cart'}" class="capsule-cart">
+          <i class="fas fa-shopping-cart"></i>
+          <span v-if="cartCount > 0" class="capsule-badge">{{ cartCount }}</span>
+        </RouterLink>
       </div>
     </div>
+
+
 
     <!-- ========== 商家入驻横幅 ========== -->
     <div class="merchant-banner" v-if="!isSeller && !isAdmin">
       <div class="merchant-container">
         <div class="merchant-content">
           <div class="merchant-info">
-            <h3 class="merchant-title">加入精品商城，开启电商之旅</h3>
-            <p class="merchant-desc">0元入驻 · 海量流量 · 专业扶持</p>
+            <h3 class="merchant-title">加入云杉购商城，开启电商之旅</h3>
+            <p class="merchant-desc">
+              <span>0元入驻</span>
+              <span>海量流量</span>
+              <span>专业扶持</span>
+            </p>
           </div>
           <button class="merchant-btn" @click="goToMerchantApply">
             <i class="fas fa-store"></i>
@@ -95,44 +70,48 @@
       </div>
     </div>
 
-    <!-- ========== 商品轮播图 ========== -->
-    <div class="carousel-section">
-      <div class="carousel-container">
-        <div class="carousel-wrapper">
-          <div class="carousel-slides" :style="{ transform: `translateX(-${currentSlide * 100}%)` }">
-            <div v-for="(banner, index) in banners" :key="index" class="carousel-slide" @click="handleBannerClick(banner)">
-              <img :src="banner.image" :alt="banner.title">
-              <div class="carousel-caption" v-if="banner.title">
-                <h3>{{ banner.title }}</h3>
-                <p>{{ banner.subtitle }}</p>
-              </div>
-            </div>
-          </div>
-          <div class="carousel-dots">
-            <span v-for="(banner, index) in banners" :key="index" class="dot" :class="{ active: currentSlide === index }" @click="goToSlide(index)"></span>
-          </div>
-          <button class="carousel-arrow prev" @click="prevSlide"><i class="fas fa-chevron-left"></i></button>
-          <button class="carousel-arrow next" @click="nextSlide"><i class="fas fa-chevron-right"></i></button>
+    <!-- ========== 分类图标网格（跳转分类页） ========== -->
+    <div class="category-grid">
+      <div v-for="(cat, index) in topCategories" :key="cat.id" class="grid-item" @click="router.push({name:'Categories', query:{categoryId: cat.id}})">
+        <div class="grid-icon" :style="{ background: catBgColors[index % catBgColors.length] }">
+          <i :class="getCatIcon(cat.name)"></i>
         </div>
+        <span class="grid-label">{{ cat.name }}</span>
       </div>
     </div>
 
     <!-- ========== 商品展示区 ========== -->
     <div class="products-section">
       <div class="products-container">
-        <!-- 加载状态 -->
-        <div v-if="loading" class="loading-container">
-          <i class="fas fa-spinner fa-spin"></i>
-          <span>加载中...</span>
-        </div>
+        <!-- 商品网格 + 骨架屏 -->
+        <div class="products-grid" v-if="products.length > 0 || loading">
+          <!-- 加载骨架屏（仅首次加载且无数据时显示） -->
+          <template v-if="loading && products.length === 0">
+            <div v-for="i in 6" :key="'skeleton-' + i" class="product-card skeleton-card">
+              <div class="product-image">
+                <div class="image-skeleton"></div>
+              </div>
+              <div class="product-info">
+                <div class="skeleton-line skeleton-title"></div>
+                <div class="skeleton-line skeleton-price"></div>
+              </div>
+            </div>
+          </template>
 
-        <!-- 商品网格 - 2列布局 -->
-        <div v-else class="products-grid">
+          <!-- 真实商品列表 -->
           <div v-for="product in products" :key="product.id" class="product-card" @click="viewProductDetail(product.id)">
             <div class="product-image">
               <span v-if="product.badge" class="product-badge" :style="{ backgroundColor: product.badgeColor }">{{ product.badge }}</span>
               <span v-if="product.stock <= 0" class="out-of-stock-tag">缺货</span>
-              <img :src="product.images" :alt="product.name">
+              <div class="image-skeleton" v-show="!product.imageLoaded"></div>
+              <img
+                :src="product.productImages?.[0]?.image || product.images"
+                :alt="product.name"
+                :class="{ 'img-loaded': product.imageLoaded }"
+                @load="product.imageLoaded = true"
+                @error="product.imageLoaded = true"
+                v-show="product.imageLoaded"
+              >
               <div class="product-actions">
                 <button class="quick-view" @click.stop="quickView(product)"><i class="fas fa-eye"></i></button>
                 <button class="add-to-cart" @click.stop="addToCart(product)" :disabled="product.stock <= 0">
@@ -142,22 +121,31 @@
             </div>
             <div class="product-info">
               <div class="product-title">{{ product.name }}</div>
-              <div class="product-price-container">
-                <div class="price-row">
-                  <span class="product-price">¥{{ formatPrice(product.price) }}</span>
-                  <span v-if="product.originalPrice" class="product-original-price">¥{{ formatPrice(product.originalPrice) }}</span>
-                </div>
-                <div class="product-sales">已售 {{ product.salesCount || 0 }} 件</div>
+              <div class="price-row">
+                <span class="current-price">¥{{ formatPrice(product.price) }}</span>
+                <span v-if="((product.originalPrice ?? product.original_price) !== undefined) && ((product.originalPrice ?? product.original_price) as number) > product.price"
+                  class="original-price">¥{{ formatPrice((product.originalPrice ?? product.original_price) as number) }}</span>
               </div>
+              <div class="product-sales">已售 {{ product.salesCount || 0 }} 件</div>
             </div>
           </div>
         </div>
 
-        <div v-if="loadingMore" class="loading-more">
-          <i class="fas fa-spinner fa-spin"></i> 加载中...
+        <!-- 空状态（非加载中且无数据） -->
+        <div v-else-if="!loading && products.length === 0" class="empty-products">
+          <i class="fas fa-box-open"></i>
+          <p>暂无商品</p>
         </div>
-        <div v-else-if="!hasMore && products.length > 0" class="no-more">
-          没有更多了
+      </div>
+
+      <!-- 加载更多提示 - 移到 products-container 外面，固定在商品区域下方 -->
+      <div class="load-more-wrapper">
+        <div v-if="loadingMore" class="loading-more-bar">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>加载中...</span>
+        </div>
+        <div v-else-if="!hasMore && products.length > 0" class="no-more-bar">
+          — 已经到底了 —
         </div>
       </div>
     </div>
@@ -174,7 +162,12 @@
             <h3>{{ selectedProduct.name }}</h3>
             <div class="quick-view-price">
               <span class="current-price">¥{{ formatPrice(selectedProduct.price) }}</span>
-              <span v-if="selectedProduct.originalPrice" class="original-price">¥{{ formatPrice(selectedProduct.originalPrice) }}</span>
+              <span v-if="((selectedProduct.originalPrice ?? selectedProduct.original_price) !== undefined) && ((selectedProduct.originalPrice ?? selectedProduct.original_price) as number) > selectedProduct.price" class="original-price">
+                ¥{{ formatPrice((selectedProduct.originalPrice ?? selectedProduct.original_price) as number) }}
+              </span>
+              <span v-if="((selectedProduct.originalPrice ?? selectedProduct.original_price) !== undefined) && ((selectedProduct.originalPrice ?? selectedProduct.original_price) as number) > selectedProduct.price" class="discount-badge">
+                {{ getDiscountPercent(selectedProduct.price, (selectedProduct.originalPrice ?? selectedProduct.original_price) as number) }}% OFF
+              </span>
             </div>
             <div class="quick-view-stats">
               <span>销量: {{ selectedProduct.salesCount || 0 }}件</span>
@@ -187,12 +180,6 @@
       </div>
     </div>
 
-    <!-- 悬浮购物车按钮 -->
-    <RouterLink :to="{name: 'Cart'}" class="float-cart-btn">
-      <i class="fas fa-shopping-cart"></i>
-      <span v-if="cartCount > 0" class="float-cart-badge">{{ cartCount }}</span>
-    </RouterLink>
-
     <!-- 回到顶部按钮 -->
     <div class="back-to-top" :class="{ show: showBackTop }" @click="scrollToTop">
       <i class="fas fa-arrow-up"></i>
@@ -201,7 +188,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
@@ -212,6 +199,7 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const { isLoggedIn, isSeller, isAdmin } = storeToRefs(authStore)
+
 
 // ==================== 类型定义 ====================
 
@@ -229,12 +217,15 @@ interface Product {
   brand: string
   price: number
   originalPrice?: number
+  original_price?: number
   stock: number
   images?: string
+  productImages?: Array<{ image: string }>
   salesCount?: number
   description?: string
   badge?: string
   badgeColor?: string
+  imageLoaded?: boolean   // 新增：图片是否加载完成
 }
 
 interface Banner {
@@ -260,7 +251,7 @@ const activeLevel2Id = ref<number | null>(null)
 // ==================== 商品相关状态 ====================
 
 const products = ref<Product[]>([])
-const loading = ref(false)
+const loading = ref(true)
 const loadingMore = ref(false)
 const hasMore = ref(true)
 const searchKeyword = ref('')
@@ -274,20 +265,68 @@ const selectedProduct = ref<Product | null>(null)
 const showBackTop = ref(false)
 const showSearchBar = ref(false)
 
-// ==================== 轮播图数据 ====================
+// 下拉刷新相关
+const pullDistance = ref(0)
+const isRefreshing = ref(false)
+const touchStartY = ref(0)
+const isPulling = ref(false)
 
-const banners = ref<Banner[]>([
-  { id: 1, image: 'https://picsum.photos/id/20/800/400', title: '限时秒杀', subtitle: '全场商品低至5折', link: '/user/dashboard?promotion=spring' },
-  { id: 2, image: 'https://picsum.photos/id/26/800/400', title: '新品上市', subtitle: '潮流新品抢先购', link: '/user/dashboard?isNew=true' },
-  { id: 3, image: 'https://picsum.photos/id/0/800/400', title: '品牌特卖', subtitle: '大牌好物限时抢购', link: '/user/dashboard?brandSale=true' },
-  { id: 4, image: 'https://picsum.photos/id/1/800/400', title: '开学季大促', subtitle: '学生专享优惠券免费领', link: '/user/dashboard?promotion=backToSchool' },
-  { id: 5, image: 'https://picsum.photos/id/15/800/400', title: '数码狂欢节', subtitle: '爆款数码产品直降1000元', link: '/user/dashboard?promotion=digital' }
-])
+// 呼吸导航相关
+const navOpacity = ref(1)
+const showFloatingCapsule = ref(false)
+const lastScrollTop = ref(0)
 
-const currentSlide = ref(0)
-let carouselTimer: ReturnType<typeof setInterval> | null = null
+
+
+const categorySection = ref<HTMLElement | null>(null)
+
+const scrollToCategorySection = () => {
+  if (categorySection.value) {
+    categorySection.value.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    })
+  }
+}
+
+// ==================== 分类图标颜色 ====================
+
+const catBgColors = [
+  '#FF6B6B', '#4A6491', '#10B981', '#F59E0B',
+  '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'
+]
+
+// 获取分类图标
+const getCatIcon = (name: string): string => {
+  const iconMap: Record<string, string> = {
+    '手机数码': 'fas fa-mobile-alt',
+    '电脑办公': 'fas fa-laptop',
+    '家用电器': 'fas fa-tv',
+    '服饰鞋包': 'fas fa-tshirt',
+    '美妆护肤': 'fas fa-spa',
+    '食品生鲜': 'fas fa-apple-alt',
+    '母婴玩具': 'fas fa-baby',
+    '家居家装': 'fas fa-home',
+    '运动户外': 'fas fa-running',
+    '图书文娱': 'fas fa-book',
+    '蛋糕烘焙': 'fas fa-birthday-cake',
+    '宠物生活': 'fas fa-paw',
+    '医药健康': 'fas fa-heartbeat',
+    '汽车用品': 'fas fa-car',
+    '花卉绿植': 'fas fa-seedling',
+    '礼品鲜花': 'fas fa-gift',
+    '酒水冲调': 'fas fa-wine-glass-alt',
+    '农资园艺': 'fas fa-leaf',
+    '二手闲置': 'fas fa-recycle',
+    '钟表珠宝': 'fas fa-gem',
+  }
+  return iconMap[name] || 'fas fa-tag'
+}
 
 // ==================== 计算属性 ====================
+
+// 取前8个一级分类作为快捷入口
+const topCategories = computed(() => level1Categories.value.slice(0, 8))
 
 const currentCategoryName = computed(() => {
   if (activeLevel2Id.value) {
@@ -314,7 +353,7 @@ const loadCartCount = async () => {
       cartCount.value = response.data || 0
     }
   } catch (error) {
-    Message.error('加载购物车数量失败:' + error)
+    Message.error('加载购物车数量失败')
     cartCount.value = 0
   }
 }
@@ -331,7 +370,7 @@ const loadCategories = async () => {
       )
     }
   } catch (error) {
-    Message.error('加载分类失败:' + error)
+    Message.error('加载分类失败')
   }
 }
 
@@ -351,6 +390,7 @@ const selectLevel1Category = (categoryId: number | null) => {
   loadLevel2Categories()
   currentPage.value = 1
   hasMore.value = true
+  products.value = []   // 清空旧商品，触发骨架屏
   loadProducts()
 }
 
@@ -358,12 +398,18 @@ const selectLevel2Category = (categoryId: number | null) => {
   activeLevel2Id.value = categoryId
   currentPage.value = 1
   hasMore.value = true
+  products.value = []   // 清空旧商品，触发骨架屏
   loadProducts()
 }
 
 // ==================== 商品相关函数 ====================
 
 const loadProducts = async () => {
+  // 分类未加载时不请求
+  if (level1Categories.value.length === 0 && activeLevel1Id.value !== null) {
+    return
+  }
+
   loading.value = true
 
   try {
@@ -385,17 +431,23 @@ const loadProducts = async () => {
     const response = await authAPI.getProducts(params)
 
     if (response.success) {
+      const newProducts = response.data?.records || []
+      const productsWithState = newProducts.map((p: Product) => ({
+        ...p,
+        imageLoaded: false
+      }))
+
       if (currentPage.value === 1) {
-        products.value = response.data?.records || []
+        products.value = productsWithState
       } else {
-        products.value.push(...(response.data?.records || []))
+        products.value.push(...productsWithState)
       }
-      hasMore.value = (response.data?.records || []).length >= pageSize.value
+      hasMore.value = newProducts.length >= pageSize.value
     } else {
       throw new Error(response.message || '加载商品失败')
     }
   } catch (error: any) {
-    Message.error('加载商品失败:', error)
+    Message.error('加载商品失败')
     if (currentPage.value === 1) {
       products.value = []
     }
@@ -405,11 +457,31 @@ const loadProducts = async () => {
 }
 
 const handleScroll = () => {
-  showBackTop.value = window.scrollY > 300
-  showSearchBar.value = window.scrollY > 150
+  const scrollTop = window.scrollY
 
+  // 呼吸导航透明度计算
+  if (scrollTop <= 80) {
+    navOpacity.value = 1
+  } else if (scrollTop <= 200) {
+    navOpacity.value = Math.max(0, 1 - (scrollTop - 80) / 120)
+  } else {
+    navOpacity.value = 0
+  }
+
+  // 悬浮胶囊显示
+  showFloatingCapsule.value = scrollTop > 200
+
+  // 回到顶部按钮
+  showBackTop.value = scrollTop > 300
+
+  // 固定搜索栏（保留兼容）
+  showSearchBar.value = scrollTop > 150
+
+  lastScrollTop.value = scrollTop
+
+  // 加载更多
   if (loadingMore.value || !hasMore.value || loading.value) return
-  const { scrollTop, scrollHeight, clientHeight } = document.documentElement
+  const { scrollHeight, clientHeight } = document.documentElement
   if (scrollTop + clientHeight >= scrollHeight - 150) {
     loadMore()
   }
@@ -456,7 +528,7 @@ const closeQuickView = () => {
 const addToCart = async (product: Product) => {
   if (!isLoggedIn.value) {
     Message.error('请先登录后再添加')
-    router.push('/login')
+    router.push({ name: 'Login' })
     return
   }
 
@@ -482,7 +554,38 @@ const buyNow = (product: Product) => {
 }
 
 const goToMerchantApply = () => {
-  router.push('/merchant/apply')
+  router.push({ name: 'MerchantApply' })
+}
+
+// ==================== 下拉刷新函数 ====================
+
+const onTouchStart = (e: TouchEvent) => {
+  if (window.scrollY === 0) {
+    touchStartY.value = e.touches[0]!.clientY
+    isPulling.value = true
+  }
+}
+
+const onTouchMove = (e: TouchEvent) => {
+  if (!isPulling.value || isRefreshing.value) return
+  const currentY = e.touches[0]!.clientY
+  const diff = currentY - touchStartY.value
+  if (diff > 0) {
+    pullDistance.value = Math.min(diff * 0.5, 80)
+  }
+}
+
+const onTouchEnd = async () => {
+  if (!isPulling.value) return
+  isPulling.value = false
+
+  if (pullDistance.value > 30 && !isRefreshing.value) {
+    isRefreshing.value = true
+    pullDistance.value = 50  // 保持在刷新状态
+    await handleRefresh()
+    isRefreshing.value = false
+  }
+  pullDistance.value = 0
 }
 
 // ==================== 刷新函数 ====================
@@ -490,112 +593,75 @@ const goToMerchantApply = () => {
 const handleRefresh = async () => {
   currentPage.value = 1
   hasMore.value = true
+  products.value = []        // 先清空旧数据，触发骨架屏
+  loading.value = true
   await loadProducts()
+  await loadCartCount()
+  loading.value = false
   Message.success('已刷新')
-}
-
-// ==================== 轮播图控制函数 ====================
-
-const nextSlide = () => {
-  currentSlide.value = (currentSlide.value + 1) % banners.value.length
-}
-
-const prevSlide = () => {
-  currentSlide.value = currentSlide.value === 0 ? banners.value.length - 1 : currentSlide.value - 1
-}
-
-const goToSlide = (index: number) => {
-  currentSlide.value = index
-}
-
-const startCarousel = () => {
-  if (carouselTimer) clearInterval(carouselTimer)
-  carouselTimer = setInterval(nextSlide, 5000)
-}
-
-const pauseCarousel = () => {
-  if (carouselTimer) clearInterval(carouselTimer)
-}
-
-const handleBannerClick = (banner: Banner) => {
-  if (!banner.link) return
-
-  // 解析链接中的活动参数
-  const url = new URL(banner.link, window.location.origin)
-  const params = url.searchParams
-
-  // 清空分类选择，确保只按关键词搜索
-  activeLevel1Id.value = null
-  activeLevel2Id.value = null
-  level2Categories.value = []
-
-  // 根据活动类型设置搜索关键词
-  if (params.get('promotion') === 'spring') {
-    // 春季促销
-    searchKeyword.value = '春季促销'
-  } else if (params.get('isNew') === 'true') {
-    // 新品上市
-    searchKeyword.value = '新品'
-  } else if (params.get('brandSale') === 'true') {
-    // 品牌特卖
-    searchKeyword.value = '品牌'
-  } else if (params.get('promotion') === 'backToSchool') {
-    // 开学季大促
-    searchKeyword.value = '开学季'
-  } else if (params.get('promotion') === 'digital') {
-    // 数码狂欢节
-    searchKeyword.value = '数码'
-  } else {
-    // 默认行为：跳转到链接
-    router.push(banner.link)
-    return
-  }
-
-  // 重置分页并刷新商品列表
-  currentPage.value = 1
-  hasMore.value = true
-  loadProducts()
 }
 
 // ==================== 工具函数 ====================
 
-const formatPrice = (price: number): string => {
-  if (price == null || isNaN(price)) return '0.00'
-  return price.toFixed(2)
+const formatPrice = (price: number | null | undefined): string => {
+  if (!price && price !== 0) return '0.00'
+  return Number(price).toFixed(2)
+}
+
+const getDiscountPercent = (price: number | null | undefined, originalPrice: number | null | undefined): number => {
+  if (!originalPrice || originalPrice <= (price || 0)) return 0
+  return Math.round((1 - (price || 0) / originalPrice) * 100)
 }
 
 // ==================== 生命周期 ====================
 
-onMounted(async () => {
+onMounted(() => {
   if (!authStore.validateAccountStatus()) {
     return
   }
 
   if (isLoggedIn.value) {
-    await loadCartCount()
+    loadCartCount()
   }
 
-  await loadCategories()
-
-  const queryKeyword = route.query.keyword as string
-  if (queryKeyword) {
-    searchKeyword.value = queryKeyword
-  }
-
-  await loadProducts()
-
-  startCarousel()
+  // 先加载分类，完成后再加载商品
+  loadCategories().then(() => {
+    const queryKeyword = route.query.keyword as string
+    if (queryKeyword) {
+      searchKeyword.value = queryKeyword
+    }
+    loadProducts()
+  })
 
   window.addEventListener('scroll', handleScroll)
+
+  if (route.query.showCategories === 'true') {
+    setTimeout(() => {
+      scrollToCategorySection()
+    }, 300)
+  }
 })
 
 onUnmounted(() => {
-  if (carouselTimer) clearInterval(carouselTimer)
+  window.removeEventListener('scroll', handleScroll)
+})
+
+onActivated(() => {
+  window.addEventListener('scroll', handleScroll)
+})
+
+onDeactivated(() => {
   window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
+<script lang="ts">
+export default {
+  name: 'UserDashboard'
+}
+</script>
+
 <style scoped>
-  @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
-  @import url('@/static/css/user/用户首页.css');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+@import url('@/static/css/user/用户首页.css');
 </style>

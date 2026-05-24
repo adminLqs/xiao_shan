@@ -1,0 +1,612 @@
+/* ========== 评价页面 - 情绪表达主题 ========== */
+
+.review-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 20%, #f5f3ff 60%, #e0e7ff 100%);
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  position: relative;
+}
+
+/* 温暖光晕背景 */
+.review-page::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: -20%;
+  width: 140%;
+  height: 140%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, rgba(74, 100, 145, 0.04) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: warmPulse 6s ease-in-out infinite;
+}
+
+@keyframes warmPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+.review-page::after {
+  content: '';
+  position: fixed;
+  bottom: 10%;
+  right: -20%;
+  width: 60%;
+  height: 60%;
+  background: conic-gradient(from 0deg, transparent, rgba(245, 158, 11, 0.1), rgba(74, 100, 145, 0.08), rgba(245, 158, 11, 0.1), transparent);
+  border-radius: 50%;
+  animation: ringRotate 20s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes ringRotate {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 页面导航栏 ========== */
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 158, 11, 0.1);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #f59e0b;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.page-nav-back:active {
+  background: rgba(245, 158, 11, 0.2);
+  transform: scale(0.95);
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f59e0b, #4a6491);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.page-nav-title i {
+  color: #f59e0b;
+}
+
+.page-nav-right {
+  width: 36px;
+}
+
+/* ========== 商品卡片 ========== */
+.product-card {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(15px);
+  margin: 12px;
+  border-radius: 24px;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  transition: all 0.3s;
+  position: relative;
+  z-index: 1;
+}
+
+.product-card:active {
+  transform: scale(0.98);
+}
+
+.product-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+  object-fit: cover;
+  background: #f8fafc;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.product-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.product-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-spec {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.product-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.product-price {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ef4444;
+}
+
+.product-quantity {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ========== 评价区块 ========== */
+.review-section {
+  margin: 12px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(15px);
+  border-radius: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  transition: all 0.2s;
+  position: relative;
+  z-index: 1;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.section-title .required {
+  color: #ef4444;
+  font-size: 14px;
+}
+
+/* ========== 评分星星 - 弹跳发光效果 ========== */
+.rating-select {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.rating-select i {
+  font-size: 40px;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.rating-select i.active {
+  color: #f59e0b;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  animation: starPop 0.4s ease;
+}
+
+@keyframes starPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.rating-select i:active {
+  transform: scale(0.9);
+}
+
+.rating-label {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #f59e0b, #4a6491);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-top: 8px;
+}
+
+/* 不同评分的情绪表达 */
+.rating-label[data-rating="1"] { content: "😞 很差"; }
+.rating-label[data-rating="2"] { content: "😐 较差"; }
+.rating-label[data-rating="3"] { content: "😊 一般"; }
+.rating-label[data-rating="4"] { content: "🙂 满意"; }
+.rating-label[data-rating="5"] { content: "🤩 超赞"; }
+
+/* ========== 评价内容输入 ========== */
+.content-textarea {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  font-size: 15px;
+  color: #1e293b;
+  resize: none;
+  background: white;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.content-textarea:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.textarea-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.char-count {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ========== 媒体上传区域 ========== */
+.media-upload-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.media-preview-item {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #f8fafc;
+  border: 2px solid rgba(245, 158, 11, 0.2);
+  transition: all 0.2s;
+}
+
+.media-preview-item:active {
+  transform: scale(0.95);
+}
+
+.media-preview-item img,
+.media-preview-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.video-tag {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 12px;
+}
+
+.remove-media-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.remove-media-btn:active {
+  transform: scale(0.9);
+  background: rgba(239, 68, 68, 0.9);
+}
+
+/* 上传按钮组 */
+.upload-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.upload-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 2px dashed rgba(245, 158, 11, 0.3);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #64748b;
+}
+
+.upload-option:active {
+  transform: scale(0.95);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.upload-option i {
+  font-size: 28px;
+  margin-bottom: 8px;
+  color: #f59e0b;
+}
+
+.upload-option span {
+  font-size: 12px;
+}
+
+/* ========== 提交按钮 - 心跳脉冲 ========== */
+.submit-btn {
+  width: calc(100% - 24px);
+  margin: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: white;
+  border: none;
+  border-radius: 40px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 30px rgba(245, 158, 11, 0.6);
+  }
+}
+
+.submit-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.submit-btn:active::before {
+  left: 100%;
+}
+
+.submit-btn:active {
+  transform: scale(0.97);
+  animation: none;
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  animation: none;
+}
+
+/* 提交成功后的庆祝效果 */
+.submit-btn.success {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  animation: successBounce 0.6s ease;
+}
+
+@keyframes successBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* ========== 温馨提示 - 温暖风格 ========== */
+.tips-section {
+  margin: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(74, 100, 145, 0.04));
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 24px;
+}
+
+.tips-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f59e0b;
+  margin-bottom: 12px;
+}
+
+.tips-title i {
+  font-size: 16px;
+}
+
+.tips-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.8;
+}
+
+/* ========== 媒体预览弹窗 ========== */
+.media-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(10px);
+}
+
+.media-preview-overlay img,
+.media-preview-overlay video {
+  max-width: 90vw;
+  max-height: 80vh;
+  border-radius: 16px;
+  animation: zoomIn 0.3s ease;
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ========== 底部留空 ========== */
+.bottom-space {
+  height: 40px;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  .rating-select i {
+    font-size: 32px;
+    gap: 12px;
+  }
+  
+  .media-preview-item {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .upload-option {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .upload-option i {
+    font-size: 24px;
+  }
+  
+  .product-image {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .product-price {
+    font-size: 16px;
+  }
+  
+  .submit-btn {
+    padding: 14px;
+    font-size: 15px;
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .review-page {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ========== 视频预览样式 ========== */
+.video-preview-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.video-preview-wrapper img.video-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-preview-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.video-play-icon i {
+  color: white;
+  font-size: 18px;
+  margin-left: 2px; /* 微调播放图标位置 */
+}
+
+/* 视频预览项激活效果 */
+.media-preview-item:has(.video-preview-wrapper):active {
+  transform: scale(0.95);
+}

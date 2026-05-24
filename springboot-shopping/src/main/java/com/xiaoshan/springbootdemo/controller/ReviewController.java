@@ -1,8 +1,11 @@
 package com.xiaoshan.springbootdemo.controller;
 
+import com.xiaoshan.springbootdemo.entity.SellerProfile;
 import com.xiaoshan.springbootdemo.entity.dto.ReviewSubmitDTO;
 import com.xiaoshan.springbootdemo.service.ReviewService;
+import com.xiaoshan.springbootdemo.service.SellerProfileService;
 import com.xiaoshan.springbootdemo.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,29 +29,45 @@ public class ReviewController {
 
     private final UserService userService;
     private final ReviewService reviewService;
+    private final SellerProfileService sellerProfileService;
 
     /**
      * 提交商品评论
      * POST /api/v1/reviews
      *
      * @param authentication 认证信息
-     * @param reviewData 评论数据（JSON字符串，包含orderItemId、rating、comment）
+     * @param orderItemId 订单项ID
+     * @param rating 评分（1-5）
+     * @param comment 评论内容（可选）
      * @param images 评论图片列表（可选，最多9张）
+     * @param videos 评论视频列表（可选，最多3个）
+     * @param videoCovers 评论视频封面列表（可选，与视频一一对应）
      * @return 提交结果
      */
     @PostMapping("/reviews")
     @PreAuthorize("hasAnyAuthority('ROLE_USER','ROLE_SELLER','ROLE_ADMIN')")
     public ResponseEntity<?> submitReview(
             Authentication authentication,
-            @RequestPart("reviewData") @Valid ReviewSubmitDTO reviewData,
-            @RequestPart(value = "images", required = false) List<MultipartFile> images
+            HttpServletRequest request,
+            @RequestParam Long orderItemId,
+            @RequestParam Integer rating,
+            @RequestParam(required = false) String comment,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "videos", required = false) List<MultipartFile> videos,
+            @RequestParam(value = "videoCovers", required = false) List<MultipartFile> videoCovers
     ) {
         try {
             // 获取当前登录用户ID
             Long userId = userService.getCurrentUserId(authentication);
 
-            // 调用服务层提交评论
-            reviewService.submitReview(userId, reviewData, images);
+            // 构建 ReviewSubmitDTO
+            ReviewSubmitDTO review = new ReviewSubmitDTO();
+            review.setOrderItemId(orderItemId);
+            review.setRating(rating);
+            review.setComment(comment);
+
+            // 调用服务层提交评论，传入 HttpServletRequest
+            reviewService.submitReview(userId, review, images, videos, videoCovers, request);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -79,11 +98,14 @@ public class ReviewController {
             @PathVariable Long productId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam(required = false) Integer rating
+            @RequestParam(required = false) Integer rating,
+            @RequestParam(required = false) Integer minRating,
+            @RequestParam(required = false) Integer maxRating,
+            @RequestParam(required = false) Boolean hasImages
     ) {
         try {
             // 调用服务层查询评论（包含用户信息）
-            Map<String, Object> result = reviewService.getProductReviewsWithUser(productId, page, pageSize, rating);
+            Map<String, Object> result = reviewService.getProductReviewsWithUser(productId, page, pageSize, rating, minRating, maxRating, hasImages);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -116,7 +138,17 @@ public class ReviewController {
             @RequestParam(defaultValue = "10") int pageSize
     ) {
         try {
-            Map<String, Object> result = reviewService.getSellerReviewsWithUserAndProduct(sellerId, page, pageSize);
+            // 获取商家资料以获取真正的 userId（users.id）
+            SellerProfile profile = sellerProfileService.getUserProfile(sellerId);
+            if (profile == null) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "商家不存在"));
+            }
+            
+            // 使用真正的 userId 查询评论
+            Long userId = profile.getUserId();
+            log.info("获取商家评论列表: sellerId={}, userId={}", sellerId, userId);
+            
+            Map<String, Object> result = reviewService.getSellerReviewsWithUserAndProduct(userId, page, pageSize);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -166,6 +198,28 @@ public class ReviewController {
             ));
         } catch (Exception e) {
             log.error("获取我的评价失败: {}", e.getMessage());
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * 获取商品评价统计
+     * GET /api/v1/products/{productId}/reviews/statistics
+     */
+    @GetMapping("/products/{productId}/reviews/statistics")
+    public ResponseEntity<?> getProductReviewStats(@PathVariable Long productId) {
+        try {
+            Map<String, Object> stats = reviewService.getProductReviewStats(productId);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", stats
+            ));
+        } catch (Exception e) {
+            log.error("获取商品评价统计失败: {}", e.getMessage());
             return ResponseEntity.ok().body(Map.of(
                     "success", false,
                     "message", e.getMessage()

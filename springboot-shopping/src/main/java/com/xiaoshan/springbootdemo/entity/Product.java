@@ -6,51 +6,34 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// 商品类
 @Data
 @NoArgsConstructor
 public class Product {
 
     private Long id;
-
-    // 商家ID
     private Long sellerId;
-
-    // 分类ID
     private Long categoryId;
-
-    // 商品名称
     private String name;
-
-    // 商品品牌
     private String brand;
-
-    // 商品描述
     private String description;
-
-    // 已售数量
+    private String detailHtml;
+    private BigDecimal weight;
+    private Boolean isFreeShipping;
+    private String serviceGuarantee;
+    private String deliveryCity;
+    private Integer viewCount = 0;
     private Integer salesCount = 0;
-
-    // 创建时间
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    // 更新时间
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
-    // 商品状态：0-下架，1-上架
     private Integer status = 1;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    // ======== 从 SKU 表汇总的字段（不存数据库，通过查询 SQL 的子查询获取） ========
-    private BigDecimal price;      // 最低 SKU 价格
-
-    private BigDecimal originalPrice; // SKU 原价
-
-    private Integer stock;         // SKU 库存总和
-
-    // ======== 映射字段 ========
-    private String categoryName;
-
-    private String images;
+    // ========== 传输字段（非数据库字段，用于列表展示） ==========
+    private String images;           // 第一张图片URL（列表展示用）
+    private BigDecimal price;        // SKU最低价格（列表展示用）
+    private BigDecimal originalPrice; // SKU最高原价（列表展示用）
+    private Integer stock;           // SKU库存总和
+    private String categoryName;     // 分类名称
+    private Integer commentCount;    // 评论数量
 
     public Product(Long sellerId, Long categoryId, String name, String brand, String description) {
         this.sellerId = sellerId;

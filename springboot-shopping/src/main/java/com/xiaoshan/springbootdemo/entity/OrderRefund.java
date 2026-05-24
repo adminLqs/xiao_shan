@@ -29,6 +29,9 @@ public class OrderRefund {
     // 用户ID
     private Long userId;
 
+    // 商家ID
+    private Long sellerId;
+
     // ========== 退款信息 ==========
     // 退款金额
     private BigDecimal refundAmount;
@@ -39,8 +42,17 @@ public class OrderRefund {
     // 退款原因
     private String refundReason;
 
+    // 退款类型: REFUND-退款, AFTER_SALE-售后
+    private String refundType = "REFUND";
+
     // 退款交易编号（支付宝/微信退款单号）
     private String refundTransactionId;
+
+    // 订单项ID
+    private Long orderItemId;
+
+    // 退款描述
+    private String description;
 
     // ========== 审核信息 ==========
     // 申请时间
@@ -58,9 +70,36 @@ public class OrderRefund {
     // 审核人ID
     private Long reviewedBy;
 
+    // ========== 沟通信息 ==========
+    // 沟通轮次（最多3轮）
+    private Integer communicationRound = 1;
+
+    // ========== 退货信息 ==========
+    // 退货方式: PICKUP-上门取件, STORE-到店寄件, SELF-自寄
+    private String returnMethod;
+
+    // 退货物流公司
+    private String returnLogisticsName;
+
+    // 退货单号
+    private String returnTrackingNumber;
+
+    // 退货状态: RETURNING-退货中, RECEIVED-已收货
+    private String returnStatus;
+
+    // 退货说明
+    private String returnNote;
+
+    // 退货申请时间
+    private LocalDateTime returnApplyTime;
+
+    // 商家确认收货时间
+    private LocalDateTime returnReceiveTime;
+
     // ========== 退款状态枚举 ==========
     public enum RefundStatus {
-        PROCESSING, // 退款中
+        PROCESSING, // 退款中（待处理）
+        APPROVED,   // 商家已同意（待退货）
         SUCCESS,    // 退款成功
         FAILED      // 退款失败
     }

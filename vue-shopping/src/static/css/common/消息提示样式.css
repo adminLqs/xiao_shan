@@ -1,0 +1,111 @@
+/* ========== Element Plus Message Toast 星环流光简洁版样式 ========== */
+
+/* 基础消息框样式 */
+.el-message {
+  background: white !important;
+  color: #1e293b !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 12px rgba(74, 100, 145, 0.15) !important;
+  border: none !important;
+  padding: 14px 16px !important;
+}
+
+/* 成功消息 */
+.el-message--success {
+  border-left: 4px solid #4a6491 !important;
+}
+
+.el-message--success .el-message__icon {
+  color: #10b981 !important;
+}
+
+/* 错误消息 */
+.el-message--error {
+  border-left: 4px solid #ef4444 !important;
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.15) !important;
+}
+
+.el-message--error .el-message__icon {
+  color: #ef4444 !important;
+}
+
+/* 警告消息 */
+.el-message--warning {
+  border-left: 4px solid #f59e0b !important;
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.15) !important;
+}
+
+.el-message--warning .el-message__icon {
+  color: #f59e0b !important;
+}
+
+/* 信息消息 */
+.el-message--info {
+  border-left: 4px solid #4a6491 !important;
+}
+
+.el-message--info .el-message__icon {
+  color: #4a6491 !important;
+}
+
+/* 消息内容 */
+.el-message__content {
+  color: #1e293b !important;
+  font-size: 14px !important;
+}
+
+/* 关闭按钮 */
+.el-message__closeBtn {
+  color: #94a3b8 !important;
+}
+
+.el-message__closeBtn:hover {
+  color: #64748b !important;
+}
+
+
+/* ========== Confirm 确认弹窗样式 ========== */
+
+.el-message-box {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(74, 100, 145, 0.15);
+  border: none;
+  padding: 24px;
+}
+
+.el-message-box__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.el-message-box__message {
+  font-size: 14px;
+  color: #64748b;
+  margin: 12px 0 20px;
+}
+
+.el-message-box__btns .el-button {
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* 确认按钮 */
+.el-message-box__btns .el-button--primary {
+  background: #4a6491;
+  border-color: #4a6491;
+}
+
+.el-message-box__btns .el-button--primary:hover {
+  background: #3a5479;
+}
+
+/* 取消按钮 */
+.el-message-box__btns .el-button:not(.el-button--primary) {
+  background: #f5f7fa;
+  border-color: #e2e8f0;
+  color: #64748b;
+}

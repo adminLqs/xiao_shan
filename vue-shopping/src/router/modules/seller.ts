@@ -11,7 +11,7 @@ export default [
       {
         path: 'dashboard',
         name: 'SellerDashboard',
-        component: () => import('@/components/seller/Dashboard.vue'),
+        component: () => import('@/views/seller/Dashboard.vue'),
         meta: { title: '控制台' }
       },
 
@@ -19,7 +19,7 @@ export default [
       {
         path: 'products',
         name: 'SellerProducts',
-        component: () => import('@/components/seller/Products.vue'),
+        component: () => import('@/views/seller/Products.vue'),
         meta: { title: '商品管理' }
       },
 
@@ -27,7 +27,7 @@ export default [
       {
         path: 'products/create',
         name: 'SellerAddProduct',
-        component: () => import('@/components/seller/AddProduct.vue'),
+        component: () => import('@/views/seller/AddProduct.vue'),
          meta: { title: '发布商品' }
       },
 
@@ -35,7 +35,7 @@ export default [
       {
         path: 'products/:productId/edit',
         name: 'SellerProductEdit',
-        component: () => import("@/components/seller/ProductEdit.vue"),
+        component: () => import("@/views/seller/ProductEdit.vue"),
         meta: { title: '编辑商品' }
       },
 
@@ -43,7 +43,7 @@ export default [
       {
         path: 'orders',
         name: 'SellerOrders',
-        component: () => import('@/components/seller/Orders.vue'),
+        component: () => import('@/views/seller/Orders.vue'),
         meta: {
           title: '订单管理',
           icon: 'fas fa-shopping-cart',
@@ -53,11 +53,12 @@ export default [
       {
         path: 'analytics',
         name: 'SellerAnalytics',
-        component: () => import('@/components/seller/Analytics.vue'),
+        component: () => import('@/views/seller/Analytics.vue'),
         meta: { 
           title: '数据分析',
           requiresAuth: true,
-          role: 'ROLE_SELLER'
+          role: 'ROLE_SELLER',
+          requiresPackage: true
         }
       },
       
@@ -65,8 +66,23 @@ export default [
       {
         path: 'profile',
         name: 'SellerProfile',
-        component: () => import('@/components/seller/Profile.vue'),
+        component: () => import('@/views/seller/Profile.vue'),
         meta: { title: '商家信息' }
+      },
+
+      // 套餐购买
+      {
+        path: 'package',
+        name: 'SellerPackage',
+        component: () => import('@/views/seller/Package.vue'),
+        meta: { title: '套餐购买' }
+      },
+
+      // 套餐详情
+      {
+        path: 'package-detail',
+        name: 'SellerPackageDetail',
+        component: () => import('@/views/seller/SellerPackageDetail.vue')
       }
 
     ]

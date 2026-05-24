@@ -1,6 +1,7 @@
 package com.xiaoshan.springbootdemo.util;
 
 import com.xiaoshan.springbootdemo.entity.User;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.Cookie;
@@ -26,12 +27,12 @@ public class JwtUtil {
         ZonedDateTime now = ZonedDateTime.now();
 
         // 获取下个月1日时间
-        ZonedDateTime expirationTime = now.plusMonths(1) // 1. 计算基础时间点：在当前时间的基础上增加一个月。
-                .withDayOfMonth(1) // // 2. 将日期调整到计算后日期所在月份的第一天。
-                .withHour(0) // 3. 将时间部分的小时设置为0，即午夜0点。
-                .withMinute(0) // 4. 将时间部分的分钟设置为0。
-                .withSecond(0) // 5. 将时间部分的秒设置为0。
-                .withNano(0); // 6. 将时间部分的纳秒设置为0，清除所有更精细的时间单位
+        ZonedDateTime expirationTime = now.plusMonths(1) // 计算基础时间点：在当前时间的基础上增加一个月。
+                .withDayOfMonth(1) // // 将日期调整到计算后日期所在月份的第一天。
+                .withHour(0) // 将时间部分的小时设置为0，即午夜0点。
+                .withMinute(0) // 将时间部分的分钟设置为0。
+                .withSecond(0) // 将时间部分的秒设置为0。
+                .withNano(0); // 将时间部分的纳秒设置为0，清除所有更精细的时间单位
 
         //  将 `ZonedDateTime` 对象转换为传统的 `java.util.Date` 对象
         Date expirationDate = Date.from(expirationTime.toInstant());
@@ -74,5 +75,22 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject());
+    }
+
+    /**
+     * 获取token剩余有效时间（毫秒）
+     */
+    public Long getRemainTime(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .setSigningKey(secret)
+                    .parseClaimsJws(token)
+                    .getBody();
+            Date expiration = claims.getExpiration();
+            return expiration.getTime() - System.currentTimeMillis();
+        } catch (Exception e) {
+            log.warn("获取token剩余时间失败: {}", e.getMessage());
+            return 0L;
+        }
     }
 }

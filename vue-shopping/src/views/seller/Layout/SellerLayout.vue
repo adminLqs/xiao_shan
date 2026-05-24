@@ -2,9 +2,9 @@
   <div class="dashboard-container" v-if="isLoggedIn">
     <div class="sidebar" :class="{ collapsed: isSidebarCollapsed && !isMobile, 'mobile-open': isMobileMenuOpen }">
       <div class="sidebar-header">
-        <h2>
-          <i class="fas fa-store"></i>
-          <span v-if="!isSidebarCollapsed">商家中心</span>
+        <h2 class="brand-logo">
+          <i class="fas fa-sparkles"></i>
+          <span v-if="!isSidebarCollapsed">云杉购</span>
         </h2>
         <button class="collapse-btn" @click="isMobile ? closeMobileMenu() : toggleSidebar()">
           <i :class="isSidebarCollapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left'"></i>
@@ -70,6 +70,33 @@
             <i class="fas fa-store-alt"></i>
             <span>店铺信息</span>
           </RouterLink>
+          <RouterLink
+            :to="{name: 'SellerPackage'}"
+            class="menu-item"
+            :class="{ active: $route.name === 'SellerPackage' }"
+          >
+            <i class="fas fa-crown"></i>
+            <span>套餐购买</span>
+          </RouterLink>
+        </div>
+
+        <!-- 套餐信息 -->
+        <div class="sidebar-package" v-if="packageInfo && !isSidebarCollapsed">
+          <div class="package-badge">
+            <i class="fas fa-gem"></i>
+            <span>{{ packageInfo.name }}</span>
+            <span v-if="packageInfo.daysRemaining < 7" class="expire-warning">
+              <i class="fas fa-exclamation-circle"></i>
+            </span>
+          </div>
+          <div class="package-meta">
+            <span>{{ packageInfo.remainingProducts }} 个商品位</span>
+            <span>·</span>
+            <span :class="{ warning: packageInfo.daysRemaining < 7 }">{{ packageInfo.daysRemaining }} 天</span>
+          </div>
+          <RouterLink :to="{name: 'SellerPackage'}" class="package-link">
+            <i class="fas fa-crown"></i> 升级套餐
+          </RouterLink>
         </div>
 
         <div class="menu-section logout-section">
@@ -83,6 +110,9 @@
     </div>
 
     <div class="main-content" :class="{ expanded: isSidebarCollapsed && !isMobile }">
+      <span class="top-package-badge" v-if="packageInfo">
+        <i class="fas fa-gem"></i> {{ packageInfo.name }}
+      </span>
       <div class="top-header">
         <div class="header-left">
           <button class="toggle-sidebar" @click="isMobile ? toggleMobileMenu() : toggleSidebar()">
@@ -108,10 +138,6 @@
                 </div>
               </div>
               <div class="dropdown-divider"></div>
-              <RouterLink :to="{name: ''}" class="dropdown-item">
-                <i class="fas fa-key"></i>
-                <span>修改密码</span>
-              </RouterLink>
               <div class="dropdown-divider"></div>
               <a href="#" class="dropdown-item logout-item" @click.prevent="handleLogout">
                 <i class="fas fa-sign-out-alt"></i>
@@ -141,9 +167,11 @@
     ></div>
   </div>
 
-  <div v-else class="loading-container">
-    <div class="loading-spinner"></div>
-    <p>加载中...</p>
+  <div v-else class="loading-container starlight-loader">
+    <div class="loader-ring">
+      <i class="fas fa-sparkles brand-icon"></i>
+    </div>
+    <p class="loader-text">云杉购·星环加载中</p>
   </div>
 </template>
 
@@ -173,6 +201,7 @@ const isMobile = ref(window.innerWidth <= 1024)
 const userAvatar = ref('')
 const userName = ref('')
 const showUserDropdown = ref(false)
+const packageInfo = ref<any>(null)
 
 const pageTitleMap: Record<string, string> = {
   SellerDashboard: '控制台',
@@ -180,7 +209,8 @@ const pageTitleMap: Record<string, string> = {
   SellerAddProduct: '发布商品',
   SellerOrders: '订单管理',
   SellerAnalytics: '数据分析',
-  SellerProfile: '商家信息'
+  SellerProfile: '商家信息',
+  SellerPackage: '套餐购买'
 }
 
 const currentPageTitle = computed(() => {
@@ -238,11 +268,22 @@ const loadUserInfo = async () => {
   }
 }
 
+const loadPackageInfo = async () => {
+  try {
+    const response = await authAPI.getCurrentPackage()
+    if (response.success && response.data?.hasPackage) {
+      packageInfo.value = {
+        name: response.data.currentPackage?.name || '免费版',
+        daysRemaining: response.data.currentPackage?.daysRemaining || 0,
+        remainingProducts: response.data.remainingProducts || 0,
+      }
+    }
+  } catch {}
+}
+
 const handleLogout = async () => {
   try {
     await Message.confirm('确定要退出登录吗？', '退出确认')
-
-    Message.info('退出中...')
 
     await authAPI.logout()
     authStore.clear()
@@ -250,7 +291,7 @@ const handleLogout = async () => {
     localStorage.removeItem('sidebarCollapsed')
 
     Message.success('退出成功')
-    setTimeout(() => router.push({name: 'SellerDashboard'}), 1500)
+    setTimeout(() => router.push({name: 'Login'}), 1500)
   } catch {
     // 用户取消退出，静默处理
   }
@@ -262,7 +303,7 @@ watch(() => route.path, () => {
   }
 })
 
-onMounted(async () => {
+onMounted(() => {
   if (!authStore.validateSellerPermission()) return
 
   const savedState = localStorage.getItem('sidebarCollapsed')
@@ -270,7 +311,8 @@ onMounted(async () => {
     isSidebarCollapsed.value = savedState === 'true'
   }
 
-  await loadUserInfo()
+  loadUserInfo()
+  loadPackageInfo()
 
   document.addEventListener('click', handleClickOutside)
   window.addEventListener('resize', handleResize)

@@ -3,6 +3,7 @@ package com.xiaoshan.springbootdemo.entity.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -22,6 +23,15 @@ public class ProductDTO {
     private Long categoryId;
 
     private Integer status;
+
+    // 新增字段
+    private BigDecimal originalPrice;      // 原价
+    private BigDecimal weight;             // 重量（kg）
+    private Boolean isFreeShipping;        // 是否包邮
+    private String serviceGuarantee;       // 服务保障（逗号分隔）
+    private String deliveryCity;           // 发货城市
+    private String detailHtml;             // 富文本详情
+    private List<ParamDTO> params;         // 商品参数
 
     // SKU 列表（所有商品必须有 SKU）
     private List<SkuDTO> skus;

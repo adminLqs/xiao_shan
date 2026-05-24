@@ -4,30 +4,62 @@
     <div class="page-header">
       <button class="back-btn" @click="goBack">
         <i class="fas fa-arrow-left"></i>
-        返回
+        <span>返回</span>
       </button>
       <h1 class="page-title">
         <i class="fas fa-file-alt"></i>
-        订单详情
+        <span>订单详情</span>
       </h1>
+      <div class="header-placeholder"></div>
     </div>
 
     <!-- ========== 加载状态 ========== -->
-    <div v-if="loading" class="loading-state">
-      <div class="loading-spinner"></div>
-      <p>加载中...</p>
+    <div v-if="loading" class="skeleton-detail">
+      <div class="skeleton-section">
+        <div class="skeleton skeleton-section-title"></div>
+        <div class="skeleton-section-content">
+          <div class="skeleton skeleton-line long"></div>
+          <div class="skeleton skeleton-line medium"></div>
+          <div class="skeleton skeleton-line short"></div>
+        </div>
+      </div>
+      <div class="skeleton-section">
+        <div class="skeleton skeleton-section-title"></div>
+        <div class="skeleton-section-content">
+          <div class="skeleton" style="height: 80px; margin-bottom: 10px;"></div>
+        </div>
+      </div>
+      <div class="skeleton-section">
+        <div class="skeleton skeleton-section-title"></div>
+        <div class="skeleton-order-list">
+          <div v-for="i in 2" :key="i" class="skeleton-order-card">
+            <div class="skeleton-order-goods">
+              <div class="skeleton" style="width: 80px; height: 80px; border-radius: 8px;"></div>
+              <div style="flex: 1;">
+                <div class="skeleton skeleton-line long" style="margin-bottom: 10px;"></div>
+                <div class="skeleton skeleton-line medium"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ========== 订单详情内容 ========== -->
-    <div v-else-if="orderData" class="detail-content">
+    <div v-else-if="orderData" class="detail-content content-wrapper">
 
       <!-- ========== 订单状态栏 ========== -->
-      <div class="status-bar" :class="getStatusClass(orderData.status)">
+      <div class="status-bar" :class="[getStatusClass(orderData.status)]">
         <div class="status-icon">
           <i :class="getStatusIcon(orderData.status)"></i>
         </div>
         <div class="status-info">
-          <div class="status-text">{{ getStatusText(orderData.status) }}</div>
+          <div class="status-text">
+            {{ getStatusText(orderData.status) }}
+            <span v-if="getOrderRefundStatus()" class="refund-status-badge" :class="getRefundBadgeClass()">
+              {{ getOrderRefundStatus() }}
+            </span>
+          </div>
           <div class="status-desc">{{ getStatusDesc(orderData.status) }}</div>
         </div>
         <div class="status-time">
@@ -49,12 +81,6 @@
               <span class="info-value">{{ orderData.orderNumber }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">订单状态：</span>
-              <span class="info-value status-text" :class="getStatusClass(orderData.status)">
-                {{ getStatusText(orderData.status) }}
-              </span>
-            </div>
-            <div class="info-item">
               <span class="info-label">创建时间：</span>
               <span class="info-value">{{ formatDateTime(orderData.createdAt) }}</span>
             </div>
@@ -66,11 +92,7 @@
               <span class="info-label">交易单号：</span>
               <span class="info-value">{{ orderData.transactionId || '-' }}</span>
             </div>
-            <div class="info-item">
-              <span class="info-label">订单来源：</span>
-              <span class="info-value">{{ orderData.source === 'cart' ? '购物车' : '直接购买' }}</span>
             </div>
-          </div>
         </div>
       </div>
 
@@ -142,35 +164,55 @@
           <span class="card-title">商品清单</span>
         </div>
         <div class="card-body no-padding">
-          <div class="product-table">
-            <div class="table-header">
-              <div class="col-product">商品信息</div>
-              <div class="col-price">单价</div>
-              <div class="col-quantity">数量</div>
-              <div class="col-total">小计</div>
-            </div>
-
-            <div v-for="item in orderItems" :key="item.id" class="table-row">
-              <div class="col-product">
-                <img :src="item.productImage || '/images/default-product.png'" class="product-image">
-                <div class="product-info">
-                  <div class="product-name">{{ item.productName }}</div>
-                  <div class="product-id">商品ID：{{ item.productId }}</div>
+          <div class="product-list">
+            <div v-for="item in orderItems" :key="item.id" class="product-item">
+              <img :src="item.productImage || '/images/default-product.png'" class="product-image"
+                @click="viewProduct(item.productId)">
+              <div class="product-info">
+                <div class="product-name">{{ item.productName }}</div>
+                <div class="tags-group">
+                  <span v-if="item.skuName" class="tag-spec">{{ item.skuName }}</span>
+                  <span class="tag-quantity">x{{ item.quantity }}</span>
                 </div>
               </div>
-              <div class="col-price">¥{{ formatPrice(item.price) }}</div>
-              <div class="col-quantity">x{{ item.quantity }}</div>
-              <div class="col-total">¥{{ formatPrice(item.totalPrice || item.price * item.quantity) }}</div>
+              <div class="product-right">
+                <div class="product-price">¥{{ formatPrice(item.price) }}</div>
+                <div v-if="item.refundStatus" class="refund-status-container">
+                  <span
+                    v-if="isAfterSaleApproved(item)"
+                    class="refund-status-tag tag-waiting-return"
+                  >等待买家退货</span>
+                  <span
+                    v-else-if="item.returnStatus === 'RETURNING'"
+                    class="refund-status-tag tag-returning"
+                  >退货中</span>
+                  <span
+                    v-else-if="item.returnStatus === 'RECEIVED'"
+                    class="refund-status-tag tag-completed"
+                  >已完成</span>
+                  <button
+                    v-else
+                    class="btn-refund-status"
+                    :class="getRefundBtnClass(item.refundStatus)"
+                    @click="viewRefundProgress(item)"
+                  >
+                    {{ getRefundBtnText(item.refundStatus) }}
+                  </button>
+                  <button
+                    v-if="item.returnStatus === 'RETURNING'"
+                    class="btn-refund-status btn-view-logistics"
+                    @click="viewReturnLogistics(item)"
+                  >
+                    <i class="fas fa-truck"></i>
+                    查看退货物流
+                  </button>
+                </div>
+              </div>
             </div>
-
-            <div class="table-footer">
+            <div class="product-list-footer">
               <div class="amount-row">
                 <span class="amount-label">商品总额：</span>
                 <span class="amount-value">¥{{ formatPrice(orderData.totalAmount) }}</span>
-              </div>
-              <div class="amount-row">
-                <span class="amount-label">运费：</span>
-                <span class="amount-value">¥0.00</span>
               </div>
               <div class="amount-row total-row">
                 <span class="amount-label">实付款：</span>
@@ -181,21 +223,16 @@
         </div>
       </div>
 
-      <!-- ========== 操作按钮区 ========== -->
-      <div class="action-bar">
-        <button class="btn-outline" @click="goBack">返回</button>
-        <button v-if="orderData.status === 'PENDING'" class="btn-danger" @click="cancelOrder">取消订单</button>
-        <button v-if="orderData.status === 'PAID'" class="btn-primary" @click="processOrder">处理订单</button>
-        <button v-if="orderData.status === 'PROCESSING'" class="btn-primary" @click="openShipDialog">发货</button>
-        <button v-if="orderData.status === 'SHIPPED'" class="btn-outline" @click="viewLogistics">查看物流</button>
-      </div>
+      <!-- 底部留空防止被固定操作栏遮挡 -->
+      <div class="bottom-space"></div>
     </div>
 
-    <!-- ========== 订单不存在状态 ========== -->
-    <div v-else class="empty-state">
-      <i class="fas fa-box-open"></i>
-      <p>订单不存在</p>
-      <button class="btn-primary" @click="goBack">返回订单列表</button>
+    <!-- ========== 底部固定操作栏 ========== -->
+    <div v-if="showBottomBar" class="bottom-action-bar">
+      <button v-if="orderData?.status === 'PENDING'" class="btn-danger" @click="cancelOrder">取消订单</button>
+      <button v-if="orderData?.status === 'PAID'" class="btn-primary" @click="processOrder">处理订单</button>
+      <button v-if="orderData?.status === 'PROCESSING'" class="btn-primary" @click="openShipDialog">发货</button>
+      <button v-if="orderData?.status === 'SHIPPED'" class="btn-outline" @click="viewLogistics">查看物流</button>
     </div>
 
     <!-- ========== 发货弹窗 ========== -->
@@ -243,7 +280,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
+  import { ref, computed, onMounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { authAPI } from '@/api/authAPI'
   import Message from '@/utils/message'
@@ -287,6 +324,11 @@
     isReviewed: boolean
     reviewedAt: string | null
     createdAt: string
+    refundStatus?: string
+    refundId?: number
+    skuName?: string
+    refundType?: string
+    returnStatus?: string
   }
 
   interface Order {
@@ -331,7 +373,7 @@
 
   // ==================== 响应式数据 ====================
 
-  const loading = ref(false)
+  const loading = ref(true)
   const submitting = ref(false)
   const showShipDialog = ref(false)
 
@@ -342,6 +384,22 @@
   const shipForm = ref<ShipForm>({
     trackingNumber: '',
     logisticsCode: ''
+  })
+
+  // ==================== 计算属性 ====================
+
+  /**
+   * 判断是否显示底部操作栏
+   * PENDING - 取消订单
+   * PAID - 处理订单
+   * PROCESSING - 发货
+   * SHIPPED - 查看物流
+   * 其他状态 - 不显示
+   */
+  const showBottomBar = computed(() => {
+    if (!orderData.value) return false
+    const status = orderData.value.status
+    return status === 'PENDING' || status === 'PAID' || status === 'PROCESSING' || status === 'SHIPPED'
   })
 
   // ==================== 静态配置 ====================
@@ -451,6 +509,8 @@
     }
   }
 
+
+
   // ==================== 订单操作 ====================
 
   /**
@@ -528,10 +588,15 @@
       const data = {
         trackingNumber: shipForm.value.trackingNumber,
         logisticsCode: shipForm.value.logisticsCode,
-        logisticsName: logisticsMap[shipForm.value.logisticsCode]
+        logisticsName: logisticsMap[shipForm.value.logisticsCode] || ''
       }
 
-      const response = await authAPI.shipOrder(orderData.value?.id, data)
+      const orderId = orderData.value?.id
+      if (!orderId) {
+        Message.error('订单信息不存在')
+        return
+      }
+      const response = await authAPI.shipOrder(orderId, data)
 
       if (response.success) {
         Message.success('发货成功')
@@ -554,6 +619,58 @@
     })
   }
 
+  /**
+   * 查看退款进度
+   * @param item - 订单商品项
+   */
+  const viewRefundProgress = async (item: OrderItem): Promise<void> => {
+    if (!item.refundId) {
+      Message.error('退款记录不存在')
+      return
+    }
+
+    try {
+      const response = await authAPI.getRefundDetail(item.refundId)
+
+      if (response.success && response.data) {
+        const refundData = response.data
+
+        if (refundData.refundType === 'AFTER_SALE' &&
+            refundData.refundStatus === 'APPROVED' &&
+            (!refundData.returnStatus || refundData.returnStatus === 'NULL' || refundData.returnStatus === null)) {
+          router.push({
+            name: 'ReturnGoods',
+            query: {
+              refundId: String(item.refundId),
+              orderItemId: String(item.id)
+            }
+          })
+          return
+        }
+
+        if (refundData.returnStatus === 'RETURNING' && refundData.returnTrackingNumber) {
+          router.push({
+            name: 'SellerLogistics',
+            query: {
+              trackingNumber: refundData.returnTrackingNumber,
+              logisticsName: refundData.returnLogisticsName,
+              refundId: String(item.refundId)
+            }
+          })
+          return
+        }
+      }
+    } catch (error) {
+      console.error('获取退款详情失败', error)
+    }
+
+    router.push({ name: 'RefundChat', params: { refundId: String(item.refundId) } })
+  }
+
+  const viewProduct = (productId: number): void => {
+    router.push({ name: 'ProductDetail', params: { productId } })
+  }
+
   const goBack = (): void => {
     router.back()
   }
@@ -566,6 +683,155 @@
 
   const getStatusClass = (status: OrderStatus): string => {
     return getStatusConfig(status).class
+  }
+
+  /**
+   * 判断是否为售后已同意状态
+   */
+  const isAfterSaleApproved = (item: OrderItem): boolean => {
+    return item.refundType === 'AFTER_SALE' &&
+           (item.refundStatus === 'APPROVED' || item.refundStatus === 'WAITING_RETURN') &&
+           (!item.returnStatus || item.returnStatus === 'NULL' || item.returnStatus === 'NONE')
+  }
+
+  /**
+   * 查看退货物流
+   */
+  const viewReturnLogistics = (item: OrderItem): void => {
+    if (!item.refundId) {
+      Message.error('退款记录不存在')
+      return
+    }
+    router.push({
+      name: 'SellerLogistics',
+      query: {
+        refundId: String(item.refundId),
+        type: 'return'
+      }
+    })
+  }
+
+  /**
+   * 获取订单整体退款状态
+   * @returns {string | null} 退款状态文本或null
+   */
+  const getOrderRefundStatus = (): string | null => {
+    const items = orderItems.value || []
+    if (items.length === 0) return null
+
+    const hasAfterSaleApproved = items.some(item => isAfterSaleApproved(item))
+    const hasReturning = items.some(item => item.returnStatus === 'RETURNING')
+    const hasReceived = items.some(item => item.returnStatus === 'RECEIVED')
+
+    const refundingCount = items.filter(item =>
+      (item.refundStatus as string) === 'REFUNDING' || (item.refundStatus as string) === 'AFTER_SALE' ||
+      (item.refundStatus as string) === 'WAITING_RETURN' || (item.refundStatus as string) === 'RETURNING' ||
+      (item.refundStatus as string) === 'APPROVED'
+    ).length
+    const refundedCount = items.filter(item => (item.refundStatus as string) === 'COMPLETED').length
+
+    if (hasAfterSaleApproved) return '等待买家退货'
+    if (hasReturning) return '退货中'
+    if (hasReceived) return '已完成'
+    if (refundingCount === items.length) return '退款中'
+    if (refundedCount === items.length) return '已退款'
+    if (refundingCount > 0 || refundedCount > 0) return '部分退款'
+    return null
+  }
+
+  /**
+   * 获取退款状态徽章样式类
+   * @returns {string} CSS类名
+   */
+  const getRefundBadgeClass = (): string => {
+    const items = orderItems.value || []
+    if (items.length === 0) return ''
+
+    const refundingCount = items.filter(item =>
+      (item.refundStatus as string) === 'REFUNDING' || (item.refundStatus as string) === 'AFTER_SALE' ||
+      (item.refundStatus as string) === 'WAITING_RETURN' || (item.refundStatus as string) === 'RETURNING' ||
+      (item.refundStatus as string) === 'APPROVED'
+    ).length
+    const refundedCount = items.filter(item => (item.refundStatus as string) === 'COMPLETED').length
+
+    if (refundingCount === items.length) return 'badge-refunding'
+    if (refundedCount === items.length) return 'badge-refunded'
+    return 'badge-partial-refund'
+  }
+
+  /**
+   * 获取退款状态样式类
+   */
+  const getRefundStatusClass = (refundStatus: string): string => {
+    const map: Record<string, string> = {
+      REFUNDING: 'refund-pending',
+      AFTER_SALE: 'refund-processing',
+      WAITING_RETURN: 'refund-waiting',
+      RETURNING: 'refund-waiting',
+      APPROVED: 'refund-approved',
+      COMPLETED: 'refund-completed',
+      FAILED: 'refund-failed'
+    }
+    return map[refundStatus] || ''
+  }
+
+  /**
+   * 获取退款状态文本（商家端）
+   */
+  const getRefundStatusText = (refundStatus: string, refundType?: string, returnStatus?: string): string => {
+    if (refundType === 'AFTER_SALE' && refundStatus === 'PROCESSING') {
+      return '售后处理中'
+    }
+    if (refundType === 'AFTER_SALE' && refundStatus === 'APPROVED') {
+      return '等待买家退货'
+    }
+    if (returnStatus === 'RETURNING') {
+      return '退货中'
+    }
+    if (returnStatus === 'RECEIVED') {
+      return '已收货，退款中'
+    }
+
+    const map: Record<string, string> = {
+      REFUNDING: '退款中',
+      AFTER_SALE: '售后处理中',
+      WAITING_RETURN: '待退货',
+      RETURNING: '退货中',
+      RECEIVED: '已完成',
+      APPROVED: '已同意',
+      COMPLETED: '已完成',
+      FAILED: '已拒绝',
+      SUCCESS: '已完成'
+    }
+    return map[refundStatus] || refundStatus
+  }
+
+  const getRefundBtnClass = (status: string): string => {
+    const map: Record<string, string> = {
+      REFUNDING: 'btn-refunding',
+      AFTER_SALE: 'btn-after-sale',
+      WAITING_RETURN: 'btn-after-sale',
+      RETURNING: 'btn-receive-goods',
+      RECEIVED: 'btn-refund-done',
+      APPROVED: 'btn-after-sale',
+      COMPLETED: 'btn-refund-done',
+      FAILED: 'btn-refund-done'
+    }
+    return map[status] || ''
+  }
+
+  const getRefundBtnText = (status: string): string => {
+    const map: Record<string, string> = {
+      REFUNDING: '处理退款',
+      AFTER_SALE: '处理售后',
+      WAITING_RETURN: '等待买家退货',
+      RETURNING: '查看退货物流',
+      RECEIVED: '确认收货并退款',
+      APPROVED: '等待买家退货',
+      COMPLETED: '已退款',
+      FAILED: '查看退款'
+    }
+    return map[status] || ''
   }
 
   const getStatusText = (status: OrderStatus): string => {
@@ -613,706 +879,12 @@
 
   // ==================== 生命周期 ====================
 
-  onMounted(async () => {
-    if (!authStore.validateSellerPermission()) return
-    await loadOrderDetail()
-  })
+  onMounted(() => {
+  if (!authStore.validateSellerPermission()) return
+  loadOrderDetail()
+})
 </script>
 
 <style scoped>
-/* ========== 页面容器 ========== */
-/* 订单详情页面容器样式 */
-.order-detail-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  min-height: 100vh;
-  background: #f5f7fa;
-}
-
-/* ========== 页面头部 ========== */
-/* 页面头部区域样式 */
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-/* 返回按钮样式 */
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-/* 返回按钮悬停效果 */
-.back-btn:hover {
-  background: #f8fafc;
-  color: #4a6491;
-}
-
-/* 页面标题样式 */
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* 标题图标颜色 */
-.page-title i {
-  color: #4a6491;
-}
-
-/* ========== 加载状态 ========== */
-/* 加载状态容器 */
-.loading-state {
-  text-align: center;
-  padding: 80px;
-}
-
-/* 加载动画旋转图标 */
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #4a6491;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
-}
-
-/* 旋转动画关键帧 */
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ========== 空状态 ========== */
-/* 空状态容器（订单不存在时） */
-.empty-state {
-  text-align: center;
-  padding: 80px;
-  background: white;
-  border-radius: 12px;
-}
-
-/* 空状态图标 */
-.empty-state i {
-  font-size: 64px;
-  color: #cbd5e1;
-  margin-bottom: 16px;
-}
-
-/* 空状态文字 */
-.empty-state p {
-  color: #64748b;
-  margin-bottom: 24px;
-}
-
-/* ========== 状态栏 ========== */
-/* 订单状态栏样式 */
-.status-bar {
-  background: white;
-  border-radius: 12px;
-  padding: 20px 24px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border-left: 4px solid;
-}
-
-/* 状态栏不同状态的颜色 */
-.status-bar.status-pending { border-left-color: #f59e0b; }
-.status-bar.status-paid { border-left-color: #3b82f6; }
-.status-bar.status-processing { border-left-color: #8b5cf6; }
-.status-bar.status-shipped { border-left-color: #06b6d4; }
-.status-bar.status-delivered,
-.status-bar.status-completed { border-left-color: #10b981; }
-.status-bar.status-cancelled,
-.status-bar.status-refunded { border-left-color: #ef4444; }
-
-/* 状态图标 */
-.status-icon i {
-  font-size: 32px;
-}
-
-/* 状态图标不同状态的颜色 */
-.status-bar.status-pending .status-icon i { color: #f59e0b; }
-.status-bar.status-paid .status-icon i { color: #3b82f6; }
-.status-bar.status-processing .status-icon i { color: #8b5cf6; }
-.status-bar.status-shipped .status-icon i { color: #06b6d4; }
-.status-bar.status-delivered .status-icon i,
-.status-bar.status-completed .status-icon i { color: #10b981; }
-
-/* 状态文字信息区域 */
-.status-info {
-  flex: 1;
-}
-
-/* 状态主文字 */
-.status-text {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-/* 状态描述文字 */
-.status-desc {
-  font-size: 14px;
-  color: #64748b;
-}
-
-/* 状态时间区域 */
-.status-time {
-  font-size: 14px;
-  color: #64748b;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-align: right;
-}
-
-/* ========== 详情卡片 ========== */
-/* 详情卡片容器 */
-.detail-card {
-  background: white;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-/* 卡片头部样式 */
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 20px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-/* 卡片头部图标 */
-.card-header i {
-  font-size: 18px;
-  color: #4a6491;
-}
-
-/* 卡片标题 */
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  flex: 1;
-}
-
-/* 链接按钮样式 */
-.btn-link {
-  background: none;
-  border: none;
-  color: #4a6491;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 4px 12px;
-  border-radius: 6px;
-  transition: all 0.3s;
-}
-
-/* 链接按钮悬停效果 */
-.btn-link:hover {
-  background: #e2e8f0;
-}
-
-/* 卡片主体样式 */
-.card-body {
-  padding: 20px;
-}
-
-/* 卡片主体无内边距（用于表格） */
-.card-body.no-padding {
-  padding: 0;
-}
-
-/* ========== 信息网格 ========== */
-/* 信息网格布局（两列） */
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-/* 信息项 */
-.info-item {
-  display: flex;
-  align-items: baseline;
-}
-
-/* 信息标签 */
-.info-label {
-  width: 100px;
-  color: #64748b;
-  font-size: 14px;
-}
-
-/* 信息值 */
-.info-value {
-  color: #1e293b;
-  font-size: 14px;
-}
-
-/* 状态文字内联样式 */
-.info-value.status-text {
-  font-size: 14px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 12px;
-  display: inline-block;
-}
-
-/* ========== 地址信息 ========== */
-/* 地址信息区域 */
-.address-info {
-  line-height: 1.8;
-}
-
-/* 地址行 */
-.address-line {
-  margin-bottom: 8px;
-}
-
-/* 地址标签 */
-.address-label {
-  display: inline-block;
-  width: 80px;
-  color: #64748b;
-}
-
-/* 地址标签徽章 */
-.address-tag {
-  display: inline-block;
-  padding: 2px 8px;
-  background: #e2e8f0;
-  border-radius: 12px;
-  font-size: 12px;
-  color: #64748b;
-}
-
-/* 无地址信息提示 */
-.no-address {
-  color: #94a3b8;
-  text-align: center;
-  padding: 20px;
-}
-
-/* ========== 物流信息 ========== */
-/* 物流信息网格 */
-.logistics-info {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-/* 物流信息项 */
-.logistics-item {
-  display: flex;
-  align-items: baseline;
-}
-
-/* 物流标签 */
-.logistics-label {
-  width: 80px;
-  color: #64748b;
-}
-
-/* 物流值 */
-.logistics-value {
-  color: #1e293b;
-}
-
-/* ========== 商品表格 ========== */
-/* 商品表格容器（支持横向滚动） */
-.product-table {
-  overflow-x: auto;
-}
-
-/* 表格头部和行（使用网格布局） */
-.table-header,
-.table-row {
-  display: grid;
-  grid-template-columns: 3fr 1fr 1fr 1fr;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-/* 表格头部背景色 */
-.table-header {
-  background: #f8fafc;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-/* 表格行悬停效果 */
-.table-row:hover {
-  background: #f8fafc;
-}
-
-/* 商品信息列 */
-.col-product {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-/* 商品图片 */
-.product-image {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 8px;
-  background: #f1f5f9;
-}
-
-/* 商品名称 */
-.product-name {
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-
-/* 商品ID */
-.product-id {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-/* 价格、数量、小计列（右对齐） */
-.col-price,
-.col-quantity,
-.col-total {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-/* 价格、数量、小计文字右对齐 */
-.col-price,
-.col-quantity,
-.col-total {
-  text-align: right;
-}
-
-/* 表格底部汇总区域 */
-.table-footer {
-  padding: 20px;
-  border-top: 1px solid #e2e8f0;
-  text-align: right;
-}
-
-/* 金额行 */
-.amount-row {
-  margin-bottom: 8px;
-}
-
-/* 金额标签 */
-.amount-label {
-  display: inline-block;
-  width: 100px;
-  color: #64748b;
-}
-
-/* 金额值 */
-.amount-value {
-  display: inline-block;
-  width: 120px;
-  text-align: right;
-}
-
-/* 总计行（带顶部分割线） */
-.total-row {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e2e8f0;
-}
-
-/* 总价格（红色加粗） */
-.total-price {
-  font-size: 20px;
-  font-weight: 600;
-  color: #ef4444;
-}
-
-/* ========== 操作按钮区 ========== */
-/* 操作按钮容器 */
-.action-bar {
-  display: flex;
-  justify-content: flex-end;
-  gap: 16px;
-  margin-top: 20px;
-  padding-top: 20px;
-}
-
-/* 主要按钮样式 */
-.btn-primary {
-  padding: 10px 24px;
-  background: #4a6491;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-/* 主要按钮悬停效果 */
-.btn-primary:hover {
-  background: #3a5479;
-  transform: translateY(-2px);
-}
-
-/* 次要按钮样式 */
-.btn-outline {
-  padding: 10px 24px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-/* 次要按钮悬停效果 */
-.btn-outline:hover {
-  background: #f8fafc;
-}
-
-/* 危险按钮样式（取消订单） */
-.btn-danger {
-  padding: 10px 24px;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-/* 危险按钮悬停效果 */
-.btn-danger:hover {
-  background: #dc2626;
-  transform: translateY(-2px);
-}
-
-/* ========== 状态徽章样式 ========== */
-/* 不同状态的颜色样式 */
-.status-pending { background: #fef3c7; color: #d97706; }
-.status-paid { background: #dbeafe; color: #2563eb; }
-.status-processing { background: #f3e8ff; color: #9333ea; }
-.status-shipped { background: #cffafe; color: #0891b2; }
-.status-delivered,
-.status-completed { background: #dcfce7; color: #16a34a; }
-.status-cancelled,
-.status-refunded { background: #fee2e2; color: #dc2626; }
-
-/* ========== 弹窗样式 ========== */
-/* 弹窗遮罩层 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-/* 弹窗内容 */
-.modal-content {
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow: auto;
-}
-
-/* 弹窗头部 */
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-/* 弹窗标题 */
-.modal-header h3 {
-  margin: 0;
-  font-size: 18px;
-}
-
-/* 弹窗关闭按钮 */
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #94a3b8;
-}
-
-/* 弹窗主体 */
-.modal-body {
-  padding: 20px;
-}
-
-/* 弹窗底部 */
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid #e2e8f0;
-}
-
-/* ========== 表单样式 ========== */
-/* 表单组 */
-.form-group {
-  margin-bottom: 16px;
-}
-
-/* 表单标签 */
-.form-label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1e293b;
-}
-
-/* 必填项红星 */
-.form-label.required::after {
-  content: '*';
-  color: #ef4444;
-  margin-left: 4px;
-}
-
-/* 表单控件 */
-.form-control {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.3s;
-}
-
-/* 表单控件聚焦样式 */
-.form-control:focus {
-  outline: none;
-  border-color: #4a6491;
-  box-shadow: 0 0 0 3px rgba(74, 100, 145, 0.1);
-}
-
-/* 取消按钮 */
-.btn-cancel {
-  padding: 8px 20px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-/* 确认按钮 */
-.btn-confirm {
-  padding: 8px 20px;
-  background: #4a6491;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-/* 确认按钮禁用样式 */
-.btn-confirm:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ========== 响应式设计 ========== */
-/* 移动端适配（宽度小于768px） */
-@media (max-width: 768px) {
-  /* 页面内边距减小 */
-  .order-detail-page {
-    padding: 12px;
-  }
-
-  /* 信息网格改为单列 */
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* 物流信息网格改为单列 */
-  .logistics-info {
-    grid-template-columns: 1fr;
-  }
-
-  /* 表格列宽调整 */
-  .table-header,
-  .table-row {
-    grid-template-columns: 2fr 1fr 0.8fr 1fr;
-    padding: 12px;
-    font-size: 12px;
-  }
-
-  /* 商品图片缩小 */
-  .product-image {
-    width: 50px;
-    height: 50px;
-  }
-
-  /* 操作按钮垂直排列 */
-  .action-bar {
-    flex-direction: column;
-  }
-
-  /* 操作按钮占满宽度 */
-  .action-bar button {
-    width: 100%;
-  }
-
-  /* 状态栏垂直排列 */
-  .status-bar {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  /* 状态时间居中对齐 */
-  .status-time {
-    margin-left: 0;
-    text-align: center;
-  }
-
-  /* 页面头部垂直排列 */
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
+@import url('@/static/css/seller/订单详情页.css');
 </style>

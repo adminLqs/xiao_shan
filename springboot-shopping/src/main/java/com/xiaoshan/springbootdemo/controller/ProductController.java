@@ -85,8 +85,8 @@ public class ProductController {
                 ));
             }
 
-            // 根据id删除商品
-            productMapper.deleteById(productId);
+            // 使用Service层删除商品（会先删除关联的order_items等）
+            productService.deleteProduct(productId);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -137,8 +137,8 @@ public class ProductController {
                 }
             }
 
-            // 批量删除
-            int deletedCount = productMapper.deleteByIds(productIds);
+            // 批量删除（使用Service层，会先删除关联的order_items等）
+            int deletedCount = productService.batchDeleteProducts(productIds);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -202,7 +202,6 @@ public class ProductController {
         try {
             // 获取商家id
             Long userId = userService.getCurrentUserId(authentication);
-
             // 计算偏移量
             int offset = (page - 1) * pageSize;
 
@@ -225,7 +224,7 @@ public class ProductController {
             ));
 
         } catch (Exception e) {
-            log.error("获取商品列表失败: {}", e.getMessage());
+            log.error("获取商品列表失败: {}", e.getMessage(), e);
             return ResponseEntity.ok(Map.of(
                     "success", false,
                     "message", e.getMessage()
@@ -243,25 +242,28 @@ public class ProductController {
             Authentication authentication,
             @PathVariable("productId") Long productId,
             @RequestPart("products") @Valid ProductDTO productDTO,
-            @RequestPart(value = "images", required = false) List<MultipartFile> files) {
+            @RequestPart(value = "images", required = false) List<MultipartFile> files,
+            @RequestPart(value = "skuImages", required = false) List<MultipartFile> skuImages,
+            @RequestParam(value = "imageSortOrder", required = false) String imageSortOrder,
+            @RequestParam(value = "existingImageIds", required = false) String existingImageIds) {
         try {
             // 获取当前商家ID
             Long userId = userService.getCurrentUserId(authentication);
 
             // 更新商品
-            productService.updateProduct(userId, productId, productDTO, files);
+            productService.updateProduct(userId, productId, productDTO, files, skuImages, imageSortOrder, existingImageIds);
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "商品更新成功"
-            ));
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "商品更新成功");
+            return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            log.error("更新商品失败: {}", e.getMessage());
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
+            log.error("更新商品失败", e);
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", e.getMessage() != null ? e.getMessage() : "更新商品失败");
+            return ResponseEntity.ok(result);
         }
     }
 
@@ -312,9 +314,23 @@ public class ProductController {
                 return ResponseEntity.ok(Map.of("success", false, "message", "商家信息不存在"));
             }
 
+            // 查询商家统计信息（粉丝数、评分、好评率）
+            var statistics = sellerProfileService.getSellerStatistics(seller.getUserId());
+
+            // 将统计数据添加到商家对象中
+            Map<String, Object> sellerData = new java.util.HashMap<>();
+            sellerData.put("id", seller.getId());
+            sellerData.put("userId", seller.getUserId());
+            sellerData.put("storeName", seller.getStoreName());
+            sellerData.put("storeAvatar", seller.getStoreAvatar());
+            sellerData.put("storeDetail", seller.getStoreDetail());
+            sellerData.put("businessHours", seller.getBusinessHours());
+            sellerData.put("contactPhone", seller.getContactPhone());
+            sellerData.putAll(statistics);
+
             return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "data", Map.of("seller", seller)
+                    "data", Map.of("seller", sellerData)
             ));
         } catch (Exception e) {
             log.error("获取商家信息失败: {}", e.getMessage());
@@ -347,8 +363,9 @@ public class ProductController {
     }
 
     /**
-     * 获取商品SKU列表（公开访问）
+     * 获取商品SKU列表（公开访问，用户端）
      * GET /api/v1/products/{productId}/skus
+     * 用户端使用Redis库存（性能，防超卖）
      */
     @GetMapping("/products/{productId}/skus")
     public ResponseEntity<?> getProductSkus(@PathVariable Long productId) {
@@ -362,6 +379,12 @@ public class ProductController {
             // 查询SKU列表
             List<ProductSku> skus = productSkuMapper.findByProductId(productId);
 
+            // 用户端：替换为Redis实时可用库存（性能，防超卖）
+            for (ProductSku sku : skus) {
+                Integer realTimeStock = productService.getSkuAvailableStock(sku.getId());
+                sku.setStock(realTimeStock);
+            }
+
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "data", Map.of("skus", skus)
@@ -369,6 +392,103 @@ public class ProductController {
         } catch (Exception e) {
             log.error("获取SKU列表失败: {}", e.getMessage());
             return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取商品SKU列表（商家端）
+     * GET /api/v1/seller/products/{productId}/skus
+     * 商家端使用数据库库存（准确性，管理需要）
+     */
+    @GetMapping("/seller/products/{productId}/skus")
+    @PreAuthorize("hasAnyAuthority('ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> getSellerProductSkus(Authentication authentication, @PathVariable Long productId) {
+        try {
+            // 查询商品是否存在
+            Product product = productMapper.findById(productId).orElse(null);
+            if (product == null) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "商品不存在"));
+            }
+
+            // 验证商品属于当前商家
+            Long sellerId = userService.getCurrentUserId(authentication);
+            if (!product.getSellerId().equals(sellerId)) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "无权访问此商品"));
+            }
+
+            // 查询SKU列表（直接从数据库读取，不经过Redis）
+            List<ProductSku> skus = productSkuMapper.findByProductId(productId);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of("skus", skus)
+            ));
+        } catch (Exception e) {
+            log.error("获取SKU列表失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * 搜索商品（公开访问，支持排序、价格区间、分类筛选）
+     * GET /api/v1/products?keyword=xxx&sort=xxx&minPrice=xxx&maxPrice=xxx&categoryId=xxx&page=1&pageSize=20
+     * 支持首页列表：?sellerId=xxx&level1CategoryId=xxx&level2CategoryId=xxx
+     */
+    @GetMapping("/products")
+    public ResponseEntity<?> searchProducts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) java.math.BigDecimal minPrice,
+            @RequestParam(required = false) java.math.BigDecimal maxPrice,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long sellerId,           // 商家ID（店铺页使用）
+            @RequestParam(required = false) Long level1CategoryId,  // 一级分类ID（首页分类浏览）
+            @RequestParam(required = false) Long level2CategoryId,   // 二级分类ID（首页分类浏览）
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer pageSize
+    ) {
+        try {
+            // 计算偏移量
+            int offset = (page - 1) * pageSize;
+
+            List<Product> products;
+            long total;
+
+            // 判断使用哪种查询方式：
+            // 1. 如果有搜索筛选参数（sort/minPrice/maxPrice/categoryId），使用搜索方法
+            // 2. 如果有 sellerId 或 level1CategoryId/level2CategoryId，使用首页商品列表方法
+            // 3. 默认使用首页商品列表方法
+            boolean hasSearchParams = (sort != null && !sort.isEmpty()) || minPrice != null || maxPrice != null || categoryId != null;
+            boolean hasHomeParams = sellerId != null || level1CategoryId != null || level2CategoryId != null;
+
+            if (hasSearchParams) {
+                // 使用搜索方法
+                products = productService.searchProducts(offset, pageSize, keyword, categoryId, minPrice, maxPrice, sort);
+                total = productService.countSearchProducts(keyword, categoryId, minPrice, maxPrice);
+            } else {
+                // 使用首页商品列表方法
+                products = productService.getProductsForHome(offset, pageSize, keyword, sellerId, level1CategoryId, level2CategoryId);
+                total = productService.countProductsForHome(keyword, sellerId, level1CategoryId, level2CategoryId);
+            }
+
+            // 构建返回数据
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of(
+                            "records", products,
+                            "total", total,
+                            "page", page,
+                            "size", pageSize,
+                            "totalPages", (int) Math.ceil((double) total / pageSize)
+                    )
+            ));
+
+        } catch (Exception e) {
+            log.error("搜索商品失败: {}", e.getMessage(), e);
+            return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
         }
     }
 }

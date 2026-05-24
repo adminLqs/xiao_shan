@@ -10,11 +10,13 @@ import com.xiaoshan.springbootdemo.mapper.SellerProfileMapper;
 import com.xiaoshan.springbootdemo.mapper.UserMapper;
 import com.xiaoshan.springbootdemo.mapper.UserProfileMapper;
 import com.xiaoshan.springbootdemo.util.JwtUtil;
+import com.xiaoshan.springbootdemo.util.SnowflakeIdGenerator;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +34,7 @@ import java.time.Period;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -45,6 +48,9 @@ public class UserService {
     private final SellerProfileMapper sellerProfileMapper;
     private final ProductMapper productMapper;
     private final JwtUtil jwtUtil;
+    private final SnowflakeIdGenerator snowflakeIdGenerator;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final WebSocketService webSocketService;
 
     // 配置文件获取上传目录
     @Value("${app.file.upload-dir:uploads}")
@@ -63,11 +69,37 @@ public class UserService {
             throw new RuntimeException("密码错误！");
         }
 
-        // 将用户信息封装为Json对象，用其密钥进行签名
-        String token = jwtUtil.generateToken(user);
+        String userId = user.getId().toString();
+        String jwtUserKey = "jwt:user:" + userId;
+
+        // 检查是否有旧 token（在生成新 token 之前）
+        String oldToken = stringRedisTemplate.opsForValue().get(jwtUserKey);
+
+        // 如果有旧 token，说明其他设备已登录，踢下线
+        if (oldToken != null && !oldToken.isEmpty()) {
+            // 旧 token 加入黑名单
+            Long remainTime = jwtUtil.getRemainTime(oldToken);
+            if (remainTime > 0) {
+                stringRedisTemplate.opsForValue().set("jwt:blacklist:" + oldToken, "1",
+                        remainTime, TimeUnit.MILLISECONDS);
+            }
+
+            // 通过 WebSocket 通知旧设备被踢下线
+            webSocketService.kickOut(user.getId(), "您的账号在其他设备登录，请重新登录");
+            log.info("用户 {} 在新设备登录，已踢出旧设备", userId);
+        }
+
+        // 生成新 token 并存入 Redis
+        String newToken = jwtUtil.generateToken(user);
+        stringRedisTemplate.opsForValue().set(jwtUserKey, newToken);
+
+        // 记录 WebSocket 会话，设置7天过期时间
+        String sessionKey = "ws:user:" + userId;
+        String sessionId = java.util.UUID.randomUUID().toString();
+        stringRedisTemplate.opsForValue().set(sessionKey, sessionId, 7, TimeUnit.DAYS);
 
         // 生成JWT并设置到Cookie
-        setAuthCookie(response, token);
+        setAuthCookie(response, newToken);
 
         return user;
     }
@@ -92,21 +124,20 @@ public class UserService {
         // 创建User对象
         User user = new User(registerDTO.getAccount(), encodedPassword);
         user.setCreatedAt(LocalDateTime.now());
+        user.setId(snowflakeIdGenerator.nextId()); // 生成雪花ID
 
         // 保存User对象
         userMapper.insert(user);
 
         // 创建用户资料
         UserProfile profile = new UserProfile();
+        profile.setId(snowflakeIdGenerator.nextId()); // 生成雪花ID
         profile.setUserId(user.getId());
         profile.setNickname(registerDTO.getAccount());
         profile.setGender(UserProfile.Gender.UNKNOWN);
 
         // 保存UserProfile对象
         userProfileMapper.insert(profile);
-
-        log.info("原始密码: {}", registerDTO.getPassword()); // 日志输出
-        log.info("加密后密码: {}", encodedPassword);
 
         return user; // 返回用户对象
     }
@@ -138,12 +169,17 @@ public class UserService {
     }
 
     // 清除Cookie信息
-    public void clearAuthCookie(HttpServletResponse response) {
+    public void clearAuthCookie(HttpServletResponse response, Long userId) {
         ResponseCookie cookie = ResponseCookie.from("AUTH_TOKEN", "")
                 .path("/")
                 .maxAge(0)
                 .build();
         response.setHeader("Set-Cookie", cookie.toString());
+
+        // 清除Redis中的会话
+        if (userId != null) {
+            stringRedisTemplate.delete("ws:user:" + userId);
+        }
     }
 
     // ------------------------ 更新用户头像 -----------------------------------
@@ -205,8 +241,8 @@ public class UserService {
         }
 
         // 检查文件大小
-        if (file.getSize() > 2 * 1024 * 1024) {
-            throw new RuntimeException("文件大小不能超过2MB");
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new RuntimeException("文件大小不能超过5MB");
         }
 
         // 检查文件名
@@ -267,13 +303,11 @@ public class UserService {
 
             // 文件不存在，直接返回
             if (!Files.exists(oldFilePath)) {
-                log.debug("旧头像文件不存在: {}", oldFileName);
                 return;
             }
 
             // 删除文件
             Files.delete(oldFilePath);
-            log.debug("旧头像文件已删除: {}", oldFileName);
 
         } catch (Exception e) {
             log.warn("删除旧头像文件失败: {}, 错误: {}", oldAvatarUrl, e.getMessage());
@@ -447,10 +481,32 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
     }
 
+    /**
+     * 获取用户账号信息（包含头像和昵称）
+     * 根据用户角色返回不同的头像和昵称：
+     * - 商家角色：返回 seller_profiles.store_avatar 和 store_name
+     * - 用户角色：返回 user_profiles.avatar 和 nickname
+     *
+     * @param userId 用户ID
+     * @return 用户账号信息（包含 id, account, role, status, created_at, avatar, nickname）
+     */
+    public java.util.Map<String, Object> getAccountProfile(Long userId) {
+        return userMapper.getAccountProfile(userId);
+    }
+
     // 获取用户个人资料
     public UserProfile getUserProfile(Long userId) {
         return userProfileMapper.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("用户资料不存在"));
+    }
+
+    // 判断当前用户是否为商家
+    public boolean isSeller(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_SELLER"));
     }
 
 

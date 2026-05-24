@@ -17,11 +17,11 @@ public interface OrderMapper {
     /**
      * 创建订单
      */
-    @Insert("INSERT INTO orders (order_number, user_id, address_id, total_amount, status, " +
+    @Insert("INSERT INTO orders (id, order_number, user_id, address_id, total_amount, status, " +
             "source, payment_method, is_deleted, created_at, updated_at) " +
-            "VALUES (#{orderNumber}, #{userId}, #{addressId}, #{totalAmount}, #{status}, " +
-            "#{source}, #{paymentMethod}, 0, NOW(), NOW())")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
+            "VALUES (#{id}, #{orderNumber}, #{userId}, #{addressId}, #{totalAmount}, #{status}, " +
+            "#{source}, #{paymentMethod}, 0, #{createdAt}, #{updatedAt})")
+    @Options(useGeneratedKeys = false, keyProperty = "id")
     int insert(Order order);
 
     // ========== 删 ==========
@@ -109,12 +109,14 @@ public interface OrderMapper {
      * @param expireTime 超时时间点
      * @return 超时订单列表
      */
-    @Select("SELECT id, order_number, user_id, address_id, total_amount, status, source, " +
+    @Select("<script>" +
+            "SELECT id, order_number, user_id, address_id, total_amount, status, source, " +
             "payment_method, transaction_id, paid_at, " +
             "tracking_number, logistics_code, logistics_name, " +
             "shipped_at, delivered_at, completed_at, processing_at, cancelled_at, created_at, updated_at, is_deleted " +
             "FROM orders " +
-            "WHERE status = 'PENDING' AND is_deleted = 0 AND created_at < #{expireTime}")
+            "WHERE status = 'PENDING' AND is_deleted = 0 AND created_at &lt; #{expireTime}" +
+            "</script>")
     List<Order> findExpiredOrders(LocalDateTime expireTime);
 
     /**
@@ -158,6 +160,18 @@ public interface OrderMapper {
     // ============= 商家 ===============
 
     @Select("<script>" +
+            "<choose>" +
+            "<when test='status != null and status == \"REFUNDING\"'>" +
+            "SELECT DISTINCT o.id " +
+            "FROM orders o " +
+            "INNER JOIN order_items oi ON o.id = oi.order_id " +
+            "WHERE oi.seller_id = #{sellerId} " +
+            "AND oi.refund_status IN ('REFUNDING', 'AFTER_SALE', 'APPROVED', 'WAITING_RETURN', 'RETURNING') " +
+            "AND o.is_deleted = 0 " +
+            "ORDER BY o.created_at DESC " +
+            "LIMIT #{limit} OFFSET #{offset}" +
+            "</when>" +
+            "<otherwise>" +
             "SELECT o.id " +
             "FROM orders o " +
             "WHERE o.id IN (" +
@@ -171,6 +185,8 @@ public interface OrderMapper {
             "</if>" +
             "ORDER BY o.created_at DESC " +
             "LIMIT #{limit} OFFSET #{offset}" +
+            "</otherwise>" +
+            "</choose>" +
             "</script>")
     List<Long> findSellerOrderIds(@Param("sellerId") Long sellerId,
                                   @Param("offset") int offset,
@@ -185,6 +201,16 @@ public interface OrderMapper {
      * @return 订单总数
      */
     @Select("<script>" +
+            "<choose>" +
+            "<when test='status != null and status == \"REFUNDING\"'>" +
+            "SELECT COUNT(DISTINCT o.id) " +
+            "FROM orders o " +
+            "INNER JOIN order_items oi ON o.id = oi.order_id " +
+            "WHERE oi.seller_id = #{sellerId} " +
+            "AND oi.refund_status IN ('REFUNDING', 'AFTER_SALE', 'APPROVED', 'WAITING_RETURN', 'RETURNING') " +
+            "AND o.is_deleted = 0 " +
+            "</when>" +
+            "<otherwise>" +
             "SELECT COUNT(DISTINCT o.id) " +
             "FROM orders o " +
             "INNER JOIN order_items oi ON o.id = oi.order_id " +
@@ -193,6 +219,8 @@ public interface OrderMapper {
             "<if test='status != null and status != \"\"'>" +
             "AND o.status = #{status} " +
             "</if>" +
+            "</otherwise>" +
+            "</choose>" +
             "</script>")
     long countSellerOrders(@Param("sellerId") Long sellerId,
                            @Param("status") String status);
@@ -211,6 +239,17 @@ public interface OrderMapper {
             "AND o.is_deleted = 0 " +
             "GROUP BY o.status")
     List<Map<String, Object>> getSellerOrderCounts(Long sellerId);
+
+    /**
+     * 统计商家退款中的订单项数量
+     *
+     * @param sellerId 商家ID
+     * @return 退款中的订单项数量
+     */
+    @Select("SELECT COUNT(*) FROM order_items oi " +
+            "WHERE oi.seller_id = #{sellerId} " +
+            "AND oi.refund_status IN ('REFUNDING', 'AFTER_SALE', 'APPROVED', 'WAITING_RETURN', 'RETURNING')")
+    Long countRefundingItems(Long sellerId);
 
     /**
      * 根据订单ID和商家ID查询订单（商家端使用，校验权限）

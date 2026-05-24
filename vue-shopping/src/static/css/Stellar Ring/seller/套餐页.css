@@ -1,0 +1,570 @@
+/* ========== 套餐购买页 - 星环流光·科技感主题 ========== */
+
+.package-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8edf8 25%, #e0e7f5 50%, #eef2ff 75%, #f5f7ff 100%);
+  padding: 24px 20px 60px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 科技网格背景 */
+.package-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(74, 100, 145, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 100, 145, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 星环旋转光晕 */
+.package-container::after {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at 30% 40%, rgba(74, 100, 145, 0.06) 0%, transparent 60%);
+  transform: translate(-50%, -50%);
+  animation: techPulse 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes techPulse {
+  0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+/* 动态光晕层 */
+.tech-glow {
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 40%, rgba(0, 212, 255, 0.08), transparent 50%);
+  animation: techRotate 20s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes techRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ========== 页面头部 ========== */
+.page-header {
+  text-align: center;
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 5;
+}
+
+.page-header h2 {
+  font-size: 28px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5, #00d4ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+
+.page-header p {
+  font-size: 15px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ========== 当前套餐信息卡片 ========== */
+.current-package-info {
+  margin-bottom: 32px;
+  position: relative;
+  z-index: 5;
+}
+
+.info-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, rgba(74, 100, 145, 0.08), rgba(0, 212, 255, 0.05));
+  border-radius: 16px;
+  border: 1px solid rgba(74, 100, 145, 0.2);
+  backdrop-filter: blur(8px);
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.info-card i {
+  font-size: 20px;
+  color: #4a6491;
+}
+
+.info-card strong {
+  color: #4a6491;
+  font-weight: 700;
+}
+
+.valid-period {
+  margin-left: auto;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* ========== 套餐网格 ========== */
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  position: relative;
+  z-index: 5;
+}
+
+/* ========== 套餐卡片 - 科技感设计 ========== */
+.package-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(15px);
+  border-radius: 28px;
+  padding: 28px 24px 32px;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid rgba(74, 100, 145, 0.15);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(74, 100, 145, 0.08);
+}
+
+/* 卡片边框科技光晕 */
+.package-card::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(135deg, #4a6491, #00d4ff, #6b8ab5, #4a6491);
+  border-radius: 30px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: -1;
+}
+
+/* 卡片内发光 */
+.package-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #4a6491, #00d4ff, #4a6491, transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* Hover效果 - 光晕一闪而过 */
+.package-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(74, 100, 145, 0.2);
+  border-color: rgba(74, 100, 145, 0.3);
+}
+
+.package-card:hover::before {
+  opacity: 0.3;
+}
+
+.package-card:hover::after {
+  opacity: 1;
+  animation: lightSweep 0.6s ease-out;
+}
+
+@keyframes lightSweep {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* 当前套餐卡片 - 特殊发光边框 */
+.package-card.active {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(74, 100, 145, 0.05));
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  box-shadow: 0 8px 32px rgba(74, 100, 145, 0.2);
+}
+
+.package-card.active::before {
+  background: linear-gradient(135deg, #4a6491, #00d4ff, #6b8ab5, #4a6491);
+  opacity: 0.5;
+  animation: borderPulse 2s ease-in-out infinite;
+}
+
+@keyframes borderPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+/* 套餐徽章 */
+.package-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #4a6491, #00d4ff);
+  border-radius: 30px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 12px rgba(74, 100, 145, 0.4);
+  animation: badgeGlow 2s ease-in-out infinite;
+}
+
+@keyframes badgeGlow {
+  0%, 100% { box-shadow: 0 2px 12px rgba(74, 100, 145, 0.3); }
+  50% { box-shadow: 0 2px 20px rgba(74, 100, 145, 0.6); }
+}
+
+.package-badge i {
+  font-size: 12px;
+}
+
+/* ========== 套餐头部 ========== */
+.package-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.package-header h3 {
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #1e293b, #4a6491);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 16px;
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+}
+
+.currency {
+  font-size: 20px;
+  font-weight: 600;
+  color: #4a6491;
+}
+
+.amount {
+  font-size: 42px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #4a6491, #00d4ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1;
+}
+
+.period {
+  font-size: 14px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* ========== 套餐特性列表 ========== */
+.package-features {
+  margin: 24px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(74, 100, 145, 0.06);
+  font-size: 14px;
+  color: #475569;
+  transition: all 0.3s;
+}
+
+.feature-item:last-child {
+  border-bottom: none;
+}
+
+.feature-item:hover {
+  transform: translateX(4px);
+  color: #4a6491;
+}
+
+.feature-item i {
+  font-size: 16px;
+  color: #10b981;
+  flex-shrink: 0;
+  transition: all 0.3s;
+}
+
+.feature-item:hover i {
+  transform: scale(1.1);
+  color: #00d4ff;
+}
+
+/* ========== 购买按钮 - 霓虹流光 ========== */
+.buy-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #f1f5f9, #f8fafc);
+  border: 1px solid rgba(74, 100, 145, 0.2);
+  border-radius: 40px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: #4a6491;
+  position: relative;
+  overflow: hidden;
+}
+
+.buy-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(74, 100, 145, 0.15), transparent);
+  transition: left 0.5s;
+}
+
+.buy-btn:hover {
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(74, 100, 145, 0.3);
+}
+
+.buy-btn:hover::before {
+  left: 100%;
+}
+
+.buy-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.buy-btn.disabled {
+  background: linear-gradient(135deg, #e2e8f0, #f1f5f9);
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.buy-btn.disabled:hover {
+  transform: none;
+  background: linear-gradient(135deg, #e2e8f0, #f1f5f9);
+  color: #94a3b8;
+  box-shadow: none;
+}
+
+.buy-btn.disabled::before {
+  display: none;
+}
+
+/* ========== 支付弹窗 ========== */
+.pay-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.pay-confirm-dialog {
+  width: 85%;
+  max-width: 340px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  border-radius: 32px;
+  padding: 32px 24px;
+  text-align: center;
+  border: 1px solid rgba(74, 100, 145, 0.2);
+  box-shadow: 0 20px 40px rgba(74, 100, 145, 0.2);
+  animation: dialogSlideUp 0.3s ease;
+}
+
+@keyframes dialogSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pay-icon {
+  font-size: 64px;
+  color: #10b981;
+  margin-bottom: 16px;
+}
+
+.pay-confirm-dialog h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.pay-tip {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 24px;
+}
+
+.pay-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-pay-done {
+  flex: 1;
+  padding: 12px;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pay-done:active {
+  transform: scale(0.97);
+}
+
+.btn-pay-done:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-pay-later {
+  flex: 1;
+  padding: 12px;
+  background: rgba(241, 245, 249, 0.9);
+  border: 1px solid rgba(74, 100, 145, 0.2);
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pay-later:active {
+  transform: scale(0.97);
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px) {
+  .package-container {
+    padding: 16px;
+  }
+  
+  .packages-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .page-header h2 {
+    font-size: 24px;
+  }
+  
+  .package-card {
+    padding: 24px 20px;
+  }
+  
+  .amount {
+    font-size: 36px;
+  }
+  
+  .info-card {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .valid-period {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h2 {
+    font-size: 22px;
+  }
+  
+  .package-header h3 {
+    font-size: 20px;
+  }
+  
+  .amount {
+    font-size: 32px;
+  }
+  
+  .feature-item {
+    font-size: 13px;
+    padding: 8px 0;
+  }
+  
+  .buy-btn {
+    padding: 12px;
+    font-size: 14px;
+  }
+  
+  .pay-actions {
+    flex-direction: column;
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .package-container {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+}

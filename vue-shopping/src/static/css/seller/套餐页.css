@@ -1,0 +1,543 @@
+/* ========== 套餐购买页 - 简洁版样式 ========== */
+
+.package-container {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 0;
+  position: relative;
+}
+
+/* 移除所有动态背景装饰 */
+.package-container::before,
+.package-container::after {
+  display: none;
+  content: none;
+}
+
+.tech-glow {
+  display: none;
+}
+
+/* ========== 页面头部 ========== */
+.page-header {
+  text-align: center;
+  margin-bottom: 32px;
+  position: relative;
+  z-index: 5;
+}
+
+.page-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* ========== 当前套餐信息卡片 ========== */
+.current-package-card {
+  background: linear-gradient(135deg, #4a6491 0%, #3a5479 100%);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 5;
+  box-shadow: 0 4px 16px rgba(74, 100, 145, 0.2);
+}
+
+.current-package-card .package-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.current-package-card .package-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.current-package-card .package-icon i {
+  font-size: 20px;
+  color: white;
+}
+
+.current-package-card .package-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.current-package-card .title-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.current-package-card .package-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.current-package-card .package-status.ACTIVE {
+  background: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.current-package-card .package-status.EXPIRED {
+  background: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+.current-package-card .package-info {
+  margin-bottom: 16px;
+}
+
+.current-package-card .package-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 10px;
+}
+
+.current-package-card .package-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.current-package-card .package-meta span {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.current-package-card .remaining-days {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+}
+
+.current-package-card .remaining-days.warning {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.current-package-card .package-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.current-package-card .feature-tag {
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.current-package-card .btn-renew {
+  width: 100%;
+  padding: 12px;
+  background: white;
+  border: none;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a6491;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.current-package-card .btn-renew:active {
+  transform: scale(0.96);
+  background: #f0f2f5;
+}
+
+/* ========== 未购买套餐卡片 ========== */
+.no-package-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px 20px;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 5;
+  border: 1px dashed #cbd5e1;
+  text-align: center;
+}
+
+.no-package-icon {
+  width: 64px;
+  height: 64px;
+  background: #f5f7fa;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.no-package-icon i {
+  font-size: 28px;
+  color: #94a3b8;
+}
+
+.no-package-text {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.no-package-card .btn-buy {
+  padding: 12px 32px;
+  background: #4a6491;
+  border: none;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.no-package-card .btn-buy:active {
+  transform: scale(0.96);
+  background: #3a5479;
+}
+
+/* ========== 套餐网格 ========== */
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  position: relative;
+  z-index: 5;
+}
+
+/* ========== 套餐卡片 ========== */
+.package-card {
+  position: relative;
+  background: white;
+  border-radius: 0;
+  padding: 24px 20px 28px;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.package-card:active {
+  transform: scale(0.98);
+}
+
+/* 移除所有伪元素动画 */
+.package-card::before,
+.package-card::after {
+  display: none;
+  content: none;
+}
+
+/* 当前套餐卡片 */
+.package-card.active {
+  background: #fafbfc;
+  border: 2px solid #4a6491;
+  box-shadow: 0 2px 8px rgba(74, 100, 145, 0.1);
+}
+
+/* 套餐徽章 */
+.package-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #4a6491;
+  border-radius: 20px;
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.package-badge i {
+  font-size: 10px;
+}
+
+/* ========== 套餐头部 ========== */
+.package-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.package-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+}
+
+.currency {
+  font-size: 18px;
+  font-weight: 600;
+  color: #4a6491;
+}
+
+.amount {
+  font-size: 36px;
+  font-weight: 800;
+  color: #4a6491;
+  line-height: 1;
+}
+
+.period {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* ========== 套餐特性列表 ========== */
+.package-features {
+  margin: 20px 0;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 13px;
+  color: #475569;
+}
+
+.feature-item:last-child {
+  border-bottom: none;
+}
+
+.feature-item i {
+  font-size: 14px;
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+/* ========== 购买按钮 ========== */
+.buy-btn {
+  width: 100%;
+  padding: 8px;
+  background: #4a6491;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: white;
+}
+
+.buy-btn:active {
+  transform: scale(0.96);
+  background: #3a5479;
+}
+
+.buy-btn.disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.buy-btn.disabled:active {
+  transform: none;
+  background: #e2e8f0;
+}
+
+/* 移除按钮伪元素动画 */
+.buy-btn::before {
+  display: none;
+}
+
+/* ========== 支付弹窗 ========== */
+.pay-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.pay-confirm-dialog {
+  width: 85%;
+  max-width: 340px;
+  background: white;
+  border-radius: 20px;
+  padding: 28px 20px;
+  text-align: center;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: dialogSlideUp 0.2s ease;
+}
+
+@keyframes dialogSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pay-icon {
+  font-size: 56px;
+  color: #10b981;
+  margin-bottom: 12px;
+}
+
+.pay-confirm-dialog h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.pay-tip {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 20px;
+}
+
+.pay-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-pay-done {
+  flex: 1;
+  padding: 10px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pay-done:active {
+  transform: scale(0.96);
+  background: #3a5479;
+}
+
+.btn-pay-done:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-pay-later {
+  flex: 1;
+  padding: 10px;
+  background: #f5f7fa;
+  border: 1px solid #e8ecf0;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pay-later:active {
+  transform: scale(0.96);
+  background: #e8ecf0;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px) {
+  .packages-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-card {
+    flex-wrap: wrap;
+  }
+
+  .valid-period {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .pay-actions {
+    flex-direction: column;
+  }
+}
+
+/* 横屏模式 */
+@media (max-width: 896px) and (orientation: landscape) {
+  .packages-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .package-container {
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f2f5;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

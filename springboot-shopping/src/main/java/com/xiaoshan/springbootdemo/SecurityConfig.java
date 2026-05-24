@@ -47,7 +47,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
-                "http://ff2ad6bc.natappfree.cc",
+                "http://*.natappfree.cc",
                 "http://62.234.79.156"   // 你的云服务器 IP（前端访问地址）
 
         ));
@@ -106,7 +106,8 @@ public class SecurityConfig {
                     })
                 .ignoringRequestMatchers(
                         "/api/v1/payment/callback",
-                                "/api/v1/logistics/callback"
+                        "/api/v1/logistics/callback",
+                        "/ws/**"
                 )
             );
 
@@ -124,6 +125,7 @@ public class SecurityConfig {
                 "/api/v1/account/profile", // 获取账号状态
                 "/api/v1/categories", // 获取分类
                 "/api/v1/products/**", // 获取商品
+                "/api/v1/upload", // 文件上传接口
 
                 // 放行支付api回调路径
                 "/api/v1/payment/callback",

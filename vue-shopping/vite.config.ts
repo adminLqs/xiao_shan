@@ -19,7 +19,7 @@ export default defineConfig({
     host: '0.0.0.0',  // 监听所有网络接口，允许外部访问
     port: 5173,       // Vite 服务端口
     allowedHosts: [
-      'http://ff2ad6bc.natappfree.cc',  // 允许这个域名访问
+      'http://w5da762d.natappfree.cc',  // 允许这个域名访问
       '.natappfree.cc',           // 允许所有 natapp 子域名
     ],
     proxy: {
@@ -36,6 +36,11 @@ export default defineConfig({
       // 代理上传文件
       '/uploads': {
         target: 'http://localhost:8088',
+        changeOrigin: true
+      },
+      '/ws': {
+        target: 'http://localhost:8088',
+        ws: true,  // 关键：开启 WebSocket 代理
         changeOrigin: true
       }
     }

@@ -17,10 +17,9 @@ public interface CartItemMapper {
      * 添加购物车项
      */
     @Insert("<script>" +
-            "INSERT INTO cart_items (user_id, product_id, sku_id, quantity, added_at) " +
-            "VALUES (#{userId}, #{productId}, #{skuId}, #{quantity}, #{addedAt})" +
+            "INSERT INTO cart_items (id, user_id, product_id, sku_id, quantity, added_at) " +
+            "VALUES (#{id}, #{userId}, #{productId}, #{skuId}, #{quantity}, #{addedAt})" +
             "</script>")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(CartItem cartItem);
 
     // ========== 查 ==========
@@ -40,9 +39,9 @@ public interface CartItemMapper {
             "ci.id, ci.user_id, ci.product_id, ci.sku_id, ci.quantity, ci.added_at, " +
             "p.name as product_name, p.brand, " +
             "COALESCE(s.sku_name, '') as sku_name, " +
-            "COALESCE(s.price, p.price, 0) as price, " +
-            "COALESCE(s.original_price, p.original_price, 0) as original_price, " +
-            "COALESCE(s.stock, p.stock, 0) as stock, " +
+            "COALESCE(s.price, (SELECT MIN(ps.price) FROM product_skus ps WHERE ps.product_id = p.id), 0) as price, " +
+            "COALESCE(s.original_price, (SELECT MIN(ps.original_price) FROM product_skus ps WHERE ps.product_id = p.id), 0) as original_price, " +
+            "COALESCE(s.stock, (SELECT COALESCE(SUM(ps.stock), 0) FROM product_skus ps WHERE ps.product_id = p.id), 0) as stock, " +
             "COALESCE(s.sku_image, (SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1)) as product_image " +
             "FROM cart_items ci " +
             "LEFT JOIN products p ON ci.product_id = p.id " +
@@ -110,9 +109,9 @@ public interface CartItemMapper {
             "p.name as productName, " +
             "s.sku_name as skuName, " +
             "p.brand, " +
-            "COALESCE(s.price, p.price, 0) as price, " +
-            "COALESCE(s.original_price, p.original_price, 0) as originalPrice, " +
-            "COALESCE(s.stock, p.stock, 0) as stock, " +
+            "COALESCE(s.price, (SELECT MIN(ps.price) FROM product_skus ps WHERE ps.product_id = p.id), 0) as price, " +
+            "COALESCE(s.original_price, (SELECT MIN(ps.original_price) FROM product_skus ps WHERE ps.product_id = p.id), 0) as originalPrice, " +
+            "COALESCE(s.stock, (SELECT COALESCE(SUM(ps.stock), 0) FROM product_skus ps WHERE ps.product_id = p.id), 0) as stock, " +
             "COALESCE(s.sku_image, (SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1)) as productImage " +
             "FROM cart_items ci " +
             "LEFT JOIN products p ON ci.product_id = p.id " +
@@ -165,4 +164,10 @@ public interface CartItemMapper {
             "</script>")
     int deleteByUserIdAndProductIds(@Param("userId") Long userId,
                                     @Param("productIds") List<Long> productIds);
+
+    /**
+     * 根据商品ID删除购物车中的该商品（删除所有用户的购物车项）
+     */
+    @Delete("DELETE FROM cart_items WHERE product_id = #{productId}")
+    int deleteByProductId(Long productId);
 }

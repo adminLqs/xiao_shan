@@ -1,6 +1,8 @@
 package com.xiaoshan.springbootdemo.controller;
 
+import com.xiaoshan.springbootdemo.entity.MerchantApply;
 import com.xiaoshan.springbootdemo.entity.dto.MerchantApplyDTO;
+import com.xiaoshan.springbootdemo.mapper.MerchantApplyMapper;
 import com.xiaoshan.springbootdemo.service.MerchantApplyService;
 import com.xiaoshan.springbootdemo.service.UserService;
 import jakarta.validation.Valid;
@@ -24,8 +26,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MerchantApplyController {
 
-    private UserService userService;
-    private MerchantApplyService merchantApplyService;
+    private final UserService userService;
+    private final MerchantApplyService merchantApplyService;
+    private final MerchantApplyMapper merchantApplyMapper;
 
     // 商家入驻申请提交
     @PostMapping("/merchant/applications")
@@ -96,12 +99,35 @@ public class MerchantApplyController {
         }
     }
 
-    // 提交审核结果
-    @PostMapping("/merchant/applications/{applicationId}/status")
+    // 查询用户入驻申请状态
+    @GetMapping("/merchant/apply/status")
     @PreAuthorize("hasAnyAuthority('ROLE_USER','ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> getMerchantApplicationStatus(Authentication authentication) {
+        try {
+            Long userId = userService.getCurrentUserId(authentication);
+            Map<String, Object> status = merchantApplyService.getMerchantApplyStatus(userId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", status);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("查询申请状态失败", e);
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", "查询失败，请稍后重试"
+            ));
+        }
+    }
+
+    // 提交审核结果（管理员）
+    @PostMapping("/merchant/applications/{applicationId}/status")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<?> submitApplicationReview(
             @PathVariable Long applicationId,
-            @RequestBody Map<String, String> reviewData) {
+            @RequestBody Map<String, String> reviewData,
+            Authentication authentication) {
         try {
             String status = reviewData.get("status");
             String reviewNotes = reviewData.get("reviewNotes");
@@ -121,14 +147,25 @@ public class MerchantApplyController {
                 ));
             }
 
-            // 这里实现审核逻辑
-            log.info("审核申请 ID: {}, 状态: {}, 备注: {}", applicationId, status, reviewNotes);
+            // 获取审核人ID
+            Long reviewerId = userService.getCurrentUserId(authentication);
+
+            // 执行审核逻辑
+            Map<String, Object> result = merchantApplyService.reviewApplication(
+                    applicationId, status, reviewNotes, reviewerId);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", "审核提交成功"
+                    "message", "审核成功",
+                    "data", result
             ));
 
+        } catch (RuntimeException e) {
+            log.warn("审核业务异常: {}", e.getMessage());
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
         } catch (Exception e) {
             log.error("提交审核失败", e);
             return ResponseEntity.ok().body(Map.of(

@@ -1,380 +1,498 @@
-/* ========== 页面容器 ========== */
+/* ========== 物流信息页 - 简洁版样式 ========== */
+
 .user-logistics-container {
-  max-width: 100%;
-  margin: 0 auto;
-  padding: 0;
   min-height: 100vh;
   background: #f5f7fa;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  position: relative;
 }
 
-/* ========== 加载状态 ========== */
-.loading-state {
-  text-align: center;
-  padding: 80px 20px;
-  padding-top: 120px;
+/* 移除所有动态背景 */
+.user-logistics-container::before,
+.user-logistics-container::after {
+  display: none;
+  content: none;
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #4a6491;
+/* ========== 页面导航栏 ========== */
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid #e8ecf0;
+}
+
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  border: none;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
+  cursor: pointer;
+  color: #4a6491;
+  font-size: 16px;
+  transition: all 0.2s;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.page-nav-back:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
 }
 
-.loading-state p {
-  color: #94a3b8;
-  font-size: 14px;
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.page-nav-title i {
+  color: #4a6491;
+}
+
+.page-nav-right {
+  width: 36px;
 }
 
 /* ========== 物流内容区域 ========== */
 .logistics-content {
-  padding: 12px;
-  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  padding: 0;
+  position: relative;
+  z-index: 1;
 }
 
 /* ========== 订单号行 ========== */
 .order-number-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 16px;
   background: white;
+  border-radius: 0;
+  margin: 0 0 8px 0;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* ========== 商品信息卡片 ========== */
+.product-info-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  margin: 0 0 8px 0;
+}
+.product-info-card .product-image {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.product-detail {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.product-detail .product-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tags-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.tag-spec {
+  font-size: 12px;
+  color: #64748b;
+  background: #f0f2f5;
+  padding: 2px 8px;
   border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  width: fit-content;
+}
+.tag-quantity {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  background: transparent;
+  padding: 4px 6px;
+  white-space: nowrap;
 }
 
 .order-label {
-  font-size: 14px;
+  font-size: 13px;
   color: #64748b;
 }
 
 .order-value {
-  font-size: 14px;
-  color: #333;
+  font-size: 13px;
   font-weight: 500;
+  color: #1e293b;
+  flex: 1;
+  word-break: break-all;
 }
 
-/* ========== 物流公司卡片（紧凑型） ========== */
+/* ========== 物流公司卡片 ========== */
 .logistics-company-card {
   display: flex;
   align-items: center;
+  padding: 16px;
   background: white;
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
+  border-radius: 0;
+  margin: 0 0 8px 0;
+  border: 1px solid #e8ecf0;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.logistics-company-card:active {
+  transform: scale(0.98);
 }
 
 .company-logo {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
+  background: #f5f7fa;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4a6491, #3a5479);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 12px;
-  flex-shrink: 0;
 }
 
 .company-logo i {
-  font-size: 18px;
-  color: white;
+  font-size: 24px;
+  color: #4a6491;
 }
 
 .company-info {
   flex: 1;
-  min-width: 0;
 }
 
 .company-name {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 2px;
+  color: #1e293b;
+  margin-bottom: 4px;
 }
 
 .tracking-number {
   font-size: 12px;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .copy-btn {
   width: 36px;
   height: 36px;
+  background: #f5f7fa;
+  border: none;
   border-radius: 50%;
-  border: 1px solid #e2e8f0;
-  background: white;
+  color: #4a6491;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  color: #64748b;
-  margin-left: 8px;
+  transition: all 0.2s;
 }
 
 .copy-btn:active {
-  background: #f8fafc;
+  background: #e8ecf0;
+  transform: scale(0.92);
 }
 
-/* ========== 物流卡片 ========== */
+/* ========== 物流轨迹卡片 ========== */
 .logistics-card {
   background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 12px;
+  border-radius: 0;
+  padding: 16px;
+  margin: 0 0 8px 0;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-/* ========== 物流轨迹时间线 ========== */
+/* 物流时间线 */
 .logistics-timeline {
-  padding: 16px;
+  position: relative;
 }
 
 .timeline-item {
   display: flex;
-  padding-bottom: 20px;
-  position: relative;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .timeline-item:last-child {
-  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 .timeline-line {
-  width: 20px;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
-}
-
-.timeline-item:not(:last-child) .timeline-line::after {
-  content: '';
-  position: absolute;
-  top: 14px;
-  bottom: 0;
-  width: 2px;
-  background: #e2e8f0;
-}
-
-.timeline-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #cbd5e1;
+  width: 28px;
   flex-shrink: 0;
 }
 
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: all 0.2s;
+}
+
 .timeline-item.is-first .timeline-dot {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   background: #4a6491;
+  box-shadow: 0 0 0 2px rgba(74, 100, 145, 0.2);
+}
+
+.timeline-line::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: calc(100% + 20px);
+  background: #e2e8f0;
+}
+
+.timeline-item:last-child .timeline-line::after {
+  display: none;
 }
 
 .timeline-content {
   flex: 1;
-  padding-left: 8px;
+  padding-bottom: 8px;
 }
 
 .timeline-status {
   font-size: 14px;
-  color: #333;
-  margin-bottom: 4px;
+  font-weight: 500;
+  color: #1e293b;
   line-height: 1.4;
+  margin-bottom: 4px;
 }
 
 .timeline-item.is-first .timeline-status {
-  font-weight: 600;
   color: #4a6491;
+  font-weight: 600;
 }
 
 .timeline-time {
   font-size: 12px;
   color: #94a3b8;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .timeline-location {
-  font-size: 12px;
-  color: #64748b;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  font-size: 11px;
+  color: #64748b;
+  background: #f5f7fa;
+  padding: 4px 10px;
+  border-radius: 16px;
+  margin-top: 4px;
 }
 
 .timeline-location i {
   font-size: 10px;
+  color: #4a6491;
 }
 
-/* 暂无轨迹 */
+/* 无物流信息 */
 .no-trace {
   text-align: center;
   padding: 40px 20px;
+  color: #94a3b8;
 }
 
 .no-trace i {
   font-size: 48px;
-  color: #cbd5e1;
   margin-bottom: 12px;
+  opacity: 0.5;
+  color: #4a6491;
 }
 
 .no-trace p {
-  color: #64748b;
+  margin: 4px 0;
   font-size: 14px;
-  margin: 0 0 4px 0;
 }
 
 .no-trace .tips {
-  color: #94a3b8;
   font-size: 12px;
+  color: #cbd5e1;
 }
 
 /* ========== 未发货卡片 ========== */
 .not-shipped-card {
   background: white;
-  border-radius: 12px;
-  padding: 60px 20px;
+  border-radius: 0;
+  padding: 32px;
   text-align: center;
-  margin-bottom: 12px;
+  margin: 0 0 8px 0;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .not-shipped-card i {
-  font-size: 64px;
-  color: #ffc107;
-  margin-bottom: 16px;
+  font-size: 48px;
+  color: #4a6491;
+  margin-bottom: 12px;
+  opacity: 0.5;
 }
 
 .not-shipped-card p {
-  margin: 0;
+  font-size: 14px;
   color: #64748b;
-  font-size: 16px;
-  margin-bottom: 8px;
+  margin: 4px 0;
 }
 
 .not-shipped-card .tips {
-  color: #94a3b8;
   font-size: 12px;
+  color: #94a3b8;
 }
 
-/* ========== 收件信息卡片（默认展开） ========== */
+/* ========== 收件信息卡片 ========== */
 .address-card {
   background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 12px;
+  border-radius: 0;
+  padding: 16px;
+  margin: 0 0 8px 0;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .card-header {
-  padding: 14px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f2f5;
 }
 
 .card-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: #333;
-  margin: 0;
+  color: #1e293b;
 }
 
 .card-content {
-  padding: 14px 16px;
-  background: #fafafa;
-}
-
-.address-info {
-  display: flex;
-  flex-direction: column;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .receiver {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   margin-bottom: 8px;
 }
 
 .receiver-name {
-  font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: #1e293b;
+  margin-right: 12px;
 }
 
 .receiver-phone {
-  font-size: 13px;
   color: #64748b;
 }
 
 .receiver-address {
-  font-size: 13px;
   color: #64748b;
-  line-height: 1.5;
+  word-break: break-all;
 }
 
-/* ========== 操作按钮 ========== */
+/* ========== 底部操作按钮 ========== */
+.bottom-bar-fixed,
 .action-buttons {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 12px;
   background: white;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+  padding: 6px 10px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  gap: 6px;
+  justify-content: flex-end;
+  box-shadow: 0 -1px 4px rgba(0,0,0,0.05);
+  z-index: 100;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom));
+}
+
+.bottom-bar-fixed button,
+.action-buttons button {
+  flex: none;
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+}
+
+.bottom-space {
+  height: 42px;
 }
 
 .btn-receive {
-  width: 100%;
-  height: 44px;
-  background: #ef4444;
+  background: #4a6491;
   color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.btn-receive:disabled {
-  opacity: 0.6;
 }
 
 .btn-contact {
-  width: 100%;
-  height: 44px;
   background: white;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 14px;
-  cursor: pointer;
+  border: 1px solid #4a6491;
+  color: #4a6491;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-}
-
-.btn-contact:active {
-  background: #f8fafc;
+  gap: 6px;
 }
 
 /* ========== 空状态 ========== */
 .empty-state {
   text-align: center;
-  padding: 80px 20px;
-  padding-top: 120px;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 0;
+  margin: 0;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .empty-state i {
@@ -384,26 +502,24 @@
 }
 
 .empty-state p {
+  font-size: 14px;
   color: #64748b;
-  font-size: 14px;
-  margin-bottom: 24px;
+  margin: 4px 0;
 }
 
-.btn-primary {
-  width: 100%;
-  max-width: 200px;
-  height: 44px;
-  padding: 0 24px;
-  background: #4a6491;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
+.empty-state .tips {
+  font-size: 12px;
+  color: #94a3b8;
 }
 
-/* 旋转动画 */
-.fa-spinner {
-  animation: spin 1s linear infinite;
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  /* 只保留布局相关响应式 */
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .user-logistics-container {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  }
 }

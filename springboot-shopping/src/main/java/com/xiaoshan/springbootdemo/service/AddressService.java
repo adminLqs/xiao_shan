@@ -2,12 +2,14 @@ package com.xiaoshan.springbootdemo.service;
 
 import com.xiaoshan.springbootdemo.entity.Address;
 import com.xiaoshan.springbootdemo.mapper.AddressMapper;
+import com.xiaoshan.springbootdemo.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -15,6 +17,7 @@ import java.util.List;
 public class AddressService {
 
     private final AddressMapper addressMapper;
+    private final SnowflakeIdGenerator snowflakeIdGenerator;
 
     // 增（Create）
     // ============================================================
@@ -34,13 +37,14 @@ public class AddressService {
         // 确保一个用户只能有一个默认地址
         if (address.getIsDefault()) {
             addressMapper.clearDefaultByUserId(address.getUserId());
-            log.debug("清除用户默认地址标记: userId={}", address.getUserId());
         }
+
+        // 设置雪花ID
+        address.setId(snowflakeIdGenerator.nextId());
 
         // 插入新地址
         addressMapper.insert(address);
-        log.info("添加地址成功: userId={}, addressId={}, isDefault={}",
-                address.getUserId(), address.getId(), address.getIsDefault());
+
     }
 
     // 删（Delete）
@@ -66,7 +70,7 @@ public class AddressService {
 
         // 执行删除
         addressMapper.deleteByIdAndUserId(addressId, userId);
-        log.info("删除地址成功: userId={}, addressId={}", userId, addressId);
+
     }
 
     // 改（Update）
@@ -95,13 +99,11 @@ public class AddressService {
         // 作用：确保一个用户只能有一个默认地址
         if (address.getIsDefault() && !existingAddress.getIsDefault()) {
             addressMapper.clearDefaultByUserId(address.getUserId());
-            log.debug("清除用户默认地址标记: userId={}", address.getUserId());
         }
 
         // 3. 执行更新
         addressMapper.update(address);
-        log.info("更新地址成功: userId={}, addressId={}, isDefault={}",
-                address.getUserId(), address.getId(), address.getIsDefault());
+
     }
 
     /**
@@ -126,11 +128,10 @@ public class AddressService {
 
         // 2. 清除该用户所有现有的默认地址标记
         addressMapper.clearDefaultByUserId(userId);
-        log.debug("清除用户默认地址标记: userId={}", userId);
 
         // 3. 将目标地址设置为默认地址
         addressMapper.setDefault(addressId, userId);
-        log.info("设置默认地址成功: userId={}, addressId={}", userId, addressId);
+
     }
 
     // 查（Select）
@@ -153,8 +154,6 @@ public class AddressService {
     public Address getAddressById(Long addressId) {
         Address address = addressMapper.findById(addressId)
                 .orElseThrow(() -> new RuntimeException("地址不存在"));
-        log.debug("查询地址信息: addressId={}, recipientName={}",
-                addressId, address.getRecipientName());
         return address;
     }
 
@@ -174,7 +173,6 @@ public class AddressService {
      */
     public List<Address> getUserAddresses(Long userId) {
         List<Address> addresses = addressMapper.findByUserId(userId);
-        log.debug("查询用户地址列表: userId={}, 共{}条", userId, addresses.size());
         return addresses;
     }
 
@@ -192,7 +190,6 @@ public class AddressService {
      */
     public Address getDefaultAddress(Long userId) {
         Address defaultAddress = addressMapper.findDefaultByUserId(userId).orElse(null);
-        log.debug("查询默认地址: userId={}, 结果={}", userId, defaultAddress != null ? "存在" : "不存在");
         return defaultAddress;
     }
 
@@ -211,7 +208,34 @@ public class AddressService {
     public Address getAddressByUserIdAndAddressId(Long userId, Long addressId) {
         Address address = addressMapper.findByIdAndUserId(addressId, userId)
                 .orElseThrow(() -> new RuntimeException("地址不存在或无权访问"));
-        log.debug("查询地址详情: userId={}, addressId={}", userId, addressId);
         return address;
+    }
+
+    /**
+     * 根据用户ID获取地址列表（返回 Map 格式，用于前端）
+     *
+     * @param userId 用户ID
+     * @return 地址列表（Map 格式）
+     */
+    public List<Map<String, Object>> getByUserId(Long userId) {
+        List<Address> addresses = addressMapper.findByUserId(userId);
+        return addresses.stream().map(this::addressToMap).toList();
+    }
+
+    /**
+     * 将 Address 实体转换为 Map
+     */
+    private Map<String, Object> addressToMap(Address address) {
+        return Map.of(
+                "id", address.getId(),
+                "recipientName", address.getRecipientName(),
+                "recipientPhone", address.getRecipientPhone(),
+                "province", address.getProvince(),
+                "city", address.getCity(),
+                "district", address.getDistrict(),
+                "detail", address.getDetailAddress(),
+                "isDefault", address.getIsDefault(),
+                "createdAt", address.getCreatedAt()
+        );
     }
 }

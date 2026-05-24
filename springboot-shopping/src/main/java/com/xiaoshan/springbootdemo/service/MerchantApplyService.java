@@ -1,8 +1,12 @@
 package com.xiaoshan.springbootdemo.service;
 
 import com.xiaoshan.springbootdemo.entity.MerchantApply;
+import com.xiaoshan.springbootdemo.entity.SellerProfile;
 import com.xiaoshan.springbootdemo.entity.dto.MerchantApplyDTO;
 import com.xiaoshan.springbootdemo.mapper.MerchantApplyMapper;
+import com.xiaoshan.springbootdemo.mapper.SellerProfileMapper;
+import com.xiaoshan.springbootdemo.mapper.UserMapper;
+import com.xiaoshan.springbootdemo.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +27,9 @@ import java.util.*;
 public class MerchantApplyService {
 
     private final MerchantApplyMapper merchantApplyMapper;
+    private final UserMapper userMapper;
+    private final SellerProfileMapper sellerProfileMapper;
+    private final SnowflakeIdGenerator snowflakeIdGenerator;
 
     /// 配置文件获取上传目录
     @Value("${app.file.uploads-dir:uploads}")
@@ -41,8 +48,6 @@ public class MerchantApplyService {
      */
     @Transactional
     public Map<String, Object> processMerchantApply(Long userId, MerchantApplyDTO applyDTO) {
-        log.info("开始处理用户 {} 的商家申请", userId);
-
         try {
             // 1. 基础信息校验
             validateBasicInfo(applyDTO);
@@ -214,7 +219,7 @@ public class MerchantApplyService {
             String idCardBackPath = storeFile(applyDTO.getIdCardBack(), subDirectory);
             fileUrls.put("idCardBack", idCardBackPath);
 
-            log.info("商家申请文件上传成功，用户ID: {}, 文件路径: {}", userId, fileUrls);
+
 
         } catch (Exception e) {
             log.error("商家申请文件上传失败，用户ID: {}, 错误信息: {}", userId, e.getMessage());
@@ -240,7 +245,6 @@ public class MerchantApplyService {
             // 如果目录不存在，则创建（包括父级目录）
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
-                log.debug("创建上传目录: {}", uploadPath.toAbsolutePath());
             }
 
             // 获取原始文件名
@@ -261,7 +265,7 @@ public class MerchantApplyService {
             // 将文件流写入文件路径中
             file.transferTo(filePath);
 
-            log.info("文件保存成功: 原始文件名={}, 保存路径={}", originalFileName, filePath.toAbsolutePath());
+
 
             // 返回相对访问路径（供前端访问使用）
             return "/uploads/" + subDirectory + "/" + fileName;
@@ -279,6 +283,9 @@ public class MerchantApplyService {
         // 创建实体对象
         MerchantApply apply = new MerchantApply();
 
+        // 设置雪花ID
+        apply.setId(snowflakeIdGenerator.nextId());
+
         // 设置基本信息
         apply.setUserId(userId);
         apply.setContactName(applyDTO.getContactName());
@@ -286,6 +293,7 @@ public class MerchantApplyService {
         apply.setContactEmail(applyDTO.getContactEmail());
         apply.setStoreName(applyDTO.getStoreName());
         apply.setStoreDetail(applyDTO.getStoreDetail());
+        apply.setAddress(applyDTO.getAddress());
         apply.setBusinessType(applyDTO.getBusinessType());
         apply.setMainCategory(applyDTO.getMainCategory());
 
@@ -302,7 +310,6 @@ public class MerchantApplyService {
         try {
             int result = merchantApplyMapper.insert(apply);
             if (result > 0) {
-                log.info("商家申请保存成功，申请ID: {}", apply.getId());
                 return apply;
             } else {
                 throw new RuntimeException("申请提交失败");
@@ -469,7 +476,192 @@ public class MerchantApplyService {
     // 获取所有商家入驻申请信息
     public List<MerchantApply> getAllapplies() {
         return merchantApplyMapper.selectAllApplications();
-    };
+    }
+
+    /**
+     * 审核商家入驻申请
+     * 
+     * @param applicationId 申请ID
+     * @param status 审核状态（APPROVED/REJECTED）
+     * @param reviewNotes 审核备注
+     * @param reviewerId 审核人ID
+     * @return 审核结果
+     */
+    @Transactional
+    public Map<String, Object> reviewApplication(Long applicationId, String status, 
+                                                 String reviewNotes, Long reviewerId) {
+
+
+        try {
+            // 1. 查询申请记录
+            MerchantApply application = merchantApplyMapper.selectById(applicationId);
+            if (application == null) {
+                throw new RuntimeException("申请记录不存在");
+            }
+
+            // 2. 检查状态是否可以审核（只能审核待审核状态）
+            if (!"PENDING".equals(application.getStatus())) {
+                throw new RuntimeException("该申请状态不允许审核");
+            }
+
+            // 3. 更新申请状态
+            application.setStatus(status);
+            application.setReviewNotes(reviewNotes);
+            application.setReviewedBy(reviewerId);
+            application.setReviewedAt(LocalDateTime.now());
+            application.setUpdatedAt(LocalDateTime.now());
+
+            int result = merchantApplyMapper.updateStatus(application);
+            if (result <= 0) {
+                throw new RuntimeException("审核失败，请稍后重试");
+            }
+
+            // 4. 如果审核通过，更新用户角色并创建商家资料
+            if ("APPROVED".equals(status)) {
+                processApprovedApplication(application);
+            }
+
+
+
+            // 5. 构建返回结果
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("applicationId", applicationId);
+            resultMap.put("status", status);
+            resultMap.put("userId", application.getUserId());
+            resultMap.put("storeName", application.getStoreName());
+
+            return resultMap;
+
+        } catch (RuntimeException e) {
+            log.warn("审核业务异常: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("审核系统异常", e);
+            throw new RuntimeException("审核失败，请稍后重试");
+        }
+    }
+
+    /**
+     * 处理审核通过的申请
+     * 更新用户角色为 ROLE_SELLER，并创建商家资料
+     */
+    private void processApprovedApplication(MerchantApply application) {
+
+
+        try {
+            // 更新用户角色为商家
+            updateUserRoleToSeller(application.getUserId());
+
+            // 创建商家资料
+            createSellerProfile(application);
+
+
+
+        } catch (Exception e) {
+            log.error("处理审核通过申请失败", e);
+            throw new RuntimeException("审核通过后处理失败，请联系管理员");
+        }
+    }
+
+    // ========== 管理员审核方法 ==========
+
+    /**
+     * 审核通过申请
+     */
+    @Transactional
+    public void approve(Long applicationId, Long adminId) {
+
+
+        // 1. 查询申请记录
+        MerchantApply application = merchantApplyMapper.selectById(applicationId);
+        if (application == null) {
+            throw new RuntimeException("申请记录不存在");
+        }
+
+        // 2. 检查状态
+        if (!"PENDING".equals(application.getStatus())) {
+            throw new RuntimeException("该申请状态不允许审核");
+        }
+
+        // 3. 更新申请状态
+        String now = LocalDateTime.now().toString();
+        int result = merchantApplyMapper.approveApplication(applicationId, adminId, now, now);
+        if (result <= 0) {
+            throw new RuntimeException("审核失败，请稍后重试");
+        }
+
+        // 4. 更新用户角色为商家
+        updateUserRoleToSeller(application.getUserId());
+
+        // 5. 创建商家资料
+        createSellerProfile(application);
+
+
+    }
+
+    /**
+     * 审核驳回申请
+     */
+    @Transactional
+    public void reject(Long applicationId, Long adminId, String reason) {
+
+
+        // 1. 查询申请记录
+        MerchantApply application = merchantApplyMapper.selectById(applicationId);
+        if (application == null) {
+            throw new RuntimeException("申请记录不存在");
+        }
+
+        // 2. 检查状态
+        if (!"PENDING".equals(application.getStatus())) {
+            throw new RuntimeException("该申请状态不允许审核");
+        }
+
+        // 3. 更新申请状态
+        String now = LocalDateTime.now().toString();
+        int result = merchantApplyMapper.rejectApplication(applicationId, reason, adminId, now, now);
+        if (result <= 0) {
+            throw new RuntimeException("审核失败，请稍后重试");
+        }
+
+
+    }
+
+    /**
+     * 更新用户角色为商家
+     */
+    @Transactional
+    public void updateUserRoleToSeller(Long userId) {
+
+        int result = userMapper.updateRole(userId, "ROLE_SELLER");
+        if (result <= 0) {
+            throw new RuntimeException("更新用户角色失败");
+        }
+
+    }
+
+    /**
+     * 创建商家资料
+     */
+    @Transactional
+    public void createSellerProfile(MerchantApply application) {
+
+
+        SellerProfile sellerProfile = new SellerProfile();
+        sellerProfile.setUserId(application.getUserId());
+        sellerProfile.setStoreName(application.getStoreName());
+        sellerProfile.setStoreDetail(application.getStoreDetail());
+        sellerProfile.setContactPhone(application.getContactPhone());
+        sellerProfile.setAddress(application.getAddress());
+        sellerProfile.setCreatedAt(LocalDateTime.now());
+        sellerProfile.setUpdatedAt(LocalDateTime.now());
+
+        int result = sellerProfileMapper.insert(sellerProfile);
+        if (result <= 0) {
+            throw new RuntimeException("创建商家资料失败");
+        }
+
+    }
 
 
 }

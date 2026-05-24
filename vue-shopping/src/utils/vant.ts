@@ -15,7 +15,8 @@ class Toast {
   }
 
   static loading(message = '加载中...', forbidClick = true) {
-    return Message.loading({ text: message, lock: forbidClick })
+    // Note: lock is always true in Message.loading implementation
+    return Message.loading({ text: message })
   }
 
   static info(message: string, options?: any) {

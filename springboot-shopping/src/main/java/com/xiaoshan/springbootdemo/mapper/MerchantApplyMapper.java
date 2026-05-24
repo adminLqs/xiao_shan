@@ -10,19 +10,32 @@ import java.util.Optional;
 public interface MerchantApplyMapper {
 
     // 插入数据
-    @Insert("INSERT INTO merchant_apply (" +
+    @Insert("INSERT INTO merchant_apply (id, " +
             "user_id, contact_name, contact_phone, contact_email, " +
-            "store_name, store_detail, business_type, main_category, " +
+            "store_name, store_detail, address, business_type, main_category, " +
             "business_license, id_card_front, id_card_back, " +
             "status, created_at, updated_at" +
             ") VALUES (" +
-            "#{userId}, #{contactName}, #{contactPhone}, #{contactEmail}, " +
-            "#{storeName}, #{storeDetail}, #{businessType}, #{mainCategory}, " +
+            "#{id}, #{userId}, #{contactName}, #{contactPhone}, #{contactEmail}, " +
+            "#{storeName}, #{storeDetail}, #{address}, #{businessType}, #{mainCategory}, " +
             "#{businessLicense}, #{idCardFront}, #{idCardBack}, " +
             "#{status}, #{createdAt}, #{updatedAt}" +
             ")")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(MerchantApply apply);
+
+    // 根据ID查询申请
+    @Select("SELECT * FROM merchant_apply WHERE id = #{id}")
+    MerchantApply selectById(Long id);
+
+    // 更新申请状态
+    @Update("UPDATE merchant_apply SET " +
+            "status = #{status}, " +
+            "review_notes = #{reviewNotes}, " +
+            "reviewed_by = #{reviewedBy}, " +
+            "reviewed_at = #{reviewedAt}, " +
+            "updated_at = #{updatedAt} " +
+            "WHERE id = #{id}")
+    int updateStatus(MerchantApply apply);
 
     // 查询所有用户申请记录
     @Select("SELECT * FROM merchant_apply ORDER BY created_at DESC")
@@ -118,4 +131,46 @@ public interface MerchantApplyMapper {
             @Param("dateFrom") String dateFrom,
             @Param("dateTo") String dateTo,
             @Param("search") String search);
+
+    // ========== 管理员审核方法 ==========
+
+    /**
+     * 审核通过 - 更新申请状态
+     */
+    @Update("UPDATE merchant_apply SET " +
+            "status = 'APPROVED', " +
+            "reviewed_by = #{reviewedBy}, " +
+            "reviewed_at = #{reviewedAt}, " +
+            "updated_at = #{updatedAt} " +
+            "WHERE id = #{id} AND status = 'PENDING'")
+    int approveApplication(@Param("id") Long id,
+                          @Param("reviewedBy") Long reviewedBy,
+                          @Param("reviewedAt") String reviewedAt,
+                          @Param("updatedAt") String updatedAt);
+
+    /**
+     * 审核驳回 - 更新申请状态和驳回原因
+     */
+    @Update("UPDATE merchant_apply SET " +
+            "status = 'REJECTED', " +
+            "review_notes = #{reviewNotes}, " +
+            "reviewed_by = #{reviewedBy}, " +
+            "reviewed_at = #{reviewedAt}, " +
+            "updated_at = #{updatedAt} " +
+            "WHERE id = #{id} AND status = 'PENDING'")
+    int rejectApplication(@Param("id") Long id,
+                          @Param("reviewNotes") String reviewNotes,
+                          @Param("reviewedBy") Long reviewedBy,
+                          @Param("reviewedAt") String reviewedAt,
+                          @Param("updatedAt") String updatedAt);
+
+    /**
+     * 查询用户最新一条已通过的商家申请记录
+     * @param userId 用户ID
+     * @return 申请记录
+     */
+    @Select("SELECT * FROM merchant_apply " +
+            "WHERE user_id = #{userId} AND status = 'APPROVED' " +
+            "ORDER BY reviewed_at DESC LIMIT 1")
+    Optional<MerchantApply> findLatestApprovedByUserId(Long userId);
 }

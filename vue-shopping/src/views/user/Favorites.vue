@@ -1,142 +1,120 @@
-<!-- views/user/Favorites.vue - 我的收藏页面 -->
 <template>
   <div class="favorites-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <h3 class="page-title">
-        <i class="fas fa-heart"></i>
-        我的收藏
-      </h3>
-      <button
-        v-if="total > 0"
-        class="batch-delete-btn"
-        @click="batchDelete"
-        :disabled="selectedIds.length === 0"
-      >
-        批量删除
-        <span v-if="selectedIds.length > 0" class="badge">{{ selectedIds.length }}</span>
+    <!-- 导航栏 -->
+    <div class="cart-navbar">
+      <button class="cart-nav-back" @click="router.back()">
+        <i class="fas fa-chevron-left"></i>
       </button>
+      <div class="cart-nav-title">
+        <i class="fas fa-heart"></i>
+        <span>我的收藏</span>
+      </div>
     </div>
 
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading-state">
-      <div class="loading-spinner"></div>
-      <p>加载中...</p>
+    <!-- 操作栏 -->
+    <div class="cart-actions-bar" v-if="favorites.length > 0">
+      <div class="select-all" @click="toggleSelectAll">
+        <i :class="isAllSelected ? 'fas fa-check-circle' : 'far fa-circle'"></i>
+        <span>全选</span>
+      </div>
+      <span class="cart-items-count">共{{ favorites.length }}件</span>
+      <button class="delete-btn" @click="batchDelete" :disabled="selectedIds.length === 0">删除</button>
+    </div>
+
+    <!-- 骨架屏 -->
+    <div v-if="loading" class="favorites-content">
+      <div class="cart-list">
+        <div v-for="n in 4" :key="n" class="skeleton-card">
+          <div class="cart-item-top">
+            <div class="skeleton-avatar" style="width:70px;height:70px;border-radius:8px;"></div>
+            <div class="item-info">
+              <div class="skeleton-line medium"></div>
+              <div class="skeleton-line short" style="width:40%"></div>
+              <div class="skeleton-line short" style="width:30%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="favorites.length === 0" class="empty-state">
-      <i class="far fa-heart"></i>
+    <div v-else-if="favorites.length === 0" class="empty-cart">
+      <i class="fas fa-heart"></i>
       <p>暂无收藏商品</p>
-      <button class="btn-primary" @click="goShopping">去逛逛</button>
+      <RouterLink :to="{name: 'UserDashboard'}" class="btn btn-primary">去逛逛</RouterLink>
     </div>
 
     <!-- 收藏列表 -->
-    <div v-else class="favorites-list">
-      <div v-for="item in favorites" :key="item.id" class="favorite-card">
-        <!-- 复选框（批量删除用） -->
-        <div class="item-checkbox">
-          <input type="checkbox" v-model="selectedIds" :value="item.id" />
-        </div>
-
-        <!-- 商品图片 -->
-        <div class="item-image" @click="viewProduct(item.productId)">
-          <img :src="item.productImage || '/images/default-product.jpg'" :alt="item.productName">
-        </div>
-
-        <!-- 商品信息 -->
-        <div class="item-info" @click="viewProduct(item.productId)">
-          <div class="item-name">{{ item.productName }}</div>
-          <div class="item-brand">{{ item.brand || '官方旗舰店' }}</div>
-          <div v-if="item.skuName" class="item-sku">{{ item.skuName }}</div>
-          <div class="item-time">收藏时间：{{ formatDate(item.createdAt) }}</div>
-        </div>
-
-        <!-- 商品价格 -->
-        <div class="item-price">
-          <div class="current-price">¥{{ formatPrice(item.price) }}</div>
-          <div v-if="item.originalPrice" class="original-price">¥{{ formatPrice(item.originalPrice) }}</div>
-        </div>
-
-        <!-- 库存状态 -->
-        <div class="item-stock">
-          <span :class="item.stock > 0 ? 'in-stock' : 'out-stock'">
-            {{ item.stock > 0 ? '有货' : '缺货' }}
-          </span>
-        </div>
-
-        <!-- 操作按钮 -->
-        <div class="item-actions">
-          <button class="action-btn cart-btn" @click="addToCart(item)" :disabled="item.stock === 0">
-            <i class="fas fa-shopping-cart"></i>
-            加入购物车
-          </button>
-          <button class="action-btn delete-btn" @click="removeFavorite(item.id)">
-            <i class="fas fa-trash-alt"></i>
-            删除
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ========== 分页组件 ========== -->
-    <div class="pagination" v-if="totalPages > 1">
-      <!-- 上一页按钮 -->
-      <button
-        class="page-btn prev"
-        :disabled="currentPage === 1"
-        @click="goToPage(currentPage - 1)"
-      >
-        <i class="fas fa-chevron-left"></i> 上一页
-      </button>
-
-      <!-- 页码按钮（动态生成） -->
-      <div class="page-numbers">
-        <button
-          v-for="page in visiblePages"
-          :key="page"
-          class="page-num"
-          :class="{ active: currentPage === page, dots: page === '...' }"
-          :disabled="page === '...'"
-          @click="page !== '...' && goToPage(page)"
+    <div v-else class="favorites-content">
+      <div class="cart-list">
+        <div
+          v-for="item in favorites"
+          :key="item.id"
+          class="cart-item"
+          :class="{
+            'out-of-stock': item.stock <= 0,
+            'selected': selectedIds.includes(item.id)
+          }"
+          @click="toggleSelectItem(item)"
         >
-          {{ page }}
-        </button>
+          <div class="cart-item-top">
+            <div class="item-image" @click.stop="viewProduct(item.productId)">
+              <img :src="item.productImage || '/images/default-product.jpg'" :alt="item.productName" />
+            </div>
+
+            <div class="item-info">
+              <div class="item-name text-ellipsis" @click.stop="viewProduct(item.productId)">{{ item.productName }}</div>
+              <div class="tags-group">
+                <span v-if="item.skuName" class="item-sku text-ellipsis">{{ item.skuName }}</span>
+                <span class="item-time text-ellipsis">{{ formatDate(item.createdAt) }}</span>
+                <span v-if="item.stock <= 0" class="out-of-stock-tag">缺货</span>
+              </div>
+            </div>
+
+            <div class="item-price-right">
+              <span class="current-price">¥{{ formatPrice(item.price) }}</span>
+              <span v-if="item.originalPrice && item.originalPrice > item.price" class="original-price text-ellipsis">¥{{ formatPrice(item.originalPrice) }}</span>
+            </div>
+          </div>
+
+          <div class="item-bottom">
+            <div class="item-status">
+              <span v-if="item.stock <= 0" class="stock-text">暂时缺货</span>
+              <template v-else>
+                <span v-if="selectedIds.includes(item.id)" class="selected-text">
+                  <i class="fas fa-check"></i> 已选
+                </span>
+                <span v-else class="unselected-text">点此选择</span>
+              </template>
+            </div>
+
+            <div class="item-right-actions">
+              <button class="cart-btn" @click.stop="addToCart(item)" :disabled="item.stock === 0">加入购物车</button>
+              <span class="delete-text-btn" @click.stop="removeFavorite(item.id)">删除</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- 下一页按钮 -->
-      <button
-        class="page-btn next"
-        :disabled="currentPage === totalPages"
-        @click="goToPage(currentPage + 1)"
-      >
-        下一页 <i class="fas fa-chevron-right"></i>
-      </button>
-    </div>
-
-    <!-- 简单分页（移动端） -->
-    <div class="simple-pagination" v-if="totalPages > 1">
-      <button class="page-btn" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">
-        <i class="fas fa-chevron-left"></i>
-      </button>
-      <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
-      <button class="page-btn" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">
-        <i class="fas fa-chevron-right"></i>
-      </button>
+      <div v-if="loadingMore" class="loading-more-bar">
+        <i class="fas fa-spinner fa-spin"></i> 加载更多...
+      </div>
+      <div v-else-if="!hasMore && favorites.length > 0" class="no-more-bar">— 已经到底了 —</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue'
+  import { ref, computed, onMounted, onUnmounted } from 'vue'
   import { useRouter } from 'vue-router'
   import { authAPI } from '@/api/authAPI'
   import Message from '@/utils/message'
   import { useAuthStore } from '@/stores/auth'
   import { storeToRefs } from 'pinia'
 
+
   const authStore = useAuthStore()
-  const { isLoggedIn, role, status } = storeToRefs(authStore)
+  const { isLoggedIn, isSeller, isAdmin } = storeToRefs(authStore)
 
   const router = useRouter()
 
@@ -168,91 +146,112 @@
 
   // ==================== 响应式数据 ====================
 
-  const loading = ref(false)
+  const loading = ref(true)
+  const loadingMore = ref(false)
+  const hasMore = ref(true)
   const favorites = ref<FavoriteItem[]>([])
   const selectedIds = ref<number[]>([])
   const currentPage = ref(1)
-  const pageSize = ref(10)
+  const pageSize = ref(20)
   const total = ref(0)
-  const totalPages = ref(1)
+  const isEditing = ref(false)
 
-  // ==================== 分页页码 ====================
+  // ==================== 计算属性 ====================
 
-  /**
-   * 带省略号的分页页码数组
-   * @description 当前页前后显示2页，首尾固定显示
-   */
-  const visiblePages = computed(() => {
-    const delta = 2
-    const range: number[] = []
-    const rangeWithDots: (number | string)[] = []
-    let l: number
+  const selectableItems = computed(() =>
+    favorites.value.filter(item => item.stock > 0)
+  )
 
-    for (let i = 1; i <= totalPages.value; i++) {
-      if (i === 1 || i === totalPages.value || (i >= currentPage.value - delta && i <= currentPage.value + delta)) {
-        range.push(i)
-      }
-    }
-
-    for (const i of range) {
-      if (l) {
-        if (i - l === 2) {
-          rangeWithDots.push(l + 1)
-        } else if (i - l !== 1) {
-          rangeWithDots.push('...')
-        }
-      }
-      rangeWithDots.push(i)
-      l = i
-    }
-    return rangeWithDots
+  const isAllSelected = computed(() => {
+    if (selectableItems.value.length === 0) return false
+    const selectedSelectableIds = selectedIds.value.filter(id =>
+      selectableItems.value.some(item => item.id === id)
+    )
+    return selectedSelectableIds.length === selectableItems.value.length
   })
 
   // ==================== 数据加载 ====================
 
-  /**
-   * 加载收藏列表
-   * @returns {Promise<void>}
-   */
   const loadFavorites = async () => {
-    loading.value = true
+    if (loadingMore.value) return
+
+    if (currentPage.value === 1) {
+      loading.value = true
+    } else {
+      loadingMore.value = true
+    }
+
     try {
       const response = await authAPI.getFavorites({
         page: currentPage.value,
-        size: pageSize.value
-      }) as unknown as ApiResponse<FavoriteItem[]>
+        pageSize: pageSize.value
+      })
 
       if (response.success) {
         const data = response.data || {}
-        favorites.value = data.records || []
-        total.value = data.total || 0
-        totalPages.value = data.totalPages || 1
+        const items = Array.isArray(data) ? data : (data.records || [])
+
+        if (currentPage.value === 1) {
+          favorites.value = items
+          selectedIds.value = selectedIds.value.filter(id => {
+            const item = favorites.value.find(i => i.id === id)
+            return item && item.stock > 0
+          })
+        } else {
+          favorites.value.push(...items)
+        }
+
+        total.value = data.total || items.length
+        hasMore.value = items.length >= pageSize.value
       }
-    } catch (error: any) {
-      Message.error(error.message || '加载失败')
+    } catch (error: unknown) {
+      const err = error as { message?: string }
+      Message.error(err?.message || '加载失败')
     } finally {
       loading.value = false
+      loadingMore.value = false
     }
   }
 
-  /**
-   * 跳转到指定页
-   * @param {number} page - 目标页码
-   */
-  const goToPage = (page: number) => {
-    if (page < 1 || page > totalPages.value) return
-    currentPage.value = page
-    loadFavorites()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  const loadMore = async () => {
+    if (loadingMore.value || !hasMore.value) return
+    currentPage.value++
+    await loadFavorites()
+  }
+
+  const handleScroll = () => {
+    if (loadingMore.value || !hasMore.value || loading.value) return
+
+    const { scrollTop, scrollHeight, clientHeight } = document.documentElement
+    if (scrollTop + clientHeight >= scrollHeight - 150) {
+      loadMore()
+    }
+  }
+
+  // ==================== 选择操作 ====================
+
+  const toggleSelectItem = (item: FavoriteItem) => {
+    if (item.stock <= 0) return
+
+    const index = selectedIds.value.indexOf(item.id)
+    if (index > -1) {
+      selectedIds.value.splice(index, 1)
+    } else {
+      selectedIds.value.push(item.id)
+    }
+  }
+
+  const toggleSelectAll = () => {
+    if (isAllSelected.value) {
+      selectedIds.value = []
+    } else {
+      const allSelectableIds = selectableItems.value.map(item => item.id)
+      selectedIds.value = [...allSelectableIds]
+    }
   }
 
   // ==================== 收藏操作 ====================
 
-  /**
-   * 删除单个收藏
-   * @param {number} favoriteId - 收藏ID
-   * @returns {Promise<void>}
-   */
   const removeFavorite = async (favoriteId: number) => {
     try {
       await Message.confirm('确定要删除该收藏吗？', '删除确认')
@@ -260,11 +259,10 @@
       const response = await authAPI.removeFavorite(favoriteId)
       if (response.success) {
         Message.success('删除成功')
-        // 当前页无数据时回退到上一页
-        if (favorites.value.length === 1 && currentPage.value > 1) {
-          currentPage.value--
-        }
-        loadFavorites()
+        selectedIds.value = selectedIds.value.filter(id => id !== favoriteId)
+        currentPage.value = 1
+        hasMore.value = true
+        await loadFavorites()
       }
     } catch (error: any) {
       if (error !== 'cancel') {
@@ -273,10 +271,6 @@
     }
   }
 
-  /**
-   * 批量删除收藏
-   * @returns {Promise<void>}
-   */
   const batchDelete = async () => {
     if (selectedIds.value.length === 0) return
 
@@ -287,7 +281,9 @@
       if (response.success) {
         Message.success('删除成功')
         selectedIds.value = []
-        loadFavorites()
+        currentPage.value = 1
+        hasMore.value = true
+        await loadFavorites()
       }
     } catch (error: any) {
       if (error !== 'cancel') {
@@ -298,12 +294,13 @@
 
   // ==================== 购物车操作 ====================
 
-  /**
-   * 加入购物车
-   * @param {FavoriteItem} item - 收藏商品对象
-   * @returns {Promise<void>}
-   */
   const addToCart = async (item: FavoriteItem) => {
+    if (!isLoggedIn.value) {
+      Message.error('请先登录后再添加')
+      router.push({ name: 'Login' })
+      return
+    }
+
     try {
       const response = await authAPI.addToCart({
         productId: item.productId,
@@ -319,10 +316,6 @@
 
   // ==================== 页面跳转 ====================
 
-  /**
-   * 查看商品详情
-   * @param {number} productId - 商品ID
-   */
   const viewProduct = (productId: number) => {
     router.push({
       name: 'ProductDetail',
@@ -330,27 +323,13 @@
     })
   }
 
-  const goShopping = () => {
-    router.push('/')
-  }
-
   // ==================== 工具函数 ====================
 
-  /**
-   * 格式化价格
-   * @param {number} price - 原始价格
-   * @returns {string} 保留两位小数的价格字符串
-   */
   const formatPrice = (price: number): string => {
     if (price == null || isNaN(price)) return '0.00'
     return price.toFixed(2)
   }
 
-  /**
-   * 格式化日期
-   * @param {string} dateStr - ISO日期字符串
-   * @returns {string} YYYY-MM-DD 格式
-   */
   const formatDate = (dateStr: string): string => {
     if (!dateStr) return '-'
     const date = new Date(dateStr)
@@ -366,10 +345,14 @@
     if (!authStore.validateUserPermission()) return
 
     loadFavorites()
+    window.addEventListener('scroll', handleScroll)
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('scroll', handleScroll)
   })
 </script>
 
 <style scoped>
 @import url('@/static/css/user/收藏页.css');
-
 </style>

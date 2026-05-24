@@ -1,7 +1,9 @@
 package com.xiaoshan.springbootdemo.component;
 
 import com.xiaoshan.springbootdemo.entity.Product;
+import com.xiaoshan.springbootdemo.entity.ProductSku;
 import com.xiaoshan.springbootdemo.mapper.ProductMapper;
+import com.xiaoshan.springbootdemo.mapper.ProductSkuMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -14,32 +16,37 @@ import java.util.List;
  * 项目启动时，将商品库存同步到 Redis
  * CommandLineRunner：Spring 启动后自动执行 run 方法
  */
-@Slf4j  // 日志注解
-@Component  // 注册为 Spring 组件
-@RequiredArgsConstructor  // 生成构造器注入
+@Slf4j
+@Component
+@RequiredArgsConstructor
 public class StockInitializer implements CommandLineRunner {
 
     private final ProductMapper productMapper;  // 商品数据库操作
+    private final ProductSkuMapper productSkuMapper;  // SKU数据库操作
     private final RedisTemplate<String, Object> redisTemplate;  // Redis 操作
 
     @Override
     public void run(String... args) throws Exception {
-        log.info("========== 开始初始化商品库存到 Redis ==========");
+        log.info("========== 开始初始化 SKU 库存到 Redis ==========");
 
-        // 1. 查询所有商品（从 MySQL 数据库）
+        // 查询所有商品
         List<Product> products = productMapper.findAll();
+        int totalSkus = 0;
 
-        // 2. 遍历每个商品，将库存同步到 Redis
         for (Product product : products) {
-            // Redis Key 格式：product:stock:商品ID
-            String stockKey = "product:stock:" + product.getId();
+            // 查询该商品的所有 SKU
+            List<ProductSku> skus = productSkuMapper.findByProductId(product.getId());
 
-            // 将库存存入 Redis（String 类型）
-            redisTemplate.opsForValue().set(stockKey, product.getStock());
+            for (ProductSku sku : skus) {
+                // Redis Key：product:stock:sku:SKU_ID
+                String stockKey = "product:stock:sku:" + sku.getId();
 
-            log.info("初始化库存: productId={}, stock={}", product.getId(), product.getStock());
+                // 将 SKU 库存存入 Redis
+                redisTemplate.opsForValue().set(stockKey, sku.getStock());
+                totalSkus++;
+            }
         }
 
-        log.info("商品库存初始化完成，共 {} 件商品", products.size());
+        log.info("SKU 库存初始化完成，共 {} 个 SKU", totalSkus);
     }
 }

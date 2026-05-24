@@ -5,6 +5,7 @@ import com.xiaoshan.springbootdemo.entity.dto.CartAddDTO;
 import com.xiaoshan.springbootdemo.entity.dto.CartUpdateDTO;
 import com.xiaoshan.springbootdemo.entity.vo.CheckoutItemVO;
 import com.xiaoshan.springbootdemo.mapper.CartItemMapper;
+import com.xiaoshan.springbootdemo.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class CartService {
 
     private final CartItemMapper cartItemMapper;
+    private final SnowflakeIdGenerator snowflakeIdGenerator;
 
     /**
      * 添加商品到购物车
@@ -41,18 +43,17 @@ public class CartService {
             CartItem cartItem = existingItem.get();
             int newQuantity = cartItem.getQuantity() + dto.getQuantity();
             cartItemMapper.updateQuantity(cartItem.getId(), newQuantity);
-            log.info("购物车商品数量增加: userId={}, productId={}, skuId={}, newQuantity={}", 
-                    userId, dto.getProductId(), dto.getSkuId(), newQuantity);
+
         } else {
             // 3. 不存在：新增记录
             CartItem cartItem = new CartItem();
+            cartItem.setId(snowflakeIdGenerator.nextId()); // 生成雪花ID
             cartItem.setUserId(userId);
             cartItem.setProductId(dto.getProductId());
             cartItem.setSkuId(dto.getSkuId());
             cartItem.setQuantity(dto.getQuantity());
             cartItemMapper.insert(cartItem);
-            log.info("添加商品到购物车: userId={}, productId={}, skuId={}, quantity={}", 
-                    userId, dto.getProductId(), dto.getSkuId(), dto.getQuantity());
+
         }
     }
 
@@ -69,7 +70,7 @@ public class CartService {
         }
 
         cartItemMapper.deleteById(cartItemId);
-        log.info("删除购物车项: id={}", cartItemId);
+
     }
     /**
      * 批量删除购物车项
@@ -85,7 +86,7 @@ public class CartService {
         }
 
         cartItemMapper.deleteByIds(cartItemIds);
-        log.info("批量删除购物车项: ids={}", cartItemIds);
+
     }
 
     /**
@@ -105,10 +106,10 @@ public class CartService {
         // 3. 数量为0则删除，否则更新
         if (dto.getQuantity() <= 0) {
             cartItemMapper.deleteById(dto.getCartItemId());
-            log.info("删除购物车项: id={}", dto.getCartItemId());
+
         } else {
             cartItemMapper.updateQuantity(dto.getCartItemId(), dto.getQuantity());
-            log.info("更新购物车数量: id={}, quantity={}", dto.getCartItemId(), dto.getQuantity());
+
         }
     }
 

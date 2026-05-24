@@ -1,9 +1,37 @@
 <template>
   <div class="checkout-container">
-    <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>加载中...</p>
+    <!-- 顶部导航栏 -->
+    <div class="page-navbar">
+      <button class="page-nav-back" @click="router.back()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="page-nav-title">
+        <i class="fas fa-file-invoice-dollar"></i>
+        <span>确认订单</span>
+      </div>
+      <div class="page-nav-right"></div>
+    </div>
+
+    <!-- 加载状态 - 骨架屏 -->
+    <div v-if="loading" class="checkout-content">
+      <div class="skeleton-card">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line medium"></div>
+      </div>
+      <div class="skeleton-card" style="margin-top: 12px;">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line medium" style="margin-top: 12px;"></div>
+        <div class="skeleton-line" style="margin-top: 8px;"></div>
+      </div>
+      <div class="skeleton-card" style="margin-top: 12px;">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line" style="margin-top: 12px;"></div>
+      </div>
+      <div class="skeleton-card" style="margin-top: 12px;">
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line medium" style="margin-top: 8px;"></div>
+        <div class="skeleton-line short" style="margin-top: 8px;"></div>
+      </div>
     </div>
 
     <!-- 结算内容 -->
@@ -37,15 +65,16 @@
         </div>
 
         <div class="product-list">
-          <div v-for="item in orderItems" :key="item.productId + (item.skuId || '')" class="product-item">
+          <div v-for="item in orderItems" :key="`${item.productId}${item.skuId || ''}`" class="product-item">
             <img :src="item.productImage" class="product-image" :alt="item.productName">
             <div class="product-info">
               <div class="product-name">{{ item.productName }}</div>
-              <div class="product-spec" v-if="item.skuName">
-                规格：{{ item.skuName }}
+              <div class="tags-group">
+                <span v-if="item.skuName" class="tag-spec">{{ item.skuName }}</span>
+                <span class="tag-quantity">x{{ item.quantity }}</span>
               </div>
-              <div class="product-price">¥{{ formatPrice(item.price) }} x{{ item.quantity }}</div>
             </div>
+            <div class="product-price">¥{{ formatPrice(item.price) }}</div>
           </div>
         </div>
       </div>
@@ -141,14 +170,9 @@
         </div>
         <div class="panel-body">
           <div v-if="addresses.length > 0">
-            <div
-              v-for="addr in addresses"
-              :key="addr.id"
-              class="addr-item"
-              :class="{ active: selectedAddressId === addr.id }"
-              @click="selectAddress(addr.id); showAddressPanel = false"
-            >
-              <div class="addr-info">
+            <div v-for="addr in addresses" :key="addr.id" class="addr-item"
+              :class="{ active: selectedAddressId === addr.id }">
+              <div class="addr-info" @click="selectAddress(addr.id); showAddressPanel = false">
                 <div class="addr-recipient">
                   <span class="name">{{ addr.recipientName }}</span>
                   <span class="phone">{{ addr.recipientPhone }}</span>
@@ -158,8 +182,13 @@
                   {{ addr.province }} {{ addr.city }} {{ addr.district }} {{ addr.detailAddress }}
                 </div>
               </div>
-              <div v-if="selectedAddressId === addr.id" class="addr-check">
-                <i class="fas fa-check"></i>
+              <div class="addr-actions">
+                <button class="addr-edit-btn" @click.stop="editAddress(addr)">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <div v-if="selectedAddressId === addr.id" class="addr-check">
+                  <i class="fas fa-check"></i>
+                </div>
               </div>
             </div>
           </div>
@@ -189,19 +218,13 @@
             <label>联系电话</label>
             <input type="tel" v-model="addressForm.recipientPhone" placeholder="请输入联系电话">
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>省份</label>
-              <input type="text" v-model="addressForm.province" placeholder="省份">
-            </div>
-            <div class="form-group">
-              <label>城市</label>
-              <input type="text" v-model="addressForm.city" placeholder="城市">
-            </div>
-            <div class="form-group">
-              <label>区县</label>
-              <input type="text" v-model="addressForm.district" placeholder="区县">
-            </div>
+          <div class="form-group">
+            <label>所在地区</label>
+            <AddressSelector
+              v-model:province="addressForm.province"
+              v-model:city="addressForm.city"
+              v-model:district="addressForm.district"
+            />
           </div>
           <div class="form-group">
             <label>详细地址</label>
@@ -232,10 +255,11 @@
               >📍 其他</span>
             </div>
           </div>
-          <div class="form-group">
-            <label class="checkbox-label">
-              <span>设为默认地址</span>
+          <div class="form-group switch-row">
+            <span>设为默认地址</span>
+            <label class="switch">
               <input type="checkbox" v-model="addressForm.isDefault">
+              <span class="slider"></span>
             </label>
           </div>
         </div>
@@ -265,69 +289,259 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue'
-  import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
-  import { authAPI } from '@/api/authAPI'
-  import Message from '@/utils/message'
-  import { useAuthStore } from '@/stores/auth'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
+import { authAPI } from '@/api/authAPI'
+import Message from '@/utils/message'
+import { useAuthStore } from '@/stores/auth'
+import AddressSelector from '@/components/user/AddressSelector.vue'
 
-  const authStore = useAuthStore()
-  const router = useRouter()
-  const route = useRoute()
+const authStore = useAuthStore()
+const router = useRouter()
+const route = useRoute()
 
-  // ==================== 类型定义 ====================
-  interface Address {
-    id: number
-    userId: number
-    recipientName: string
-    recipientPhone: string
-    province: string
-    city: string
-    district: string
-    detailAddress: string
-    label: string
-    isDefault: boolean
+// ==================== 类型定义 ====================
+interface Address {
+  id: number
+  userId: number
+  recipientName: string
+  recipientPhone: string
+  province: string
+  city: string
+  district: string
+  detailAddress: string
+  label: string
+  isDefault: boolean
+}
+
+interface OrderItem {
+  cartItemId?: number
+  productId: number
+  skuId?: number
+  productName: string
+  brand: string
+  skuName?: string
+  price: number
+  originalPrice?: number
+  quantity: number
+  productImage: string
+  stock: number
+  isFreeShipping?: boolean
+}
+
+interface AddressForm {
+  recipientName: string
+  recipientPhone: string
+  province: string
+  city: string
+  district: string
+  detailAddress: string
+  label: string
+  isDefault: boolean
+}
+
+// ==================== 响应式数据 ====================
+const loading = ref(true)
+const submitting = ref(false)
+const orderItems = ref<OrderItem[]>([])
+const addresses = ref<Address[]>([])
+const selectedAddressId = ref<number | null>(null)
+const paymentMethod = ref('ALIPAY')
+
+const showAddressModal = ref(false)
+const showAddressPanel = ref(false)
+const isEditingAddress = ref(false)
+const editingAddressId = ref<number | null>(null)
+
+const addressForm = ref<AddressForm>({
+  recipientName: '',
+  recipientPhone: '',
+  province: '',
+  city: '',
+  district: '',
+  detailAddress: '',
+  label: '',
+  isDefault: false
+})
+
+// 支付相关状态
+const showPayConfirm = ref(false)
+const createdOrderId = ref<number | null>(null)
+const createdOrderNumber = ref('')
+const checkingPay = ref(false)
+
+
+
+// ==================== 计算属性 ====================
+const totalAmount = computed(() => {
+  return orderItems.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+})
+
+const shippingFee = computed(() => {
+  // 检查所有商品是否都包邮
+  const allFreeShipping = orderItems.value.every(item => item.isFreeShipping !== false)
+  if (allFreeShipping) return 0
+
+  // 满99包邮
+  return totalAmount.value >= 99 ? 0 : 10
+})
+
+const payAmount = computed(() => {
+  return totalAmount.value + shippingFee.value
+})
+
+const selectedAddress = computed(() => {
+  return addresses.value.find(addr => addr.id === selectedAddressId.value)
+})
+
+// ==================== 数据加载 ====================
+const loadOrderData = async () => {
+  loading.value = true
+  try {
+    const source = route.query.source as string
+
+    if (source === 'cart') {
+      const idsParam = route.query.cartItemIds as string
+      if (!idsParam) {
+        Message.error('请选择商品')
+        router.push({ name: 'Cart' })
+        return
+      }
+
+      const ids = idsParam.split(',')
+      const response = await authAPI.getCheckoutItemsFromCart({ ids })
+
+      if (response.success) {
+        orderItems.value = response.data?.items || []
+      } else {
+        throw new Error(response.message || '获取商品信息失败')
+      }
+
+    } else if (source === 'product') {
+      const productId = route.query.productId as string
+      const skuIds = route.query.skuIds as string
+      const quantity = route.query.quantity as string
+      const skuId = route.query.skuId as string
+
+      if (!productId) {
+        Message.error('商品信息错误')
+        router.push({ name: 'UserDashboard' })
+        return
+      }
+
+      // 处理 skuIds 格式（多个 SKU）- 循环调用接口并累积结果
+      if (skuIds) {
+        const skuList = skuIds.split(',').map(item => {
+          const [id, qty] = item.split(':')
+          return { skuId: Number(id), quantity: Number(qty) || 1 }
+        })
+
+        orderItems.value = [] // 先清空
+        for (const item of skuList) {
+          const response = await authAPI.getCheckoutItemsFromProduct({
+            productId: Number(productId),
+            quantity: item.quantity,
+            skuId: item.skuId
+          })
+          if (response.success && response.data?.items) {
+            // 追加到数组，不是覆盖
+            orderItems.value.push(...response.data.items)
+          }
+        }
+        if (orderItems.value.length === 0) {
+          throw new Error('获取商品信息失败')
+        }
+      } else if (skuId && quantity) {
+        // 兼容旧的单个 skuId 格式
+        const response = await authAPI.getCheckoutItemsFromProduct({
+          productId: Number(productId),
+          quantity: Number(quantity),
+          skuId: Number(skuId)
+        })
+        if (response.success) {
+          orderItems.value = response.data?.items || []
+        } else {
+          throw new Error(response.message || '获取商品信息失败')
+        }
+      } else if (quantity) {
+        // 没有 SKU 的商品
+        const response = await authAPI.getCheckoutItemsFromProduct({
+          productId: Number(productId),
+          quantity: Number(quantity)
+        })
+        if (response.success) {
+          orderItems.value = response.data?.items || []
+        } else {
+          throw new Error(response.message || '获取商品信息失败')
+        }
+      } else {
+        Message.error('请选择规格')
+        router.push({ name: 'ProductDetail', params: { productId } })
+        return
+      }
+
+    } else {
+      Message.error('请选择商品')
+      router.push({ name: 'UserDashboard' })
+      return
+    }
+
+  } catch (error: any) {
+    Message.error(error.message || '加载失败')
+  } finally {
+    loading.value = false
   }
+}
 
-  interface OrderItem {
-    cartItemId?: number
-    productId: number
-    skuId?: number
-    productName: string
-    brand: string
-    skuName?: string
-    price: number
-    originalPrice?: number
-    quantity: number
-    productImage: string
-    stock: number
+const loadAddresses = async () => {
+  try {
+    const response = await authAPI.getAddresses()
+    if (response.success) {
+      addresses.value = response.data.addresses || []
+
+      const defaultAddress = addresses.value.find(element => element.isDefault)
+      if (defaultAddress) {
+        selectedAddressId.value = defaultAddress.id
+      } else {
+        const firstAddress = addresses.value[0]
+        if (firstAddress) {
+          selectedAddressId.value = firstAddress.id
+        }
+      }
+    }
+  } catch (error) {
+    Message.error('加载地址失败')
   }
+}
 
-  interface AddressForm {
-    recipientName: string
-    recipientPhone: string
-    province: string
-    city: string
-    district: string
-    detailAddress: string
-    label: string
-    isDefault: boolean
+// ==================== 地址管理 ====================
+const selectAddress = (addressId: number) => {
+  selectedAddressId.value = addressId
+}
+
+const editAddress = (addr: Address) => {
+  showAddressPanel.value = false
+  openAddressModal(addr)
+}
+
+const openAddressModal = (address?: Address) => {
+if (address) {
+  isEditingAddress.value = true
+  editingAddressId.value = address.id
+  addressForm.value = {
+    recipientName: address.recipientName,
+    recipientPhone: address.recipientPhone,
+    province: address.province,
+    city: address.city,
+    district: address.district,
+    detailAddress: address.detailAddress,
+    label: address.label || '',
+    isDefault: address.isDefault
   }
-
-  // ==================== 响应式数据 ====================
-  const loading = ref(false)
-  const submitting = ref(false)
-  const orderItems = ref<OrderItem[]>([])
-  const addresses = ref<Address[]>([])
-  const selectedAddressId = ref<number | null>(null)
-  const paymentMethod = ref('ALIPAY')
-
-  const showAddressModal = ref(false)
-  const showAddressPanel = ref(false)
-  const isEditingAddress = ref(false)
-  const editingAddressId = ref<number | null>(null)
-
-  const addressForm = ref<AddressForm>({
+} else {
+  isEditingAddress.value = false
+  editingAddressId.value = null
+  addressForm.value = {
     recipientName: '',
     recipientPhone: '',
     province: '',
@@ -336,344 +550,174 @@
     detailAddress: '',
     label: '',
     isDefault: false
-  })
+  }
+}
+showAddressModal.value = true
+}
 
-  // 支付相关状态
-  const showPayConfirm = ref(false)
-  const createdOrderId = ref<number | null>(null)
-  const createdOrderNumber = ref('')
-  const checkingPay = ref(false)
+const closeAddressModal = () => {
+showAddressModal.value = false
+isEditingAddress.value = false
+editingAddressId.value = null
+}
 
-  // ==================== 计算属性 ====================
-  const totalAmount = computed(() => {
-    return orderItems.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  })
-
-  const shippingFee = computed(() => {
-    return totalAmount.value >= 99 ? 0 : 10
-  })
-
-  const payAmount = computed(() => {
-    return totalAmount.value + shippingFee.value
-  })
-
-  const selectedAddress = computed(() => {
-    return addresses.value.find(addr => addr.id === selectedAddressId.value)
-  })
-
-  // ==================== 数据加载 ====================
-  const loadOrderData = async () => {
-    loading.value = true
-    try {
-      const source = route.query.source as string
-
-      if (source === 'cart') {
-        const idsParam = route.query.cartItemIds as string
-        if (!idsParam) {
-          Message.error('请选择商品')
-          router.push('/cart')
-          return
-        }
-
-        const ids = idsParam.split(',')
-        const response = await authAPI.getCheckoutItemsFromCart({ ids })
-
-        if (response.success) {
-          orderItems.value = response.data?.items || []
-        } else {
-          throw new Error(response.message || '获取商品信息失败')
-        }
-
-      } else if (source === 'product') {
-        const productId = route.query.productId as string
-        const skuIds = route.query.skuIds as string
-        const quantity = route.query.quantity as string
-        const skuId = route.query.skuId as string
-
-        if (!productId) {
-          Message.error('商品信息错误')
-          router.push('/')
-          return
-        }
-
-        // 处理新的 skuIds 格式（多个 SKU）
-        if (skuIds) {
-          const skuList = skuIds.split(',').map(item => {
-            const [id, qty] = item.split(':')
-            return { skuId: Number(id), quantity: Number(qty) || 1 }
-          })
-
-          orderItems.value = []
-          for (const item of skuList) {
-            const response = await authAPI.getCheckoutItemsFromProduct({
-              productId: Number(productId),
-              quantity: item.quantity,
-              skuId: item.skuId
-            })
-            if (response.success && response.data?.items) {
-              orderItems.value.push(...response.data.items)
-            }
-          }
-        } else if (skuId && quantity) {
-          // 兼容旧的单个 skuId 格式
-          const response = await authAPI.getCheckoutItemsFromProduct({
-            productId: Number(productId),
-            quantity: Number(quantity),
-            skuId: Number(skuId)
-          })
-          if (response.success) {
-            orderItems.value = response.data?.items || []
-          } else {
-            throw new Error(response.message || '获取商品信息失败')
-          }
-        } else if (quantity) {
-          // 没有 SKU 的商品
-          const response = await authAPI.getCheckoutItemsFromProduct({
-            productId: Number(productId),
-            quantity: Number(quantity)
-          })
-          if (response.success) {
-            orderItems.value = response.data?.items || []
-          } else {
-            throw new Error(response.message || '获取商品信息失败')
-          }
-        } else {
-          Message.error('请选择规格')
-          router.push({ name: 'ProductDetail', params: { productId } })
-          return
-        }
-
-      } else {
-        Message.error('请选择商品')
-        router.push('/')
-        return
-      }
-
-    } catch (error: any) {
-      Message.error(error.message || '加载失败')
-    } finally {
-      loading.value = false
-    }
+const saveAddress = async () => {
+  if (!addressForm.value.recipientName) {
+    Message.error('请输入收件人姓名')
+    return
+  }
+  if (!addressForm.value.recipientPhone) {
+    Message.error('请输入联系电话')
+    return
+  }
+  if (!addressForm.value.province || !addressForm.value.city || !addressForm.value.district) {
+    Message.error('请填写完整地区信息')
+    return
+  }
+  if (!addressForm.value.detailAddress) {
+    Message.error('请输入详细地址')
+    return
   }
 
-  const loadAddresses = async () => {
-    try {
-      const response = await authAPI.getAddresses()
-      if (response.success) {
-        addresses.value = response.data.addresses || []
-
-        const defaultAddress = addresses.value.find(element => element.isDefault)
-        if (defaultAddress) {
-          selectedAddressId.value = defaultAddress.id
-        } else if (addresses.value.length > 0) {
-          selectedAddressId.value = addresses.value[0].id
-        }
-      }
-    } catch (error) {
-      Message.error('加载地址失败')
-    }
-  }
-
-  // ==================== 地址管理 ====================
-  const selectAddress = (addressId: number) => {
-    selectedAddressId.value = addressId
-  }
-
-  const openAddressModal = (address?: Address) => {
-    if (address) {
-      isEditingAddress.value = true
-      editingAddressId.value = address.id
-      addressForm.value = {
-        recipientName: address.recipientName,
-        recipientPhone: address.recipientPhone,
-        province: address.province,
-        city: address.city,
-        district: address.district,
-        detailAddress: address.detailAddress,
-        label: address.label || '',
-        isDefault: address.isDefault
-      }
+  try {
+    let response
+    if (isEditingAddress.value && editingAddressId.value !== null) {
+      response = await authAPI.updateAddress({
+        id: editingAddressId.value,
+        ...addressForm.value
+      })
     } else {
-      isEditingAddress.value = false
-      editingAddressId.value = null
-      addressForm.value = {
-        recipientName: '',
-        recipientPhone: '',
-        province: '',
-        city: '',
-        district: '',
-        detailAddress: '',
-        label: '',
-        isDefault: false
-      }
-    }
-    showAddressModal.value = true
-  }
-
-  const closeAddressModal = () => {
-    showAddressModal.value = false
-    isEditingAddress.value = false
-    editingAddressId.value = null
-  }
-
-  const saveAddress = async () => {
-    if (!addressForm.value.recipientName) {
-      Message.error('请输入收件人姓名')
-      return
-    }
-    if (!addressForm.value.recipientPhone) {
-      Message.error('请输入联系电话')
-      return
-    }
-    if (!addressForm.value.province || !addressForm.value.city || !addressForm.value.district) {
-      Message.error('请填写完整地区信息')
-      return
-    }
-    if (!addressForm.value.detailAddress) {
-      Message.error('请输入详细地址')
-      return
+      response = await authAPI.addAddress(addressForm.value)
     }
 
-    try {
-      let response
-      if (isEditingAddress.value) {
-        response = await authAPI.updateAddress({
-          id: editingAddressId.value,
-          ...addressForm.value
-        })
-      } else {
-        response = await authAPI.addAddress(addressForm.value)
-      }
-
-      if (response.success) {
-        Message.success(isEditingAddress.value ? '修改成功' : '添加成功')
-        closeAddressModal()
-        await loadAddresses()
-      } else {
-        throw new Error(response.message || '保存失败')
-      }
-    } catch (error: any) {
-      Message.error(error.message || '保存失败')
-    }
-  }
-
-  // ==================== 订单提交 ====================
-  const submitOrder = async () => {
-    if (!selectedAddressId.value) {
-      Message.error('请选择收货地址')
-      return
-    }
-
-    // 防重复提交
-    if (submitting.value) return
-
-    // 二次确认
-    try {
-      await Message.confirm('确认提交订单？', '确认订单')
-    } catch {
-      return  // 用户取消
-    }
-
-    submitting.value = true
-
-    try {
-      const source = route.query.source as string
-
-      const orderData = {
-        addressId: selectedAddressId.value,
-        source: source,
-        paymentMethod: paymentMethod.value,
-        orderItems: orderItems.value.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          skuId: item.skuId
-        }))
-      }
-
-      const response = await authAPI.createOrder(orderData)
-
-      if (response.success) {
-        createdOrderId.value = response.data?.orderId
-        createdOrderNumber.value = response.data?.orderNumber || ''
-
-        // 使用 window.open 打开支付页面
-        const paymentHtml = response.data.paymentHtml
-        const payWindow = window.open('', '_blank')
-        if (payWindow) {
-          payWindow.document.write(paymentHtml)
-          payWindow.document.close()
-        }
-
-        // 显示支付确认弹窗
-        showPayConfirm.value = true
-      } else {
-        throw new Error(response.message || '创建订单失败')
-      }
-    } catch (error: any) {
-      Message.error(error.message || '提交订单失败')
-    } finally {
-      submitting.value = false
-    }
-  }
-
-  // 查询支付状态
-  const checkPayStatus = async () => {
-    if (!createdOrderId.value || checkingPay.value) return
-    checkingPay.value = true
-
-    try {
-      const response = await authAPI.getOrderDetail(createdOrderId.value)
-
-      // 兼容两种返回格式
-      const order = response.data?.order || response.data?.orderDetail?.order
-      const status = order?.status
-
-      if (status === 'PAID' || status === 'PROCESSING' || status === 'SHIPPED') {
-        showPayConfirm.value = false
-        Message.success('支付成功')
-        router.replace({ name: 'OrderDetail', params: { orderId: createdOrderId.value } })
-      } else if (status === 'PENDING') {
-        Message.warning('暂未收到支付通知，请确认是否已完成支付')
-      } else {
-        Message.error(`订单状态异常：${status || '未知'}`)
-      }
-    } catch (error: any) {
-      Message.error(error.message || '查询失败')
-    } finally {
-      checkingPay.value = false
-    }
-  }
-
-  // 稍后支付
-  const handlePayLater = () => {
-    showPayConfirm.value = false
-    router.replace({ name: 'UserOrders' })
-  }
-
-  // ==================== 工具函数 ====================
-  const formatPrice = (price: number): string => {
-    if (price == null || isNaN(price)) return '0.00'
-    return price.toFixed(2)
-  }
-
-  // ==================== 生命周期 ====================
-  onMounted(() => {
-    if (!authStore.validateUserPermission()) return
-    loadOrderData()
-    loadAddresses()
-  })
-
-  // 离开页面时的拦截
-  onBeforeRouteLeave((to, from, next) => {
-    if (submitting.value) {
-      Message.warning('订单正在提交中，请稍候')
-      next(false)  // 阻止离开
+    if (response.success) {
+      Message.success(isEditingAddress.value ? '修改成功' : '添加成功')
+      closeAddressModal()
+      await loadAddresses()
     } else {
-      next()  // 允许离开
+      throw new Error(response.message || '保存失败')
     }
-  })
+  } catch (error: any) {
+    Message.error(error.message || '保存失败')
+  }
+}
+
+// ==================== 订单提交 ====================
+const submitOrder = async () => {
+  if (!selectedAddressId.value) {
+    Message.error('请选择收货地址')
+    return
+  }
+
+  // 防重复提交
+  if (submitting.value) return
+
+  // 二次确认
+  try {
+    await Message.confirm('确认提交订单？', '确认订单')
+  } catch {
+    return  // 用户取消
+  }
+
+  submitting.value = true
+
+  try {
+    const source = route.query.source as string
+
+    const orderData = {
+      addressId: selectedAddressId.value,
+      paymentMethod: paymentMethod.value,
+      source: source || 'product',
+      orderItems: orderItems.value.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        skuId: item.skuId
+      }))
+    }
+
+    const response = await authAPI.createOrder(orderData)
+
+    if (response.success) {
+      createdOrderId.value = response.data?.orderId
+      createdOrderNumber.value = response.data?.orderNumber || ''
+
+      // 使用 window.open 打开支付页面
+      const paymentHtml = response.data.paymentHtml
+      const payWindow = window.open('', '_blank')
+      if (payWindow) {
+        payWindow.document.write(paymentHtml)
+        payWindow.document.close()
+      }
+
+      // 显示支付确认弹窗
+      showPayConfirm.value = true
+    } else {
+      throw new Error(response.message || '创建订单失败')
+    }
+  } catch (error: any) {
+    Message.error(error.message || '提交订单失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+// 查询支付状态
+const checkPayStatus = async () => {
+  if (!createdOrderId.value || checkingPay.value) return
+  checkingPay.value = true
+
+  try {
+    const response = await authAPI.getOrderDetail(createdOrderId.value)
+
+    // 兼容两种返回格式
+    const order = response.data?.order || response.data?.orderDetail?.order
+    const status = order?.status
+
+    if (status === 'PAID' || status === 'PROCESSING' || status === 'SHIPPED') {
+      showPayConfirm.value = false
+      Message.success('支付成功')
+      router.back()
+    } else if (status === 'PENDING') {
+      Message.warning('暂未收到支付通知，请确认是否已完成支付')
+    } else {
+      Message.error(`订单状态异常：${status || '未知'}`)
+    }
+  } catch (error: any) {
+    Message.error(error.message || '查询失败')
+  } finally {
+    checkingPay.value = false
+  }
+}
+
+// 稍后支付
+const handlePayLater = () => {
+  showPayConfirm.value = false
+}
+
+// ==================== 工具函数 ====================
+const formatPrice = (price: number): string => {
+  if (price == null || isNaN(price)) return '0.00'
+  return price.toFixed(2)
+}
+
+// ==================== 生命周期 ====================
+onMounted(() => {
+  if (!authStore.validateUserPermission()) return
+  loadOrderData()
+  loadAddresses()
+})
+
+// 离开页面时的拦截
+onBeforeRouteLeave((to, from, next) => {
+  if (submitting.value) {
+    Message.warning('订单正在提交中，请稍候')
+    next(false)  // 阻止离开
+  } else {
+    next()  // 允许离开
+  }
+})
 </script>
 
 <style scoped>
-  @import url('@/static/css/user/结算页.css');
+@import url('@/static/css/user/结算页.css');
 </style>

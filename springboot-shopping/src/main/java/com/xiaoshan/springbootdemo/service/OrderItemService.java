@@ -24,7 +24,7 @@ public class OrderItemService {
      *
      * @param userId 用户ID
      * @param orderItemId 订单项ID
-     * @return 订单项
+     * @return 订单项（包含订单状态）
      */
     public OrderItem getOrderItemById(Long userId, Long orderItemId) {
         // 查询订单项
@@ -41,6 +41,9 @@ public class OrderItemService {
         if (!order.getUserId().equals(userId)) {
             return null;
         }
+
+        // 将订单状态设置到订单项中，供前端使用
+        orderItem.setOrderStatus(order.getStatus().name());
 
         return orderItem;
     }
