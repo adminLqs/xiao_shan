@@ -106,9 +106,37 @@
     </div>
 
     <!-- 商品详情内容 -->
-    <div v-else-if="product" class="product-detail-content">
+    <template v-else>
+    <div class="product-detail-content">
+      <!-- ========== 商家信息栏（仅下架/删除状态显示，且非本人） ========== -->
+      <div class="seller-bar" v-if="sellerInfo && (!product || product.status !== 1) && product?.sellerId !== currentUserId" @click="goToShop">
+        <img :src="sellerInfo.storeAvatar || sellerDefaultAvatar" class="seller-avatar" @click="goToShop" />
+        <div class="seller-info" @click="goToShop">
+          <div class="seller-name">{{ sellerInfo.storeName || sellerInfo.name }}</div>
+          <div class="seller-stats">{{ sellerInfo.fansCount || 0 }} 粉丝</div>
+        </div>
+        <button class="btn-contact-service" @click="contactService">
+          <i class="fas fa-headset"></i>
+          <span>客服</span>
+        </button>
+      </div>
+
+      <!-- ========== 商品状态判断 ========== -->
+      <!-- 已下架 -->
+      <div v-if="product && product.status === 0" class="product-offline-notice">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>商品已下架</span>
+      </div>
+      <!-- 已删除 -->
+      <div v-else-if="product && product.status === 2" class="product-deleted-notice">
+        <i class="fas fa-times-circle"></i>
+        <span>商品不存在</span>
+      </div>
+      <!-- 正常商品内容 -->
+      <template v-else-if="product">
+
       <!-- ========== 主图 Swiper（全宽沉浸，支持左右滑动 + 自动播放） ========== -->
-      <div class="product-swiper" @touchstart="onTouchStart" @touchend="onTouchEnd">
+      <div class="product-swiper" @touchstart.passive="onTouchStart" @touchend="onTouchEnd">
         <div class="swiper-track" :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
           <img v-for="(img, i) in productImages" :key="i" :src="img"
             class="swiper-image" @click="previewImage(i as number)" />
@@ -124,9 +152,6 @@
         <div class="shop-card-bg">
           <div class="shop-avatar-area" @click="goToShop">
             <img :src="sellerInfo.storeAvatar || sellerDefaultAvatar" class="shop-avatar-large" />
-            <div class="shop-verified-badge">
-              <i class="fas fa-check"></i>
-            </div>
           </div>
           <div class="shop-info-area">
             <div class="shop-name-row">
@@ -157,9 +182,16 @@
       <!-- ========== 价格区 ========== -->
       <div class="price-section">
         <div class="price-row">
-          <span class="current-price">¥{{ formatPrice(displayPrice) }}</span>
-          <span v-if="displayOriginalPrice && displayOriginalPrice > displayPrice" class="original-price">¥{{ formatPrice(displayOriginalPrice) }}</span>
-          <span v-if="displayOriginalPrice && displayOriginalPrice > displayPrice" class="discount-badge">{{ getDiscountPercent(displayPrice, displayOriginalPrice) }}% OFF</span>
+          <template v-if="bestCoupon && canUseCoupon">
+            <span class="coupon-price">¥{{ formatPrice(couponPrice) }}</span>
+            <span class="coupon-label">({{ bestCouponDisplay }})</span>
+            <span class="current-price-line">¥{{ formatPrice(displayPrice) }}</span>
+          </template>
+          <template v-else>
+            <span class="current-price">¥{{ formatPrice(displayPrice) }}</span>
+            <span v-if="displayOriginalPrice && displayOriginalPrice > displayPrice" class="original-price">¥{{ formatPrice(displayOriginalPrice) }}</span>
+            <span v-if="displayOriginalPrice && displayOriginalPrice > displayPrice" class="discount-badge">{{ getDiscountPercent(displayPrice, displayOriginalPrice) }}% OFF</span>
+          </template>
           <span v-if="selectedSkuInfo" class="selected-spec-hint" @click="resetSpecs">
             {{ selectedSkuInfo.skuName || '已选规格' }} <i class="fas fa-times"></i>
           </span>
@@ -169,6 +201,39 @@
           <span class="view-count" v-if="product.viewCount">
             <i class="fas fa-eye"></i> {{ product.viewCount }} 浏览
           </span>
+        </div>
+      </div>
+
+      <!-- ========== 优惠券领取区 ========== -->
+      <div class="coupon-section" v-if="productCoupons.length > 0">
+        <div class="coupon-section-header">
+          <span class="coupon-icon">🎫</span>
+          <span class="coupon-title">可用优惠券</span>
+          <span class="coupon-count">{{ productCoupons.length }}张</span>
+        </div>
+        <div class="coupon-list">
+          <div
+            v-for="coupon in productCoupons"
+            :key="coupon.id"
+            class="coupon-card"
+            :class="{ received: coupon.received, disabled: coupon.received || coupon.status !== 1 }"
+          >
+            <div class="coupon-left">
+              <span class="coupon-amount">¥{{ coupon.discountAmount || coupon.amount || 0 }}</span>
+              <span class="coupon-condition">{{ getCouponDisplayText(coupon) }}</span>
+            </div>
+            <div class="coupon-right">
+              <div class="coupon-name">{{ coupon.name }}</div>
+              <div class="coupon-validity">{{ formatCouponDate(coupon.validStart || coupon.startTime) }} - {{ formatCouponDate(coupon.validEnd || coupon.endTime) }}</div>
+              <button
+                class="coupon-receive-btn"
+                :disabled="coupon.received || coupon.status !== 1"
+                @click="receiveCoupon(coupon.id)"
+              >
+                {{ coupon.received ? '已领取' : (coupon.status !== 1 ? '已结束' : '立即领取') }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -183,10 +248,10 @@
       <div class="brand-row" v-if="product.brand">
         <div class="brand-card">
           <div class="brand-logo-area">
-            <i class="fas fa-tree brand-icon"></i>
+            <img src="@/static/images/云杉购图袋.png" class="brand-logo-img" />
           </div>
           <div class="brand-info">
-            <div class="brand-label">BRAND</div>
+            <div class="brand-label">品牌</div>
             <div class="brand-name">{{ product.brand }}</div>
           </div>
           <div class="brand-cert">
@@ -248,13 +313,6 @@
         <span class="promo-tag" v-for="tag in (promoTags || [])" :key="tag">{{ tag }}</span>
       </div>
 
-      <!-- ========== 服务保障 ========== -->
-      <div class="service-guarantee" v-if="(guaranteeList || []).length > 0">
-        <span class="guarantee-item" v-for="item in (guaranteeList || [])" :key="item">
-          <i class="fas fa-check-circle"></i> {{ item }}
-        </span>
-      </div>
-
       <!-- ========== 灰色间隔 ========== -->
       <div class="gray-divider"></div>
 
@@ -282,33 +340,47 @@
       <!-- ========== 发货 + 服务保障（双栏卡片） ========== -->
       <div class="dual-card-section">
         <div class="dual-card delivery-card">
-          <div class="card-icon">📦</div>
-          <div class="card-title">发货信息</div>
-          <div class="card-content">
+          <div class="card-header">
+            <div class="card-icon">📦</div>
+            <div class="card-title">发货信息</div>
+          </div>
+          <div v-if="product.deliveryCity || product.weight || product.isFreeShipping !== undefined" class="card-content">
             <div class="info-row" v-if="product.deliveryCity">
-              <span>发货地</span>
-              <span>{{ product.deliveryCity }}</span>
+              <span class="info-label">发货地</span>
+              <span class="info-value">{{ product.deliveryCity }}</span>
             </div>
             <div class="info-row">
-              <span>运费</span>
-              <span :class="{ 'free-tag': product.isFreeShipping }">
+              <span class="info-label">运费</span>
+              <span class="info-value" :class="{ highlight: product.isFreeShipping }">
                 {{ product.isFreeShipping ? '包邮' : '按模板计算' }}
               </span>
             </div>
             <div class="info-row" v-if="product.weight">
-              <span>重量</span>
-              <span>{{ product.weight }}kg</span>
+              <span class="info-label">重量</span>
+              <span class="info-value">{{ product.weight }}kg</span>
             </div>
+          </div>
+          <div v-else class="card-empty">
+            <i class="fas fa-truck"></i>
+            <span>商家未填写发货信息</span>
           </div>
         </div>
         <div class="dual-card service-card">
-          <div class="card-icon">🛡️</div>
-          <div class="card-title">服务保障</div>
+          <div class="card-header">
+            <div class="card-icon">🛡️</div>
+            <div class="card-title">服务保障</div>
+          </div>
           <div class="card-content">
-            <span v-for="item in (guaranteeList || []).slice(0, 3)" :key="item" class="guarantee-tag">
-              {{ item }}
-            </span>
-            <span v-if="(guaranteeList || []).length > 3" class="guarantee-more">+{{ (guaranteeList || []).length - 3 }}项</span>
+            <div v-if="(guaranteeList || []).length > 0" class="guarantee-list">
+              <div class="guarantee-item" v-for="item in guaranteeList.slice(0, 4)" :key="item">
+                <i class="fas fa-check"></i>
+                <span>{{ item }}</span>
+              </div>
+            </div>
+            <div v-else class="card-empty">
+              <i class="fas fa-shield-alt"></i>
+              <span>商家未提供服务保障</span>
+            </div>
           </div>
         </div>
       </div>
@@ -405,15 +477,22 @@
 
       <!-- 底部留空 -->
       <div class="bottom-space"></div>
+
+      </template>
     </div>
 
-    <!-- 空状态 -->
-    <div v-else class="empty-state">
+    <!-- 空状态（product 为 null） -->
+    <div v-if="!product" class="empty-state">
       <i class="fas fa-box-open"></i>
       <p>商品不存在或已下架</p>
     </div>
 
-    <!-- ========== 悬浮胶囊导航 ========== -->
+    <!-- ========== 固定返回按钮（悬浮胶囊隐藏时显示） ========== -->
+    <div class="back-btn-fixed" v-if="!showDetailCapsule" @click="router.back()">
+      <i class="fas fa-chevron-left"></i>
+    </div>
+
+    <!-- ========== 悬浮胶囊导航（长方形置顶渐隐渐显） ========== -->
     <div class="detail-floating-capsule" :class="{ visible: showDetailCapsule }">
       <!-- 左侧：返回 -->
       <button class="capsule-back" @click="router.back()">
@@ -425,27 +504,26 @@
         <img :src="sellerInfo?.storeAvatar || sellerDefaultAvatar" class="capsule-avatar" />
         <span class="capsule-shop-name">{{ sellerInfo?.storeName || '' }}</span>
       </div>
-
-      <!-- 右侧：购物车 -->
-      <RouterLink :to="{name:'Cart'}" class="capsule-cart">
-        <i class="fas fa-shopping-cart"></i>
-      </RouterLink>
     </div>
 
     <!-- ========== 底部固定操作栏 ========== -->
-    <div class="bottom-bar">
+    <div class="bottom-bar" v-if="product && product.status === 1 && product?.sellerId !== currentUserId">
+      <!-- 收藏按钮：非本人时才显示 -->
       <div class="bottom-icon" @click="toggleFavorite">
         <i :class="isFavorited ? 'fas fa-heart' : 'far fa-heart'" :style="{ color: isFavorited ? '#ff4757' : '#666' }"></i>
         <span>收藏</span>
       </div>
-      <div class="bottom-icon">
+      <!-- 客服按钮 -->
+      <div class="bottom-icon" @click="contactService">
         <i class="fas fa-headset"></i>
         <span>客服</span>
       </div>
+      <!-- 加购按钮 -->
       <button v-if="totalStock <= 0 || isSingleSpecSoldOut" class="btn-cart" disabled>已售罄</button>
-      <button v-else class="btn-cart" @click="handleAddToCart" :disabled="product?.status === 0">加入购物车</button>
+      <button v-else class="btn-cart" @click="handleAddToCart">加入购物车</button>
+      <!-- 购买按钮 -->
       <button v-if="totalStock <= 0 || isSingleSpecSoldOut" class="btn-buy" disabled>已售罄</button>
-      <button v-else class="btn-buy" @click="handleBuyNow" :disabled="product?.status === 0">立即购买</button>
+      <button v-else class="btn-buy" @click="handleBuyNow">立即购买</button>
     </div>
 
     <!-- ========== SKU 选择弹窗 ========== -->
@@ -632,52 +710,16 @@
         </div>
       </div>
     </div>
+    </template>
 
-    <!-- 图片全屏预览 -->
-    <div v-if="showImagePreview" class="image-preview-overlay"
-      @touchstart="onPreviewTouchStart" @touchend="onPreviewTouchEnd">
-      <button class="preview-close" @click="closeImagePreview">
-        <i class="fas fa-times"></i>
-      </button>
-      <div class="preview-swiper">
-        <img :src="(productImages || [])[previewImageIndex]" class="preview-image" />
-      </div>
-      <div class="preview-counter">{{ previewImageIndex + 1 }} / {{ (productImages || []).length }}</div>
-      <button v-if="previewImageIndex > 0" class="preview-arrow left"
-        @click="previewImageIndex--">‹</button>
-      <button v-if="previewImageIndex < (productImages || []).length - 1" class="preview-arrow right"
-        @click="previewImageIndex++">›</button>
-    </div>
-
-    <!-- SKU单图预览 -->
-    <div v-if="showSinglePreview" class="image-preview-overlay" @click="showSinglePreview = false">
-      <button class="preview-close" @click="showSinglePreview = false">
-        <i class="fas fa-times"></i>
-      </button>
-      <img :src="singlePreviewUrl" class="preview-image" />
-    </div>
-
-    <!-- 评论图片全屏预览 -->
-    <div v-if="showReviewImagePreview" class="image-preview-overlay"
-      @touchstart="onReviewPreviewTouchStart" @touchend="onReviewPreviewTouchEnd">
-      <button class="preview-close" @click="showReviewImagePreview = false">
-        <i class="fas fa-times"></i>
-      </button>
-      <img :src="(allReviewImages || [])[reviewPreviewIndex]" class="preview-image" />
-      <button v-if="reviewPreviewIndex > 0" class="preview-arrow left"
-        @click="reviewPreviewIndex--">‹</button>
-      <button v-if="reviewPreviewIndex < (allReviewImages || []).length - 1" class="preview-arrow right"
-        @click="reviewPreviewIndex++">›</button>
-      <div class="preview-counter">{{ reviewPreviewIndex + 1 }} / {{ (allReviewImages || []).length }}</div>
-    </div>
-
-    <!-- 视频预览弹窗 -->
-    <div v-if="showVideoPreview" class="video-preview-overlay" @click="showVideoPreview = false">
-      <button class="preview-close" @click.stop="showVideoPreview = false">
-        <i class="fas fa-times"></i>
-      </button>
-      <video :src="previewVideoUrl" class="preview-video" controls autoplay playsinline @click.stop></video>
-    </div>
+    <!-- 全局媒体预览 -->
+    <ImagePreview
+      v-if="showMediaPreview"
+      :mediaList="allMediaList"
+      :currentIndex="mediaPreviewIndex"
+      @close="closeMediaPreview"
+      @update:index="mediaPreviewIndex = $event"
+    />
   </div>
 </template>
 
@@ -687,6 +729,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
 import { useAuthStore } from '@/stores/auth'
+import ImagePreview from '@/components/ImagePreview.vue'
 import sellerDefaultAvatar from '@/static/images/seller-avatar.jpg'
 import defaultAvatar from '@/static/images/user-avatar.jpg'
 
@@ -700,30 +743,16 @@ const productId = computed(() => Number(route.params.productId))
 const loading = ref(true)
 const product = ref<any>(null)
 const isFavorited = ref(false)
+const currentUserId = ref(authStore.userId)
 const titleExpanded = ref(false)
 const detailExpanded = ref(true)
 const descExpanded = ref(true)
 const showSku = ref(false)
 const showMultiSku = ref(false)
 
-// 图片预览相关
-const showImagePreview = ref(false)
-const previewImageIndex = ref(0)
-const previewTouchStartX = ref(0)
-
-// SKU单图预览相关
-const showSinglePreview = ref(false)
-const singlePreviewUrl = ref('')
-
-// 评论图片预览相关
-const showReviewImagePreview = ref(false)
-const allReviewImages = ref<string[]>([])
-const reviewPreviewIndex = ref(0)
-const reviewPreviewTouchStartX = ref(0)
-
-// 视频预览相关
-const showVideoPreview = ref(false)
-const previewVideoUrl = ref('')
+// 媒体预览相关
+const showMediaPreview = ref(false)
+const mediaPreviewIndex = ref(0)
 
 // Swiper相关
 const currentIndex = ref(0)
@@ -745,6 +774,10 @@ const mainImageHeight = 375 // 主图高度（全屏宽度，约375px）
 
 // 优惠券标签（真实接口数据）
 const promoTags = ref<string[]>([])
+
+// 商品可用优惠券
+const productCoupons = ref<any[]>([])
+const receivingCouponIds = ref<Set<number>>(new Set())
 
 // 质量数据统计
 const qualityStats = computed(() => {
@@ -1065,6 +1098,97 @@ const discountPercent = computed(() => {
   return percent.toString()
 })
 
+const calculateCouponDiscount = (coupon: any, price: number): { canUse: boolean; discount: number } => {
+  if (!coupon) return { canUse: false, discount: 0 }
+  const type = coupon.type || coupon.couponType
+  if (!type) return { canUse: false, discount: 0 }
+
+  switch (type) {
+    case 'FULL_REDUCTION':
+    case 1: {
+      const minAmount = Number(coupon.minAmount) || 0
+      const discountAmount = Number(coupon.discountAmount) || 0
+      return {
+        canUse: price >= minAmount,
+        discount: price >= minAmount ? discountAmount : 0
+      }
+    }
+    case 'DISCOUNT':
+    case 2: {
+      const discountRate = Number(coupon.discountRate) || 0
+      if (discountRate <= 0 || discountRate >= 10) return { canUse: false, discount: 0 }
+      return {
+        canUse: true,
+        discount: price * (1 - discountRate / 10)
+      }
+    }
+    case 'NO_THRESHOLD':
+    case 3: {
+      const discountAmount = Number(coupon.discountAmount) || 0
+      const canUse = price > discountAmount
+      return {
+        canUse: canUse,
+        discount: canUse ? discountAmount : 0
+      }
+    }
+    default:
+      return { canUse: false, discount: 0 }
+  }
+}
+
+const getCouponDisplayText = (coupon: any): string => {
+  const type = coupon.type || coupon.couponType
+  if (!type) return ''
+
+  switch (type) {
+    case 'FULL_REDUCTION':
+    case 1:
+      return `满${coupon.minAmount}减${coupon.discountAmount}`
+    case 'DISCOUNT':
+    case 2:
+      return `${coupon.discountRate}折`
+    case 'NO_THRESHOLD':
+    case 3:
+      return `无门槛减${coupon.discountAmount}元`
+    default:
+      return ''
+  }
+}
+
+const bestCoupon = computed(() => {
+  if (productCoupons.value.length === 0) return null
+  
+  let best = null
+  let maxDiscount = 0
+
+  productCoupons.value.forEach(coupon => {
+    const { canUse, discount } = calculateCouponDiscount(coupon, displayPrice.value)
+    if (canUse && discount > maxDiscount) {
+      maxDiscount = discount
+      best = coupon
+    }
+  })
+
+  return best
+})
+
+const canUseCoupon = computed(() => {
+  if (!bestCoupon.value) return false
+  const { canUse } = calculateCouponDiscount(bestCoupon.value, displayPrice.value)
+  return canUse
+})
+
+const couponPrice = computed(() => {
+  if (!bestCoupon.value || !canUseCoupon.value) return displayPrice.value
+  const { discount } = calculateCouponDiscount(bestCoupon.value, displayPrice.value)
+  return Math.max(displayPrice.value - discount, 0)
+})
+
+const bestCouponDisplay = computed(() => {
+  if (!bestCoupon.value) return ''
+  return getCouponDisplayText(bestCoupon.value)
+})
+
 const guaranteeList = computed(() => {
   if (!product.value?.serviceGuarantee) return []
   return product.value.serviceGuarantee.split(',').filter((s: string) => s.trim())
@@ -1085,7 +1209,7 @@ const currentSpecParams = computed(() => {
 
 // ==================== 图片预加载 ====================
 const preloadImages = (urls: string[]) => {
-  urls.forEach(url => {
+  urls.forEach((url: any) => {
     const img = new Image()
     img.src = url
   })
@@ -1098,7 +1222,15 @@ const loadProductDetail = async () => {
     const response = await authAPI.getProduct(productId.value)
 
     if (response.success && response.data?.product) {
-      product.value = response.data.product
+      const productData = response.data.product
+
+      if (productData.status === 2) {
+        product.value = null
+        loading.value = false
+        return
+      }
+
+      product.value = productData
       commentTotal.value = product.value.commentCount || 0
 
       // 图片预加载
@@ -1107,12 +1239,18 @@ const loadProductDetail = async () => {
         preloadImages(images)
       }
 
-      // 优先加载关注状态（不 await，异步加载）
+      // 加载关注状态
       if (product.value.sellerId) {
-        checkFollowStatus()
+        await checkFollowStatus()
       }
 
-      await loadSkuList()
+      // 加载收藏状态
+      await checkFavoriteStatus()
+
+      await loadSkuList(true)
+
+      // 加载商品可用优惠券
+      await loadProductCoupons()
 
       // 从评论跳转时自动选择规格
       await autoSelectSkuFromUrl()
@@ -1169,6 +1307,58 @@ const parseSkuSpec = (specStr: string): Record<string, string> => {
     }
   }
   return result
+}
+
+// ==================== 加载商品可用优惠券 ====================
+const loadProductCoupons = async () => {
+  try {
+    const response = await authAPI.getProductCoupons(productId.value)
+    if (response.success && response.data?.coupons) {
+      productCoupons.value = response.data.coupons
+    }
+  } catch (error: any) {
+    console.warn('加载优惠券失败:', error)
+  }
+}
+
+// ==================== 领取优惠券 ====================
+const receiveCoupon = async (couponId: number) => {
+  if (!authStore.isLoggedIn) {
+    Message.warning('请先登录')
+    router.push({ name: 'Login' })
+    return
+  }
+
+  if (receivingCouponIds.value.has(couponId)) return
+  receivingCouponIds.value.add(couponId)
+
+  try {
+    const response = await authAPI.receiveCoupon(couponId)
+    if (response.success) {
+      Message.success('领取成功')
+      const coupon = productCoupons.value.find(c => c.id === couponId)
+      if (coupon) {
+        coupon.received = true
+      }
+    } else {
+      Message.error(response.message || '领取失败')
+    }
+  } catch (error: any) {
+    Message.error(error.message || '领取失败')
+  } finally {
+    receivingCouponIds.value.delete(couponId)
+  }
+}
+
+// ==================== 格式化优惠券日期 ====================
+const formatCouponDate = (dateStr: string) => {
+  if (!dateStr) return ''
+  try {
+    const date = new Date(dateStr)
+    return `${date.getMonth() + 1}/${date.getDate()}`
+  } catch {
+    return ''
+  }
 }
 
 // ==================== 加载 SKU 列表（带缓存） ====================
@@ -1437,6 +1627,25 @@ const checkFavoriteStatus = async () => {
   }
 }
 
+const contactService = () => {
+  const sellerId = product.value?.sellerId
+  if (!sellerId) {
+    Message.info('暂无商家信息')
+    return
+  }
+  // 不能和自己聊天
+  if (sellerId === currentUserId.value) {
+    Message.warning('不能和自己聊天')
+    return
+  }
+  if (!authStore.isLoggedIn) {
+    Message.error('请先登录')
+    router.push({ name: 'Login' })
+    return
+  }
+  router.push({ name: 'Chat', params: { targetId: sellerId } })
+}
+
 const toggleFavorite = async () => {
   try {
     if (isFavorited.value) {
@@ -1614,94 +1823,76 @@ const startAutoPlay = () => {
   }, 3000)
 }
 
-// ==================== 图片预览 ====================
+// ==================== 媒体预览 ====================
+const allMediaList = computed(() => {
+  const list: { type: 'image' | 'video'; url: string; cover?: string }[] = []
+  
+  // 商品主图
+  productImages.value.forEach((img: any) => list.push({ type: 'image', url: img }))
+  
+  // 评论图片和视频
+  previewComments.value.forEach((comment: any) => {
+    if (comment.images) {
+      comment.images.forEach((img: string) => list.push({ type: 'image', url: img }))
+    }
+    if (comment.videos) {
+      comment.videos.forEach((video: any) => 
+        list.push({ type: 'video', url: video.videoUrl, cover: video.coverUrl })
+      )
+    }
+  })
+  
+  return list
+})
 
 const previewImage = (index: number) => {
-  previewImageIndex.value = index
-  showImagePreview.value = true
+  mediaPreviewIndex.value = index
+  showMediaPreview.value = true
   stopAutoPlay()
 }
 
-const closeImagePreview = () => {
-  showImagePreview.value = false
+const closeMediaPreview = () => {
+  showMediaPreview.value = false
   startAutoPlay()
 }
 
-const onPreviewTouchStart = (e: TouchEvent) => {
-  const touch = e.touches[0]
-  if (touch) {
-    previewTouchStartX.value = touch.clientX
-  }
-}
-
-const onPreviewTouchEnd = (e: TouchEvent) => {
-  const touch = e.changedTouches[0]
-  if (!touch) return
-  const diff = previewTouchStartX.value - touch.clientX
-  if (Math.abs(diff) > 50) {
-    if (diff > 0 && previewImageIndex.value < productImages.value.length - 1) {
-      previewImageIndex.value++
-    } else if (diff < 0 && previewImageIndex.value > 0) {
-      previewImageIndex.value--
-    }
-  }
-}
-
-// ==================== 评论图片预览 ====================
 const openReviewImagePreview = (images: string[], index: number) => {
-  // 收集所有评论的所有图片
-  allReviewImages.value = []
-  previewComments.value.forEach(comment => {
-    if (comment.images) {
-      comment.images.forEach((img: string) => allReviewImages.value.push(img))
-    }
-  })
-  // 找到当前图片在全部图片中的位置
   const targetImage = images[index]
   if (targetImage) {
-    reviewPreviewIndex.value = allReviewImages.value.indexOf(targetImage)
-  }
-  showReviewImagePreview.value = true
-}
-
-const onReviewPreviewTouchStart = (e: TouchEvent) => {
-  const touch = e.touches[0]
-  if (touch) {
-    reviewPreviewTouchStartX.value = touch.clientX
-  }
-}
-
-const onReviewPreviewTouchEnd = (e: TouchEvent) => {
-  const touch = e.changedTouches[0]
-  if (!touch) return
-  const diff = reviewPreviewTouchStartX.value - touch.clientX
-  if (Math.abs(diff) > 50) {
-    if (diff > 0 && reviewPreviewIndex.value < allReviewImages.value.length - 1) {
-      reviewPreviewIndex.value++
-    } else if (diff < 0 && reviewPreviewIndex.value > 0) {
-      reviewPreviewIndex.value--
+    const foundIndex = allMediaList.value.findIndex(item => item.url === targetImage)
+    if (foundIndex !== -1) {
+      mediaPreviewIndex.value = foundIndex
+      showMediaPreview.value = true
     }
   }
 }
 
-// SKU图片预览（单图预览）
 const previewSkuImage = (sku?: any) => {
+  let url = ''
   if (sku) {
-    // 多选弹窗传入 sku 对象的情况
-    singlePreviewUrl.value = sku.skuImage || (productImages.value || [])[0]
+    url = sku.skuImage || (productImages.value || [])[0]
   } else {
-    // 普通 SKU 弹窗的情况
-    singlePreviewUrl.value = currentSkuPreviewImage.value
+    url = currentSkuPreviewImage.value
   }
-  if (singlePreviewUrl.value) {
-    showSinglePreview.value = true
+  if (url) {
+    const foundIndex = allMediaList.value.findIndex(item => item.url === url)
+    if (foundIndex !== -1) {
+      mediaPreviewIndex.value = foundIndex
+    } else {
+      mediaPreviewIndex.value = 0
+    }
+    showMediaPreview.value = true
   }
 }
 
-// 视频预览
 const previewVideo = (url: string) => {
-  previewVideoUrl.value = url
-  showVideoPreview.value = true
+  const foundIndex = allMediaList.value.findIndex(item => item.url === url)
+  if (foundIndex !== -1) {
+    mediaPreviewIndex.value = foundIndex
+  } else {
+    mediaPreviewIndex.value = 0
+  }
+  showMediaPreview.value = true
 }
 
 // 格式化视频时长
@@ -1729,8 +1920,10 @@ const handleScroll = () => {
 
 // ==================== 页面跳转 ====================
 const goToShop = () => {
-  if (product.value?.sellerId) {
-    router.push({ name: 'Shop', params: { sellerId: product.value.sellerId } })
+  // 优先使用 sellerInfo.userId，其次使用 product.sellerId
+  const shopId = sellerInfo.value?.userId || product.value?.sellerId
+  if (shopId) {
+    router.push({ name: 'Shop', params: { sellerId: shopId } })
   }
 }
 
@@ -1764,6 +1957,22 @@ const getDiscountPercent = (price: number | null | undefined, originalPrice: num
   return Math.round((1 - (price || 0) / originalPrice) * 100)
 }
 
+// ==================== 浏览记录 ====================
+const recordBrowse = async () => {
+  if (!authStore.isLoggedIn) return
+  const item = {
+    id: productId.value,
+    productName: product.value?.name,
+    productImage: productImages.value[0] || '',
+    productPrice: product.value?.price
+  }
+  authAPI.recordBrowse(item).catch(() => {})
+  const local = JSON.parse(localStorage.getItem('browseHistory') || '[]')
+  const filtered = local.filter((h: any) => h.id !== item.id)
+  filtered.unshift(item)
+  localStorage.setItem('browseHistory', JSON.stringify(filtered.slice(0, 20)))
+}
+
 // ==================== 生命周期 ====================
 onMounted(() => {
   if (!authStore.validateUserPermission()) return
@@ -1772,12 +1981,12 @@ onMounted(() => {
 
   Promise.all([
     loadProductDetail(),
-    checkFavoriteStatus(),
     loadPreviewComments(),
     loadSellerInfo(),
     loadCoupons(),
     startAutoPlay()
   ]).then(() => {
+    recordBrowse()
     // 如果是从评论页跳转来的，自动打开 SKU 弹窗并选中对应规格
     const autoOpenSku = route.query.autoOpenSku
     const skuName = route.query.skuName as string

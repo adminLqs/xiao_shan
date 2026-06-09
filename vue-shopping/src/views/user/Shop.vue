@@ -6,7 +6,6 @@
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-store"></i>
         <span>{{ loading ? '店铺' : (shopInfo.name || '店铺') }}</span>
       </div>
       <div class="page-nav-right"></div>
@@ -50,17 +49,15 @@
       <!-- 店铺头部信息 -->
       <div class="shop-header">
         <div class="shop-header-content">
+          <img :src="shopInfo.logo || defaultShopLogo" class="shop-logo" />
           <div class="shop-info">
-            <img :src="shopInfo.logo || defaultShopLogo" class="shop-logo" />
-            <div class="shop-detail">
-              <div class="shop-name">{{ shopInfo.name || '未命名店铺' }}</div>
-              <div class="shop-meta">
-                <span class="meta-item">{{ formatNumber(shopInfo.followerCount) }} 粉丝</span>
-                <span class="meta-divider">|</span>
-                <span class="meta-item">{{ formatNumber(shopInfo.productCount) }} 商品</span>
-                <span class="meta-divider">|</span>
-                <span class="meta-item">{{ shopInfo.score != null ? shopInfo.score.toFixed(1) : '暂无评分' }} 评分</span>
-              </div>
+            <div class="shop-name">{{ shopInfo.name || '未命名店铺' }}</div>
+            <div class="shop-meta">
+              <span class="meta-item">{{ formatNumber(shopInfo.followerCount) }} 粉丝</span>
+              <span class="meta-divider">|</span>
+              <span class="meta-item">{{ formatNumber(shopInfo.productCount) }} 商品</span>
+              <span class="meta-divider">|</span>
+              <span class="meta-item">{{ shopInfo.score != null ? shopInfo.score.toFixed(1) : '暂无评分' }} 评分</span>
             </div>
           </div>
           <div class="shop-actions-col">
@@ -90,37 +87,99 @@
         <div class="tab-underline" :style="underlineStyle"></div>
       </div>
 
+      <!-- 店铺优惠券 -->
+      <div v-if="activeTab === 'products' && shopCoupons.length > 0" class="shop-coupon-section">
+        <div class="coupon-section-header">
+          <span class="coupon-icon">🎫</span>
+          <span class="coupon-title">店铺优惠券</span>
+        </div>
+        <div class="coupon-scroll-list">
+          <div
+            v-for="coupon in shopCoupons"
+            :key="coupon.id"
+            class="coupon-card"
+            :class="{ received: coupon.received, disabled: coupon.received || coupon.status !== 1 }"
+          >
+            <div class="coupon-left">
+              <span class="coupon-amount">¥{{ coupon.amount }}</span>
+              <span v-if="coupon.minAmount > 0" class="coupon-condition">满{{ coupon.minAmount }}可用</span>
+              <span v-else class="coupon-condition">无门槛</span>
+            </div>
+            <div class="coupon-right">
+              <div class="coupon-name">{{ coupon.name }}</div>
+              <div class="coupon-validity">{{ formatCouponDate(coupon.validStart) }} - {{ formatCouponDate(coupon.validEnd) }}</div>
+              <button
+                class="coupon-receive-btn"
+                :disabled="coupon.received || coupon.status !== 1"
+                @click="receiveShopCoupon(coupon.id)"
+              >
+                {{ coupon.received ? '已领取' : (coupon.status !== 1 ? '已结束' : '立即领取') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 商品列表 -->
       <div v-if="activeTab === 'products'" class="products-section">
-        <div class="products-grid">
+        <!-- 商品网格 + 骨架屏 -->
+        <div class="products-grid" v-if="products.length > 0 || loading">
+          <!-- 加载骨架屏（仅首次加载且无数据时显示） -->
+          <template v-if="loading && products.length === 0">
+            <div v-for="i in 6" :key="'skeleton-' + i" class="product-card skeleton-card">
+              <div class="product-image">
+                <div class="image-skeleton"></div>
+              </div>
+              <div class="product-info">
+                <div class="skeleton-line skeleton-title"></div>
+                <div class="skeleton-line skeleton-price"></div>
+              </div>
+            </div>
+          </template>
+
+          <!-- 真实商品列表 -->
           <div
             v-for="product in products"
             :key="product.id"
             class="product-card"
             @click="goToProduct(product.id)"
           >
-            <div class="product-image-wrapper">
-              <img :src="product.image" class="product-image" :alt="product.name" />
-              <div v-if="product.discount" class="discount-tag">{{ product.discount }}</div>
+            <div class="product-image">
+              <div v-if="product.discount" class="product-badge">{{ product.discount }}</div>
+              <div class="image-skeleton" v-show="!product.imageLoaded"></div>
+              <img
+                :src="product.image"
+                :alt="product.name"
+                :class="{ 'img-loaded': product.imageLoaded }"
+                @load="product.imageLoaded = true"
+                @error="product.imageLoaded = true"
+                v-show="product.imageLoaded"
+              />
             </div>
             <div class="product-info">
-              <div class="product-name">{{ product.name }}</div>
-              <div class="product-price">
-                <span class="price-current">¥{{ formatPrice(product.price) }}</span>
-                <span v-if="product.originalPrice" class="price-original">¥{{ formatPrice(product.originalPrice) }}</span>
+              <div class="product-title">{{ product.name }}</div>
+              <div class="price-row">
+                <span class="current-price">¥{{ formatPrice(product.price) }}</span>
+                <span v-if="product.originalPrice" class="original-price">¥{{ formatPrice(product.originalPrice) }}</span>
               </div>
               <div class="product-sales">已售 {{ formatNumber(product.sales) }}</div>
             </div>
           </div>
         </div>
 
+        <!-- 无商品提示 -->
+        <div v-else class="empty-products">
+          <i class="fas fa-box-open"></i>
+          <p>该店铺暂无在售商品</p>
+        </div>
+
         <!-- 加载更多提示 -->
-        <div class="load-more-wrapper">
+        <div class="load-more-wrapper" v-if="products.length > 0">
           <div v-if="loadingMore" class="loading-more-bar">
             <i class="fas fa-spinner fa-spin"></i>
             <span>加载中...</span>
           </div>
-          <div v-else-if="!hasMore && products.length > 0" class="no-more-bar">
+          <div v-else-if="!hasMore" class="no-more-bar">
             — 已经到底了 —
           </div>
         </div>
@@ -195,41 +254,71 @@
             :key="review.id"
             class="review-item"
           >
+            <!-- 用户信息行 -->
             <div class="review-header">
               <img :src="review.avatar || defaultAvatar" class="review-avatar" />
               <div class="review-user-info">
                 <div class="review-user-name">{{ review.userName }}</div>
-                <div class="review-rating">
-                  <i v-for="i in 5" :key="i" class="fas fa-star" :class="{ active: i <= review.rating }"></i>
+                <div class="review-meta-row">
+                  <div class="review-rating">
+                    <i v-for="i in 5" :key="i" class="fas fa-star" :class="{ active: i <= review.rating }"></i>
+                  </div>
+                  <span class="review-time">{{ review.time }}</span>
                 </div>
               </div>
-              <span class="review-time">{{ review.time }}</span>
             </div>
+
+            <!-- 评价内容 -->
             <div class="review-content">{{ review.content }}</div>
-            <!-- 媒体展示区域：图片和视频同一行 -->
+
+            <!-- 评价图片和视频（最多显示4张） -->
             <div class="review-media" v-if="(review.images || []).length > 0 || (review.videos || []).length > 0">
-              <div class="review-media-list">
-                <!-- 视频 -->
-                <div
-                  v-for="video in review.videos"
-                  :key="`video-${video.id}`"
-                  class="media-item video-item"
-                  @click="previewVideo(video.videoUrl)"
-                >
-                  <img :src="video.coverUrl || video.videoUrl || (review.images[0] ? review.images[0].image : '') || defaultAvatar" class="media-image" alt="视频封面" />
-                  <div class="video-play-btn">
-                    <i class="fas fa-play"></i>
+              <!-- 视频 -->
+              <div
+                v-for="(video, vIdx) in (review.videos || []).slice(0, 4)"
+                :key="'v-' + vIdx"
+                class="media-item video-item"
+                @click.stop="previewVideo(video.videoUrl)"
+              >
+                <div class="media-thumb-wrap">
+                  <img v-if="video.coverUrl" :src="video.coverUrl" class="media-thumb" />
+                  <div v-else class="media-placeholder">
+                    <i class="fas fa-video"></i>
                   </div>
+                  <div class="video-play-icon">
+                    <i class="fas fa-play-circle"></i>
+                  </div>
+                  <span v-if="video.duration" class="video-duration">{{ formatDuration(video.duration) }}</span>
                 </div>
-                <!-- 图片 -->
-                <div
-                  v-for="(img, idx) in review.images"
-                  :key="`img-${idx}`"
-                  class="media-item"
-                  @click="previewImage(review.images, Number(idx))"
-                >
-                  <img :src="img.image" class="media-image" alt="评论图片" />
-                </div>
+              </div>
+              <!-- 图片 -->
+              <div
+                v-for="(img, idx) in (review.images || []).slice(0, 4)"
+                :key="'img-' + idx"
+                class="media-item"
+                @click="previewImage(review.images, Number(idx))"
+              >
+                <img :src="img.image" class="media-thumb" />
+              </div>
+              <!-- 更多数量提示 -->
+              <div
+                v-if="(review.images || []).length + (review.videos || []).length > 4"
+                class="media-item media-more"
+              >
+                <span>+{{ (review.images || []).length + (review.videos || []).length - 4 }}</span>
+              </div>
+            </div>
+
+            <!-- 商品信息卡片（买同款） -->
+            <div class="review-product-card" v-if="review.productId" @click="goToProductWithSku(review)">
+              <img :src="review.productImage || defaultProductImage" class="review-product-image" />
+              <div class="review-product-info">
+                <div class="review-product-name">{{ review.productName || '已下架商品' }}</div>
+                <div v-if="review.skuName" class="review-product-sku">{{ review.skuName }}</div>
+              </div>
+              <div class="review-product-action">
+                <span>买同款</span>
+                <i class="fas fa-chevron-right"></i>
               </div>
             </div>
           </div>
@@ -244,43 +333,31 @@
       <div class="bottom-space"></div>
     </template>
 
-    <!-- 图片预览 -->
-    <div v-if="showImagePreview" class="image-preview-overlay" @click="closeImagePreview">
-      <button class="preview-close" @click.stop="closeImagePreview">
-        <i class="fas fa-times"></i>
-      </button>
-      <div class="preview-swiper">
-        <img :src="previewImages[previewImageIndex]" class="preview-image" />
-      </div>
-      <div class="preview-counter">{{ previewImageIndex + 1 }} / {{ previewImages.length }}</div>
-      <button v-if="previewImageIndex > 0" class="preview-arrow left" @click.stop="previewImageIndex--">
-        <i class="fas fa-chevron-left"></i>
-      </button>
-      <button v-if="previewImageIndex < previewImages.length - 1" class="preview-arrow right" @click.stop="previewImageIndex++">
-        <i class="fas fa-chevron-right"></i>
-      </button>
-    </div>
-
-    <!-- 视频预览 -->
-    <div v-if="showVideoPreview" class="video-preview-overlay" @click="closeVideoPreview">
-      <button class="preview-close" @click.stop="closeVideoPreview">
-        <i class="fas fa-times"></i>
-      </button>
-      <video :src="previewVideoUrl" class="preview-video" controls autoplay playsinline @click.stop />
-    </div>
+    <!-- 全局媒体预览 -->
+    <ImagePreview
+      v-if="showMediaPreview"
+      :mediaList="allMediaList"
+      :currentIndex="mediaPreviewIndex"
+      @close="closeMediaPreview"
+      @update:index="mediaPreviewIndex = $event"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
+import ImagePreview from '@/components/ImagePreview.vue'
 import defaultShopLogo from '@/static/images/seller-avatar.jpg'
 import defaultAvatar from '@/static/images/user-avatar.jpg'
+import defaultProductImage from '@/static/images/云杉购图标.jpg'
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 const shopId = computed(() => {
   const id = Number(route.params.sellerId)
   if (isNaN(id) || id <= 0) {
@@ -306,6 +383,10 @@ const shopInfo = ref<any>({
 })
 
 const isFollowed = ref(false)
+
+const shopCoupons = ref<any[]>([])
+const receivingCouponIds = ref<Set<number>>(new Set())
+
 const activeTab = ref('products')
 
 // Tab下划线相关
@@ -330,12 +411,9 @@ const pageSize = ref(12)
 const hasMore = ref(true)
 const loadingMore = ref(false)
 
-// 预览相关
-const showImagePreview = ref(false)
-const previewImages = ref<string[]>([])
-const previewImageIndex = ref(0)
-const showVideoPreview = ref(false)
-const previewVideoUrl = ref('')
+// 媒体预览相关
+const showMediaPreview = ref(false)
+const mediaPreviewIndex = ref(0)
 
 const formatPrice = (price: number): string => {
   if (price == null || isNaN(price)) return '0.00'
@@ -348,6 +426,13 @@ const formatNumber = (num: number): string => {
     return (num / 10000).toFixed(1) + '万'
   }
   return num.toString()
+}
+
+const formatDuration = (seconds: number): string => {
+  if (!seconds || isNaN(seconds)) return ''
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
 const formatDate = (dateStr: string): string => {
@@ -384,6 +469,19 @@ const goToProduct = (productId: number) => {
   router.push({ name: 'ProductDetail', params: { productId } })
 }
 
+// 跳转到商品详情页并自动选中规格
+const goToProductWithSku = (review: any) => {
+  let skuSpec = ''
+  if (review.skuName) {
+    skuSpec = review.skuName.replace(/，/g, ',').replace(/、/g, ',')
+  }
+  router.push({
+    name: 'ProductDetail',
+    params: { productId: review.productId },
+    query: { skuSpec }
+  })
+}
+
 const toggleFollow = async () => {
   try {
     if (isFollowed.value) {
@@ -411,7 +509,14 @@ const toggleFollow = async () => {
 }
 
 const contactShop = () => {
-  Message.info('客服功能开发中')
+  const targetId = shopInfo.value?.userId || shopId.value
+  if (!targetId) return
+  if (!authStore.isLoggedIn) {
+    Message.error('请先登录')
+    router.push({ name: 'Login' })
+    return
+  }
+  router.push({ name: 'Chat', params: { targetId } })
 }
 
 const loadShopInfo = async () => {
@@ -446,9 +551,60 @@ const loadShopInfo = async () => {
         if (followResponse.success) {
             isFollowed.value = followResponse.data?.isFollowed || false
         }
+
+        await loadShopCoupons()
     } catch (error: any) {
         Message.error(error.message || '加载失败')
     }
+}
+
+const loadShopCoupons = async () => {
+  try {
+    const response = await authAPI.getShopAvailableCoupons(shopId.value)
+    if (response.success && response.data?.coupons) {
+      shopCoupons.value = response.data.coupons
+    }
+  } catch (error: any) {
+    console.warn('加载店铺优惠券失败:', error)
+  }
+}
+
+const receiveShopCoupon = async (couponId: number) => {
+  if (!authStore.isLoggedIn) {
+    Message.warning('请先登录')
+    router.push({ name: 'Login' })
+    return
+  }
+
+  if (receivingCouponIds.value.has(couponId)) return
+  receivingCouponIds.value.add(couponId)
+
+  try {
+    const response = await authAPI.receiveCoupon(couponId)
+    if (response.success) {
+      Message.success('领取成功')
+      const coupon = shopCoupons.value.find(c => c.id === couponId)
+      if (coupon) {
+        coupon.received = true
+      }
+    } else {
+      Message.error(response.message || '领取失败')
+    }
+  } catch (error: any) {
+    Message.error(error.message || '领取失败')
+  } finally {
+    receivingCouponIds.value.delete(couponId)
+  }
+}
+
+const formatCouponDate = (dateStr: string) => {
+  if (!dateStr) return ''
+  try {
+    const date = new Date(dateStr)
+    return `${date.getMonth() + 1}/${date.getDate()}`
+  } catch {
+    return ''
+  }
 }
 
 const loadQualification = async (userId: number) => {
@@ -552,7 +708,12 @@ const loadReviews = async () => {
                     content: review.comment || '',
                     time: formatTime(review.createdAt || item.createdAt),
                     images: reviewImages,
-                    videos: reviewVideos
+                    videos: reviewVideos,
+                    // 商品信息
+                    productId: review.productId,
+                    productName: review.productName || item.productName,
+                    productImage: review.productImage || review.product_image || item.productImage || item.product_image,
+                    skuName: review.skuName || item.skuName
                 }
             }) || []
             shopInfo.value.reviewCount = response.data.total || reviews.value.length
@@ -572,33 +733,50 @@ const formatTime = (dateStr: string) => {
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
 
+// 收集所有评论媒体
+const allMediaList = computed(() => {
+  const list: { type: 'image' | 'video'; url: string; cover?: string }[] = []
+  reviews.value.forEach((review: any) => {
+    if (review.images?.length) {
+      review.images.forEach((img: any) => list.push({ type: 'image', url: img.image || img }))
+    }
+    if (review.videos?.length) {
+      review.videos.forEach((v: any) => list.push({ type: 'video', url: v.videoUrl, cover: v.coverUrl }))
+    }
+  })
+  return list
+})
+
 const previewImage = (images: any[], index: number) => {
-  previewImages.value = images.map(img => img.image)
-  previewImageIndex.value = index
-  showImagePreview.value = true
+  const targetImage = images[index]
+  if (targetImage) {
+    const foundIndex = allMediaList.value.findIndex(item => item.url === (targetImage.image || targetImage))
+    if (foundIndex !== -1) {
+      mediaPreviewIndex.value = foundIndex
+    } else {
+      mediaPreviewIndex.value = 0
+    }
+    showMediaPreview.value = true
+  }
 }
 
-// 资质图片预览
 const previewQualificationImage = (url: string) => {
-  previewImages.value = [url]
-  previewImageIndex.value = 0
-  showImagePreview.value = true
+  mediaPreviewIndex.value = 0
+  showMediaPreview.value = true
 }
 
-const closeImagePreview = () => {
-  showImagePreview.value = false
-  previewImages.value = []
-  previewImageIndex.value = 0
+const closeMediaPreview = () => {
+  showMediaPreview.value = false
 }
 
 const previewVideo = (url: string) => {
-  previewVideoUrl.value = url
-  showVideoPreview.value = true
-}
-
-const closeVideoPreview = () => {
-  showVideoPreview.value = false
-  previewVideoUrl.value = ''
+  const foundIndex = allMediaList.value.findIndex(item => item.url === url)
+  if (foundIndex !== -1) {
+    mediaPreviewIndex.value = foundIndex
+  } else {
+    mediaPreviewIndex.value = 0
+  }
+  showMediaPreview.value = true
 }
 
 onMounted(async () => {

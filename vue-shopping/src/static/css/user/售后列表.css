@@ -4,7 +4,7 @@
 .after-sale-list {
   min-height: 100vh;
   background: #f5f7fa;
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
   position: relative;
 }
 
@@ -51,9 +51,7 @@
   color: #1e293b;
 }
 
-.page-nav-title i {
-  color: #4a6491;
-}
+
 
 .page-nav-right {
   width: 36px;
@@ -114,7 +112,6 @@
 
 /* ========== 售后列表 ========== */
 .refund-list {
-  padding: 8px 0 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -205,31 +202,25 @@
 .tags-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
   margin-top: 4px;
 }
 
 .tag-spec {
   font-size: 12px;
-  color: #64748b;
-  background: #f0f2f5;
-  padding: 2px 8px;
-  border-radius: 12px;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
-  width: fit-content;
+  color: #94a3b8;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 
 .tag-quantity {
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8;
   font-weight: 500;
   background: transparent;
-  padding: 4px 6px;
+  padding: 0;
   white-space: nowrap;
 }
 
@@ -243,13 +234,13 @@
   width: fit-content;
 }
 
-.tag-refund.status-processing { background: #fef3c7; color: #d97706; }
-.tag-refund.status-approved { background: #dbeafe; color: #2563eb; }
-.tag-refund.status-success { background: #dcfce7; color: #16a34a; }
-.tag-refund.status-failed { background: #fee2e2; color: #dc2626; }
-.tag-refund.status-returning { background: #f3e8ff; color: #9333ea; }
-.tag-refund.status-received { background: #cffafe; color: #0891b2; }
-.tag-refund.status-default { background: #f1f5f9; color: #64748b; }
+.tag-refund.status-processing { color: #d97706; }
+.tag-refund.status-waiting-return { color: #2563eb; }
+.tag-refund.status-success { color: #16a34a; }
+.tag-refund.status-failed { color: #dc2626; }
+.tag-refund.status-returning { color: #9333ea; }
+.tag-refund.status-received { color: #0891b2; }
+.tag-refund.status-default { color: #64748b; }
 
 /* 价格区域 */
 .product-price {
@@ -276,15 +267,14 @@
 
 /* 操作按钮 - 和订单列表一致 */
 .action-btn {
-  padding: 6px 14px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 6px 16px;
   background: white;
   border: 1px solid #d0d5dc;
-  color: #4a6491;
+  border-radius: 4px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .action-btn:active {
@@ -396,35 +386,33 @@
 }
 
 /* ========== 加载更多 ========== */
-.loading-more {
-  padding: 20px;
-  text-align: center;
+.load-more-wrapper {
+  width: 100%;
+  padding: 20px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.loading-text {
-  display: inline-flex;
+.loading-more-bar {
+  display: flex;
   align-items: center;
   gap: 8px;
+  color: #64748b;
   font-size: 13px;
-  color: #94a3b8;
-  background: white;
-  padding: 8px 20px;
-  border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.loading-text i {
-  color: #4a6491;
+.loading-more-bar i {
   animation: spin 1s linear infinite;
+}
+
+.no-more-bar {
+  color: #cbd5e1;
+  font-size: 12px;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-/* ========== 底部留空 ========== */
-.bottom-space {
-  height: 20px;
 }
 
 /* ========== 响应式 ========== */
@@ -435,7 +423,7 @@
 /* 安全区域适配 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .after-sale-list {
-    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
   }
 
   .page-navbar {

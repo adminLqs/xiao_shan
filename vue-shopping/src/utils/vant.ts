@@ -1,4 +1,4 @@
-import Message from '@/utils/message'
+﻿import Message from '@/utils/message'
 import { ElMessageBox } from 'element-plus'
 import { showImagePreview } from 'vant'
 import 'vant/es/image-preview/style'

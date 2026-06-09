@@ -5,7 +5,6 @@
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-truck"></i>
         <span>物流信息</span>
       </div>
       <div class="page-nav-right"></div>
@@ -52,21 +51,17 @@
     <!-- ========== 物流信息内容 ========== -->
     <div v-else-if="orderInfo || (logisticsInfo.trackingNumber)" class="logistics-content">
 
-      <!-- ========== 订单号显示（仅当有订单信息时显示） ========== -->
-      <div v-if="orderInfo.orderNumber" class="order-number-row">
-        <span class="order-label">订单号</span>
-        <span class="order-value">{{ orderInfo.orderNumber }}</span>
-      </div>
-
       <!-- ========== 商品信息卡片 ========== -->
-      <div class="product-info-card" v-for="(item, idx) in productItems" :key="idx"
-        :style="idx > 0 ? 'border-top:1px solid #f0f2f5;' : ''">
-        <img :src="item.productImage" class="product-image" />
-        <div class="product-detail">
-          <div class="product-name">{{ item.productName }}</div>
-          <div class="tags-group">
-            <span v-if="item.skuName" class="tag-spec">{{ item.skuName }}</span>
-            <span class="tag-quantity">x{{ item.quantity }}</span>
+      <div class="product-list-wrapper">
+        <div class="product-info-card" v-for="(item, idx) in productItems" :key="idx"
+          :style="idx > 0 ? 'border-top:1px solid #f0f2f5;' : ''">
+          <img :src="item.productImage" class="product-image" />
+          <div class="product-detail">
+            <div class="product-name">{{ item.productName }}</div>
+            <div class="tags-group">
+              <span v-if="item.skuName" class="tag-spec">{{ item.skuName }}</span>
+              <span class="tag-quantity">x{{ item.quantity }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -85,8 +80,22 @@
         </button>
       </div>
 
+      <!-- ========== 收件信息卡片 ========== -->
+      <div class="address-card" v-if="orderInfo && orderInfo.receiverName">
+        <div class="address-icon">
+          <i class="fas fa-map-marker-alt"></i>
+        </div>
+        <div class="address-content">
+          <div class="address-detail">{{ orderInfo.receiverAddress || '-' }}</div>
+          <div class="phone-row">
+            <span>{{ orderInfo.receiverName || '-' }}</span>
+            <span class="phone">{{ orderInfo.receiverPhone || '-' }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- ========== 物流轨迹时间线（核心区域） ========== -->
-      <div v-if="logisticsInfo.trackingNumber || orderInfo.trackingNumber" class="logistics-card">
+      <div v-if="orderInfo" class="logistics-card">
         <div class="logistics-timeline">
           <div
             v-for="(trace, index) in logisticsTraces"
@@ -115,47 +124,16 @@
         </div>
       </div>
 
-      <!-- ========== 未发货状态 ========== -->
-      <div v-if="orderInfo && !orderInfo.trackingNumber && !logisticsInfo.trackingNumber" class="not-shipped-card">
-        <i class="fas fa-box"></i>
-        <p>等待卖家发货</p>
-        <p class="tips">卖家发货后将显示物流信息</p>
-      </div>
 
-      <!-- ========== 订单信息卡片（收件信息，默认展开，仅当有订单信息时显示） ========== -->
-      <div class="address-card" v-if="orderInfo && orderInfo.receiverName">
-        <div class="card-header">
-          <span class="card-title">收件信息</span>
-        </div>
-        <div class="card-content">
-          <div class="address-info">
-            <div class="receiver">
-              <span class="receiver-name">{{ orderInfo.receiverName || '-' }}</span>
-              <span class="receiver-phone">{{ orderInfo.receiverPhone || '-' }}</span>
-            </div>
-            <div class="receiver-address">{{ orderInfo.receiverAddress || '-' }}</div>
-          </div>
-        </div>
-      </div>
 
       <!-- ========== 底部操作按钮 ========== -->
-      <div class="action-buttons">
-        <!-- 确认收货按钮（仅已发货订单显示） -->
-        <button
-          v-if="orderInfo && orderInfo.status === 'SHIPPED' && orderInfo.id"
-          class="btn-receive"
-          @click="confirmReceive"
-          :disabled="confirming"
-        >
-          <i v-if="confirming" class="fas fa-spinner fa-spin"></i>
-          {{ confirming ? '确认中...' : '确认收货' }}
-        </button>
-
-        <!-- 联系卖家按钮 -->
-        <button class="btn-contact" @click="contactSeller">
-          <i class="fas fa-headset"></i>
-          <span>联系卖家</span>
-        </button>
+      <div class="order-footer">
+        <div class="order-actions">
+          <button class="btn-contact" @click="contactSeller">
+            <i class="fas fa-headset"></i>
+            <span>联系客服</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -183,6 +161,7 @@ const { isLoggedIn } = storeToRefs(authStore)
 
 const loading = ref(true)
 const confirming = ref(false)
+const sellerId = ref<number | null>(null)
 
 interface OrderInfo {
   id: number | null
@@ -287,12 +266,61 @@ const loadLogistics = async () => {
       if (route.query.refundId) {
         const refundRes = await authAPI.getRefundDetail(Number(route.query.refundId))
         if (refundRes.success && refundRes.data) {
+          sellerId.value = refundRes.data.sellerId || null
           productItems.value = [{
             productName: refundRes.data.productName || '',
             productImage: refundRes.data.productImage || '',
             skuName: refundRes.data.skuName || '',
             quantity: refundRes.data.quantity || 1
           }]
+        }
+      }
+
+      loading.value = false
+      return
+    }
+
+    // ===== 退货物流：有 refundId 但没有 trackingNumber（上门取件场景） =====
+    if (refundId && route.query.type === 'return') {
+      const refundRes = await authAPI.getRefundDetail(Number(refundId))
+      if (refundRes.success && refundRes.data) {
+        const refundData = refundRes.data
+        sellerId.value = refundData.sellerId || null
+
+        orderInfo.value = {
+          id: refundData.orderId || null,
+          orderNumber: refundData.orderNumber || '',
+          status: 'SHIPPED',
+          totalAmount: refundData.amount || 0,
+          shippedAt: null,
+          trackingNumber: refundData.returnTrackingNumber || '',
+          logisticsCode: '',
+          logisticsName: refundData.returnLogisticsName || '',
+          receiverName: '',
+          receiverPhone: '',
+          receiverAddress: ''
+        }
+
+        logisticsInfo.value = {
+          trackingNumber: refundData.returnTrackingNumber || '',
+          logisticsCode: '',
+          logisticsName: refundData.returnLogisticsName || '',
+          traces: []
+        }
+
+        productItems.value = [{
+          productName: refundData.productName || '',
+          productImage: refundData.productImage || '',
+          skuName: refundData.skuName || '',
+          quantity: refundData.quantity || 1
+        }]
+
+        // 如果已有运单号，获取物流轨迹
+        if (refundData.returnTrackingNumber) {
+          const response = await authAPI.getLogisticsByTrackingNumber(refundData.returnTrackingNumber, refundData.returnLogisticsName, refundId)
+          if (response.success && response.data) {
+            logisticsTraces.value = response.data.traces || []
+          }
         }
       }
 
@@ -335,16 +363,17 @@ const loadLogistics = async () => {
       }
 
       const logistics = resultData.logistics
+      const traces = logistics?.traces || []
 
-      if (logistics) {
-        logisticsInfo.value = {
-          trackingNumber: logistics.trackingNumber || '',
-          logisticsCode: logistics.logisticsCode || '',
-          logisticsName: logistics.logisticsName || '',
-          traces: logistics.traces || []
-        }
-        logisticsTraces.value = logistics.traces || []
+      logisticsInfo.value = {
+        trackingNumber: logistics?.trackingNumber || order?.trackingNumber || '',
+        logisticsCode: logistics?.logisticsCode || order?.logisticsCode || '',
+        logisticsName: logistics?.logisticsName || order?.logisticsName || '',
+        traces: traces
       }
+
+      // 后端已合并默认轨迹和真实轨迹，直接使用
+      logisticsTraces.value = traces
 
       // ===== 订单物流：通过 orderId 获取订单项 =====
       const orderRes = await authAPI.getOrderDetail(Number(orderId))
@@ -414,8 +443,25 @@ const copyTrackingNumber = async () => {
   }
 }
 
+const copyOrderNumber = async () => {
+  const orderNumber = orderInfo.value.orderNumber
+  if (!orderNumber) return
+
+  try {
+    await navigator.clipboard.writeText(orderNumber)
+    Message.success('已复制')
+  } catch (error) {
+    Message.error('复制失败')
+  }
+}
+
 const contactSeller = () => {
-  Message.info('联系卖家功能开发中')
+  const targetSellerId = route.query.sellerId || sellerId.value
+  if (!targetSellerId) {
+    Message.error('无法获取商家信息')
+    return
+  }
+  router.push({ name: 'Chat', params: { targetId: Number(targetSellerId) } })
 }
 
 const formatPrice = (price: number): string => {
@@ -423,23 +469,19 @@ const formatPrice = (price: number): string => {
   return price.toFixed(2)
 }
 
-const formatDateTime = (dateStr: string): string => {
+const formatDateTime = (dateStr: string | null): string => {
   if (!dateStr) return '-'
-
-  try {
-    const date = new Date(dateStr)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    return `${month}-${day} ${hours}:${minutes}`
-  } catch {
-    return '-'
-  }
+  const date = new Date(dateStr)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${d} ${h}:${min}`
 }
 
 onMounted(() => {
+  if (!authStore.validateUserPermission()) return
   loadLogistics()
 })
 </script>

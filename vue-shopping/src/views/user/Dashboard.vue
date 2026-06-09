@@ -1,5 +1,5 @@
 <template>
-  <div class="outer-container" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
+  <div class="outer-container" @touchstart.passive="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
     <!-- ========== 下拉刷新指示器 ========== -->
     <div class="refresh-indicator" :style="{ height: pullDistance + 'px', opacity: pullDistance / 60 }">
       <div class="refresh-content" v-if="pullDistance > 0">
@@ -9,76 +9,85 @@
       </div>
     </div>
 
-    <!-- ========== 呼吸式导航栏 ========== -->
-    <div class="breathe-nav" :style="{
-      opacity: navOpacity,
-      background: `rgba(255, 255, 255, ${navOpacity > 0.5 ? 0.98 : navOpacity * 1.5})`,
-      backdropFilter: `blur(${navOpacity * 10}px)`,
-      transform: `translateY(${Math.max(0, (1 - navOpacity) * -10)}px)`
-    }">
-      <div class="nav-left">
-        <div class="nav-logo">
-          <i class="fas fa-store-alt"></i>
-          <span class="logo-text">云杉购</span>
+    <!-- ========== 固定导航栏（搜索+分类） ========== -->
+    <div class="fixed-header">
+      <!-- 搜索栏 -->
+      <div class="breathe-nav">
+        <div class="nav-left">
+          <div class="nav-logo">
+            <i class="fas fa-store-alt"></i>
+            <span class="logo-text">云杉购</span>
+          </div>
         </div>
-      </div>
-      <div class="nav-center">
-        <div class="search-wrapper">
-          <div class="search-box" @click="router.push({name:'UserSearch'})">
-            <i class="fas fa-search search-icon"></i>
-            <span class="search-placeholder">搜索商品...</span>
+        <div class="nav-center">
+          <div class="search-input-wrap" @click="router.push({ name: 'SearchDefault', query: { autofocus: 'true', placeholder: searchPlaceholderText } })">
+            <i class="fas fa-search search-input-icon"></i>
+            <div class="search-placeholder-wrapper">
+              <transition name="slide-up-down" mode="out-in">
+                <span class="search-placeholder-text" :key="searchPlaceholderText">
+                  {{ searchPlaceholderText }}
+                </span>
+              </transition>
+            </div>
           </div>
         </div>
       </div>
 
-    </div>
-
-    <!-- ========== 悬浮胶囊导航（滚动200px+出现） ========== -->
-    <div class="floating-capsule" :class="{ visible: showFloatingCapsule }">
-      <button class="capsule-back" @click="router.back()">
-        <i class="fas fa-chevron-left"></i>
-      </button>
-      <span class="capsule-title">云杉购</span>
-      <div class="capsule-actions">
-        <RouterLink :to="{name:'Cart'}" class="capsule-cart">
-          <i class="fas fa-shopping-cart"></i>
-          <span v-if="cartCount > 0" class="capsule-badge">{{ cartCount }}</span>
-        </RouterLink>
+      <!-- 一级分类Tab -->
+      <div class="category-tabs-scroll" ref="categoryTabsRef">
+        <div class="category-tab" :class="{ active: activeLevel1Id === null }" @click="selectLevel1Category(null)">
+          全部
+        </div>
+        <div
+          v-for="cat in level1Categories"
+          :key="cat.id"
+          class="category-tab"
+          :class="{ active: activeLevel1Id === cat.id }"
+          @click="selectLevel1Category(cat.id)"
+        >
+          {{ cat.name }}
+        </div>
+        <div class="tab-underline" ref="tabUnderlineRef"></div>
       </div>
     </div>
 
-
-
-    <!-- ========== 商家入驻横幅 ========== -->
-    <div class="merchant-banner" v-if="!isSeller && !isAdmin">
-      <div class="merchant-container">
-        <div class="merchant-content">
-          <div class="merchant-info">
-            <h3 class="merchant-title">加入云杉购商城，开启电商之旅</h3>
-            <p class="merchant-desc">
-              <span>0元入驻</span>
-              <span>海量流量</span>
-              <span>专业扶持</span>
-            </p>
+    <!-- ========== 内容区域 ========== -->
+    <div class="main-content">
+      <!-- ========== 商家入驻横幅 ========== -->
+      <div class="merchant-banner" v-if="!authStore.hasRole('ROLE_SELLER') && !authStore.hasRole('ROLE_ADMIN')">
+        <div class="merchant-container">
+          <div class="merchant-content">
+            <div class="merchant-info">
+              <h3 class="merchant-title">加入云杉购商城，开启电商之旅</h3>
+              <p class="merchant-desc">
+                <span>0元入驻</span>
+                <span>海量流量</span>
+                <span>专业扶持</span>
+              </p>
+            </div>
+            <button class="merchant-btn" @click="goToMerchantApply">
+              <i class="fas fa-store"></i>
+              <span>立即入驻</span>
+              <i class="fas fa-arrow-right"></i>
+            </button>
           </div>
-          <button class="merchant-btn" @click="goToMerchantApply">
-            <i class="fas fa-store"></i>
-            <span>立即入驻</span>
-            <i class="fas fa-arrow-right"></i>
-          </button>
         </div>
       </div>
-    </div>
 
-    <!-- ========== 分类图标网格（跳转分类页） ========== -->
-    <div class="category-grid">
-      <div v-for="(cat, index) in topCategories" :key="cat.id" class="grid-item" @click="router.push({name:'Categories', query:{categoryId: cat.id}})">
-        <div class="grid-icon" :style="{ background: catBgColors[index % catBgColors.length] }">
-          <i :class="getCatIcon(cat.name)"></i>
+      <!-- ========== 二级分类标签（选中一级分类时显示） ========== -->
+      <div v-if="activeLevel1Id !== null && level2Categories.length > 0" class="level2-category-section">
+        <div class="level2-category-tabs">
+          <div
+            v-for="cat in level2Categories"
+            :key="cat.id"
+            class="level2-category-tab"
+            :class="{ active: activeLevel2Id === cat.id }"
+            @click="selectLevel2Category(cat.id)"
+          >
+            {{ cat.name }}
+          </div>
         </div>
-        <span class="grid-label">{{ cat.name }}</span>
       </div>
-    </div>
 
     <!-- ========== 商品展示区 ========== -->
     <div class="products-section">
@@ -149,6 +158,7 @@
         </div>
       </div>
     </div>
+    </div>
 
     <!-- ========== 快速查看模态框 ========== -->
     <div v-if="showQuickView" class="modal-overlay" @click="closeQuickView">
@@ -194,6 +204,56 @@ import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
+
+// 搜索栏 placeholder 轮播
+const browseHistory = ref<string[]>([])
+const searchPlaceholderText = ref('')
+let searchPlaceholderTimer: ReturnType<typeof setInterval> | null = null
+let searchPlaceholderIndex = 0
+
+const loadSearchBrowseHistory = async () => {
+  const local = JSON.parse(localStorage.getItem('browseHistory') || '[]')
+  const names = local.slice(0, 5).map((h: any) => h.productName || h.name)
+  browseHistory.value = names
+  if (names.length > 0) {
+    searchPlaceholderText.value = names[0]
+  }
+
+  try {
+    const browseRes = await authAPI.getBrowseHistory()
+    if (browseRes.success && browseRes.data?.records?.length > 0) {
+      const serverNames = browseRes.data.records.map((h: any) => h.productName)
+      browseHistory.value = serverNames.slice(0, 5)
+      searchPlaceholderText.value = serverNames[0]
+      localStorage.setItem('browseHistory', JSON.stringify(browseRes.data.records))
+    } else {
+      const recommendRes = await authAPI.getRecommendProducts()
+      if (recommendRes.success && recommendRes.data?.length > 0) {
+        const recommendNames = recommendRes.data.map((p: any) => p.name)
+        browseHistory.value = recommendNames.slice(0, 5)
+        searchPlaceholderText.value = recommendNames[0]
+      }
+    }
+  } catch {
+    try {
+      const recommendRes = await authAPI.getRecommendProducts()
+      if (recommendRes.success && recommendRes.data?.length > 0) {
+        const recommendNames = recommendRes.data.map((p: any) => p.name)
+        browseHistory.value = recommendNames.slice(0, 5)
+        searchPlaceholderText.value = recommendNames[0]
+      }
+    } catch {}
+  }
+}
+
+const startSearchPlaceholderRotation = () => {
+  searchPlaceholderTimer = setInterval(() => {
+    if (browseHistory.value.length > 0) {
+      searchPlaceholderIndex = (searchPlaceholderIndex + 1) % browseHistory.value.length
+      searchPlaceholderText.value = browseHistory.value[searchPlaceholderIndex] || ''
+    }
+  }, 5000)
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -258,12 +318,20 @@ const searchKeyword = ref('')
 const currentPage = ref(1)
 const pageSize = ref(20)
 
+const goToSearch = () => {
+  if (searchKeyword.value.trim()) {
+    router.push({ name: 'SearchResult', query: { keyword: searchKeyword.value.trim() } })
+  } else {
+    router.push({ name: 'SearchDefault' })
+  }
+}
+
 // ==================== UI 状态 ====================
 
 const showQuickView = ref(false)
 const selectedProduct = ref<Product | null>(null)
 const showBackTop = ref(false)
-const showSearchBar = ref(false)
+const showFixedHeader = ref(false)
 
 // 下拉刷新相关
 const pullDistance = ref(0)
@@ -271,28 +339,16 @@ const isRefreshing = ref(false)
 const touchStartY = ref(0)
 const isPulling = ref(false)
 
-// 呼吸导航相关
-const navOpacity = ref(1)
-const showFloatingCapsule = ref(false)
-const lastScrollTop = ref(0)
+// Tab 相关 refs
+const categoryTabsRef = ref<HTMLElement | null>(null)
+const tabUnderlineRef = ref<HTMLElement | null>(null)
 
-
-
-const categorySection = ref<HTMLElement | null>(null)
-
-const scrollToCategorySection = () => {
-  if (categorySection.value) {
-    categorySection.value.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
-    })
-  }
-}
+const scrollToCategorySection = () => {}
 
 // ==================== 分类图标颜色 ====================
 
 const catBgColors = [
-  '#FF6B6B', '#4A6491', '#10B981', '#F59E0B',
+  '#FF6B6B', '#4a6491', '#10B981', '#F59E0B',
   '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'
 ]
 
@@ -360,17 +416,22 @@ const loadCartCount = async () => {
 
 // ==================== 分类相关函数 ====================
 
+let loadingCategories = false
 const loadCategories = async () => {
+  if (loadingCategories || allCategories.value.length > 0) return
+  loadingCategories = true
   try {
     const response = await authAPI.getAllCategories()
     if (response.success && response.data?.categories) {
       allCategories.value = response.data.categories
       level1Categories.value = allCategories.value.filter(
-        cat => cat.parentId === null && cat.isActive
+        cat => !cat.parentId && cat.isActive
       )
     }
   } catch (error) {
     Message.error('加载分类失败')
+  } finally {
+    loadingCategories = false
   }
 }
 
@@ -390,8 +451,9 @@ const selectLevel1Category = (categoryId: number | null) => {
   loadLevel2Categories()
   currentPage.value = 1
   hasMore.value = true
-  products.value = []   // 清空旧商品，触发骨架屏
+  products.value = []
   loadProducts()
+  updateTabUnderline()
 }
 
 const selectLevel2Category = (categoryId: number | null) => {
@@ -459,25 +521,9 @@ const loadProducts = async () => {
 const handleScroll = () => {
   const scrollTop = window.scrollY
 
-  // 呼吸导航透明度计算
-  if (scrollTop <= 80) {
-    navOpacity.value = 1
-  } else if (scrollTop <= 200) {
-    navOpacity.value = Math.max(0, 1 - (scrollTop - 80) / 120)
-  } else {
-    navOpacity.value = 0
-  }
+  showFixedHeader.value = scrollTop > 50
 
-  // 悬浮胶囊显示
-  showFloatingCapsule.value = scrollTop > 200
-
-  // 回到顶部按钮
   showBackTop.value = scrollTop > 300
-
-  // 固定搜索栏（保留兼容）
-  showSearchBar.value = scrollTop > 150
-
-  lastScrollTop.value = scrollTop
 
   // 加载更多
   if (loadingMore.value || !hasMore.value || loading.value) return
@@ -485,6 +531,24 @@ const handleScroll = () => {
   if (scrollTop + clientHeight >= scrollHeight - 150) {
     loadMore()
   }
+}
+
+const updateTabUnderline = () => {
+  nextTick(() => {
+    const tabs = categoryTabsRef.value?.querySelectorAll('.category-tab')
+    const activeTab = categoryTabsRef.value?.querySelector('.category-tab.active')
+    const underline = tabUnderlineRef.value
+
+    if (!activeTab || !underline) return
+
+    const rect = activeTab.getBoundingClientRect()
+    const containerRect = categoryTabsRef.value?.getBoundingClientRect()
+
+    if (containerRect) {
+      underline.style.left = `${rect.left - containerRect.left}px`
+      underline.style.width = `${rect.width}px`
+    }
+  })
 }
 
 const scrollToTop = () => {
@@ -631,19 +695,17 @@ onMounted(() => {
       searchKeyword.value = queryKeyword
     }
     loadProducts()
+    updateTabUnderline()
   })
 
+  loadSearchBrowseHistory()
+  startSearchPlaceholderRotation()
   window.addEventListener('scroll', handleScroll)
-
-  if (route.query.showCategories === 'true') {
-    setTimeout(() => {
-      scrollToCategorySection()
-    }, 300)
-  }
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  if (searchPlaceholderTimer) clearInterval(searchPlaceholderTimer)
 })
 
 onActivated(() => {
@@ -653,12 +715,6 @@ onActivated(() => {
 onDeactivated(() => {
   window.removeEventListener('scroll', handleScroll)
 })
-</script>
-
-<script lang="ts">
-export default {
-  name: 'UserDashboard'
-}
 </script>
 
 <style scoped>

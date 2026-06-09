@@ -203,6 +203,86 @@ public class LogisticsService {
     }
 
     /**
+     * 根据订单生成物流轨迹
+     * 合并订单状态节点和真实物流轨迹
+     *
+     * @param order 订单信息
+     * @return 物流信息VO
+     */
+    public LogisticsVO generateDefaultTraces(com.xiaoshan.springbootdemo.entity.Order order) {
+        LogisticsVO result = new LogisticsVO();
+        result.setTrackingNumber(order.getTrackingNumber());
+        result.setLogisticsCode(order.getLogisticsCode());
+        result.setLogisticsName(getLogisticsName(order.getLogisticsCode()));
+
+        List<LogisticsVO.TraceVO> traces = new ArrayList<>();
+
+        // 1. 根据订单时间线生成默认节点
+        if (order.getCreatedAt() != null) {
+            LogisticsVO.TraceVO trace = new LogisticsVO.TraceVO();
+            trace.setTime(order.getCreatedAt());
+            trace.setStatus("订单已创建，等待付款");
+            trace.setLocation("系统");
+            traces.add(trace);
+        }
+
+        if (order.getPaidAt() != null) {
+            LogisticsVO.TraceVO trace = new LogisticsVO.TraceVO();
+            trace.setTime(order.getPaidAt());
+            trace.setStatus("订单已支付，等待商家处理");
+            trace.setLocation("系统");
+            traces.add(trace);
+        }
+
+        if (order.getProcessingAt() != null) {
+            LogisticsVO.TraceVO trace = new LogisticsVO.TraceVO();
+            trace.setTime(order.getProcessingAt());
+            trace.setStatus("商家正在备货中");
+            trace.setLocation("商家仓库");
+            traces.add(trace);
+        }
+
+        if (order.getShippedAt() != null) {
+            LogisticsVO.TraceVO trace = new LogisticsVO.TraceVO();
+            trace.setTime(order.getShippedAt());
+            // 有物流单号则显示已发货，无则显示等待发货
+            if (order.getTrackingNumber() != null && !order.getTrackingNumber().isEmpty()) {
+                trace.setStatus("订单已发货，等待快递员揽件");
+                trace.setLocation("物流网点");
+            } else {
+                trace.setStatus("商家已发货，等待填写物流信息");
+                trace.setLocation("商家仓库");
+            }
+            traces.add(trace);
+        }
+
+        // completedAt 由快递鸟真实轨迹提供，不生成默认节点
+
+        // 2. 如果有物流单号，调用快递鸟获取真实轨迹并合并
+        if (order.getTrackingNumber() != null && !order.getTrackingNumber().isEmpty()) {
+            LogisticsVO realLogistics = queryLogistics(
+                    order.getTrackingNumber(),
+                    order.getLogisticsCode(),
+                    order.getId()
+            );
+            if (realLogistics != null && realLogistics.getTraces() != null) {
+                traces.addAll(realLogistics.getTraces());
+            }
+        }
+
+        // 3. 按时间倒序排序（DESC，最新的在最上面）
+        traces.sort((a, b) -> {
+            if (a.getTime() == null && b.getTime() == null) return 0;
+            if (a.getTime() == null) return 1;
+            if (b.getTime() == null) return -1;
+            return b.getTime().compareTo(a.getTime()); // 倒序：b.compareTo(a)
+        });
+
+        result.setTraces(traces);
+        return result;
+    }
+
+    /**
      * 生成模拟的物流轨迹数据
      * @return 物流轨迹列表
      */

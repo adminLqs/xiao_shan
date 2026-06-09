@@ -1,184 +1,73 @@
-/* ========== 套餐购买页 - 简洁版样式 ========== */
+/* ========== 套餐购买页 - 简洁卡片式布局 ========== */
 
 .package-container {
   min-height: 100vh;
   background: #f5f7fa;
   padding: 0;
+  margin: 0;
   position: relative;
+  box-sizing: border-box;
 }
 
-/* 移除所有动态背景装饰 */
-.package-container::before,
-.package-container::after {
-  display: none;
-  content: none;
-}
-
-.tech-glow {
-  display: none;
-}
-
-/* ========== 页面头部 ========== */
-.page-header {
-  text-align: center;
-  margin-bottom: 32px;
-  position: relative;
-  z-index: 5;
-}
-
-.page-header h2 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 8px;
-}
-
-.page-header p {
-  font-size: 14px;
-  color: #64748b;
-}
-
-/* ========== 当前套餐信息卡片 ========== */
-.current-package-card {
-  background: linear-gradient(135deg, #4a6491 0%, #3a5479 100%);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 24px;
-  position: relative;
-  z-index: 5;
-  box-shadow: 0 4px 16px rgba(74, 100, 145, 0.2);
-}
-
-.current-package-card .package-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* ========== 当前套餐横条 ========== */
+.current-package-info {
+  padding: 12px 16px;
+  background: #f0f4ff;
+  border: 1px solid #4a6491;
+  border-radius: 8px;
   margin-bottom: 16px;
-}
-
-.current-package-card .package-icon {
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
 }
 
-.current-package-card .package-icon i {
-  font-size: 20px;
-  color: white;
-}
-
-.current-package-card .package-title {
+.current-package-info .current-info {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.current-package-card .title-text {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 500;
-}
-
-.current-package-card .package-status {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.current-package-card .package-status.ACTIVE {
-  background: rgba(16, 185, 129, 0.3);
-  color: #34d399;
-}
-
-.current-package-card .package-status.EXPIRED {
-  background: rgba(239, 68, 68, 0.3);
-  color: #f87171;
-}
-
-.current-package-card .package-info {
-  margin-bottom: 16px;
-}
-
-.current-package-card .package-name {
-  font-size: 20px;
-  font-weight: 700;
-  color: white;
-  margin-bottom: 10px;
-}
-
-.current-package-card .package-meta {
-  display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-
-.current-package-card .package-meta span {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.current-package-card .remaining-days {
-  padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-}
-
-.current-package-card .remaining-days.warning {
-  background: rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
-}
-
-.current-package-card .package-features {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.current-package-card .feature-tag {
-  padding: 4px 12px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.current-package-card .btn-renew {
-  width: 100%;
-  padding: 12px;
-  background: white;
-  border: none;
-  border-radius: 30px;
+  gap: 4px;
   font-size: 14px;
-  font-weight: 600;
+  color: #1e293b;
+}
+
+.current-package-info .current-info i {
   color: #4a6491;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s;
+  margin-right: 4px;
 }
 
-.current-package-card .btn-renew:active {
+.current-package-info .current-info .dot {
+  color: #94a3b8;
+}
+
+.current-package-info .current-info .warning {
+  color: #ef4444;
+}
+
+.current-package-info .btn-action {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  background: #4a6491;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 12px;
+}
+
+.current-package-info .btn-action:active {
   transform: scale(0.96);
-  background: #f0f2f5;
 }
 
 /* ========== 未购买套餐卡片 ========== */
 .no-package-card {
   background: white;
-  border-radius: 16px;
-  padding: 32px 20px;
-  margin-bottom: 24px;
-  position: relative;
-  z-index: 5;
+  border-radius: 8px;
+  padding: 24px 16px;
+  margin-bottom: 16px;
   border: 1px dashed #cbd5e1;
   text-align: center;
 }
@@ -209,7 +98,7 @@
   padding: 12px 32px;
   background: #4a6491;
   border: none;
-  border-radius: 30px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
   color: white;
@@ -217,327 +106,216 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.2s;
 }
 
 .no-package-card .btn-buy:active {
   transform: scale(0.96);
-  background: #3a5479;
 }
 
-/* ========== 套餐网格 ========== */
-.packages-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 20px;
+/* ========== 套餐列表容器 ========== */
+.packages-container {
   position: relative;
-  z-index: 5;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 12px;
+}
+
+.package-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* ========== 套餐卡片 ========== */
 .package-card {
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
   background: white;
-  border-radius: 0;
-  padding: 24px 20px 28px;
-  border: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.package-card.active {
+  border-color: #4a6491;
+  background: #f8faff;
 }
 
 .package-card:active {
   transform: scale(0.98);
 }
 
-/* 移除所有伪元素动画 */
-.package-card::before,
-.package-card::after {
-  display: none;
-  content: none;
+/* ========== 卡片信息区域 ========== */
+.card-info {
+  flex: 1;
+  min-width: 0;
 }
 
-/* 当前套餐卡片 */
-.package-card.active {
-  background: #fafbfc;
-  border: 2px solid #4a6491;
-  box-shadow: 0 2px 8px rgba(74, 100, 145, 0.1);
-}
-
-/* 套餐徽章 */
-.package-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
+.card-name {
+  font-size: 15px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  background: #4a6491;
-  border-radius: 20px;
-  color: white;
+  gap: 8px;
+  color: #1e293b;
+}
+
+.card-name .current-tag {
   font-size: 11px;
   font-weight: 500;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  color: #4a6491;
+  background: rgba(74, 100, 145, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
-.package-badge i {
-  font-size: 10px;
+.card-features {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-/* ========== 套餐头部 ========== */
-.package-header {
-  text-align: center;
-  margin-bottom: 20px;
+.card-features span {
+  background: #f5f7fa;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
-.package-header h3 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 12px;
+/* ========== 卡片价格区域 ========== */
+.card-price {
+  text-align: right;
+  flex-shrink: 0;
+  margin-left: 12px;
 }
 
-.price {
+.card-price .price-row {
   display: flex;
   align-items: baseline;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 2px;
 }
 
-.currency {
+.card-price .amount {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   color: #4a6491;
 }
 
-.amount {
-  font-size: 36px;
-  font-weight: 800;
-  color: #4a6491;
-  line-height: 1;
-}
-
-.period {
-  font-size: 13px;
+.card-price .period {
+  font-size: 11px;
   color: #94a3b8;
-  font-weight: 500;
-}
-
-/* ========== 套餐特性列表 ========== */
-.package-features {
-  margin: 20px 0;
-}
-
-.feature-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f2f5;
-  font-size: 13px;
-  color: #475569;
-}
-
-.feature-item:last-child {
-  border-bottom: none;
-}
-
-.feature-item i {
-  font-size: 14px;
-  color: #10b981;
-  flex-shrink: 0;
 }
 
 /* ========== 购买按钮 ========== */
 .buy-btn {
-  width: 100%;
-  padding: 8px;
-  background: #4a6491;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
+  margin-top: 8px;
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 12px;
   font-weight: 500;
+  width: 100%;
+  text-align: center;
+  border: none;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: white;
+  transition: all 0.2s;
 }
 
 .buy-btn:active {
   transform: scale(0.96);
-  background: #3a5479;
 }
 
-.buy-btn.disabled {
-  background: #e2e8f0;
-  color: #94a3b8;
-  cursor: not-allowed;
-}
-
-.buy-btn.disabled:active {
-  transform: none;
-  background: #e2e8f0;
-}
-
-/* 移除按钮伪元素动画 */
-.buy-btn::before {
-  display: none;
-}
-
-/* ========== 支付弹窗 ========== */
-.pay-confirm-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.pay-confirm-dialog {
-  width: 85%;
-  max-width: 340px;
-  background: white;
-  border-radius: 20px;
-  padding: 28px 20px;
-  text-align: center;
-  border: 1px solid #e8ecf0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  animation: dialogSlideUp 0.2s ease;
-}
-
-@keyframes dialogSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.pay-icon {
-  font-size: 56px;
-  color: #10b981;
-  margin-bottom: 12px;
-}
-
-.pay-confirm-dialog h3 {
-  font-size: 17px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 8px;
-}
-
-.pay-tip {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-bottom: 20px;
-}
-
-.pay-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.btn-pay-done {
-  flex: 1;
-  padding: 10px;
+.buy-btn.btn-current {
   background: #4a6491;
   color: white;
-  border: none;
-  border-radius: 30px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
 }
 
-.btn-pay-done:active {
-  transform: scale(0.96);
-  background: #3a5479;
+.buy-btn.btn-upgrade {
+  background: #4a6491;
+  color: white;
 }
 
-.btn-pay-done:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.buy-btn.btn-downgrade {
+  background: #10b981;
+  color: white;
 }
 
-.btn-pay-later {
-  flex: 1;
-  padding: 10px;
-  background: #f5f7fa;
-  border: 1px solid #e8ecf0;
-  border-radius: 30px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-pay-later:active {
-  transform: scale(0.96);
-  background: #e8ecf0;
-}
-
-/* ========== 响应式 ========== */
-@media (max-width: 768px) {
-  .packages-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .info-card {
-    flex-wrap: wrap;
-  }
-
-  .valid-period {
-    margin-left: 0;
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .pay-actions {
-    flex-direction: column;
-  }
-}
-
-/* 横屏模式 */
-@media (max-width: 896px) and (orientation: landscape) {
-  .packages-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+/* ========== 空状态 ========== */
+.empty-packages {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+  font-size: 14px;
 }
 
 /* 安全区域适配 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .package-container {
-    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
-/* 滚动条美化 */
-::-webkit-scrollbar {
-  width: 4px;
-}
+/* ========== 移动端响应式布局 ========== */
+@media (max-width: 768px) {
+  .package-container {
+    padding: 0;
+    margin: 0;
+  }
 
-::-webkit-scrollbar-track {
-  background: #f0f2f5;
-  border-radius: 4px;
-}
+  .current-package-info {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
+  .current-package-info .current-info {
+    font-size: 13px;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  .current-package-info .btn-action {
+    margin-left: 0;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .package-card {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .card-price {
+    margin-left: 0;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-price .price-row {
+    justify-content: flex-start;
+  }
+
+  .buy-btn {
+    margin-top: 0;
+    width: auto;
+    padding: 6px 14px;
+  }
+
+  .no-package-card {
+    padding: 20px 14px;
+  }
+
+  .no-package-card .btn-buy {
+    width: 100%;
+  }
 }

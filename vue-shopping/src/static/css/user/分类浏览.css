@@ -3,7 +3,7 @@
 .categories-page {
   min-height: 100vh;
   background: #f5f5f5;
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
 }
 
 /* ========== 页面导航栏 ========== */
@@ -29,9 +29,7 @@
   color: #1e293b;
 }
 
-.page-nav-title i {
-  color: #4a6491;
-}
+
 
 .page-nav-right {
   width: 36px;
@@ -166,7 +164,7 @@
 .price-row {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -180,7 +178,6 @@
   font-size: 12px;
   color: #94a3b8;
   text-decoration: line-through;
-  margin-left: 4px;
 }
 
 .product-sales {
@@ -295,7 +292,7 @@
 /* 安全区域适配 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .categories-page {
-    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
   }
 
   .page-navbar {

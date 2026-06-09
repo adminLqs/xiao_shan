@@ -1,0 +1,378 @@
+.my-coupons-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding-top: 60px;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
+}
+
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  border-bottom: 1px solid #e8ecf0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #4a6491;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.page-nav-back:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.page-nav-right {
+  width: 36px;
+}
+
+.tab-bar {
+  display: flex;
+  background: white;
+  padding: 0 16px;
+  gap: 24px;
+  border-bottom: 1px solid #e8ecf0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  position: fixed !important;
+  top: 60px !important;
+  z-index: 99 !important;
+  left: 0;
+  right: 0;
+}
+
+.tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-item {
+  flex-shrink: 0;
+  position: relative;
+  padding: 14px 0;
+  font-size: 15px;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.tab-item.active {
+  color: #4a6491;
+  font-weight: 600;
+}
+
+.tab-underline {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: #4a6491;
+  border-radius: 1px;
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.coupon-list {
+  padding: 12px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coupon-card {
+  display: flex;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s;
+}
+
+.coupon-card:active {
+  transform: scale(0.98);
+}
+
+.coupon-card.used,
+.coupon-card.expired {
+  opacity: 0.6;
+}
+
+.coupon-left {
+  width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+  background: linear-gradient(135deg, #fff5f5, #ffe8e8);
+  border-right: 2px dashed #fecaca;
+  position: relative;
+}
+
+.coupon-card.used .coupon-left,
+.coupon-card.expired .coupon-left {
+  background: linear-gradient(135deg, #f5f7fa, #e8ecf0);
+  border-right-color: #e2e8f0;
+}
+
+.coupon-amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ef4444;
+  line-height: 1;
+}
+
+.coupon-card.used .coupon-amount,
+.coupon-card.expired .coupon-amount {
+  color: #94a3b8;
+}
+
+.coupon-amount .symbol {
+  font-size: 18px;
+  margin-right: 2px;
+}
+
+.coupon-discount {
+  font-size: 28px;
+  font-weight: 700;
+  color: #f97316;
+  line-height: 1;
+}
+
+.coupon-card.used .coupon-discount,
+.coupon-card.expired .coupon-discount {
+  color: #94a3b8;
+}
+
+.coupon-condition {
+  font-size: 11px;
+  color: #ef4444;
+  margin-top: 6px;
+}
+
+.coupon-card.used .coupon-condition,
+.coupon-card.expired .coupon-condition {
+  color: #94a3b8;
+}
+
+.coupon-right {
+  flex: 1;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.coupon-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.coupon-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.coupon-card.used .coupon-name,
+.coupon-card.expired .coupon-name {
+  color: #64748b;
+}
+
+.coupon-desc {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.coupon-card.used .coupon-desc,
+.coupon-card.expired .coupon-desc {
+  color: #94a3b8;
+}
+
+.coupon-validity {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.coupon-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.use-btn {
+  padding: 6px 18px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.use-btn:active {
+  transform: scale(0.95);
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+.status-tag {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.status-tag.used {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.status-tag.expired {
+  color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.coupon-circle-left,
+.coupon-circle-right {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #f5f7fa;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.coupon-circle-left {
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.coupon-circle-right {
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.empty-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 80px 20px;
+  color: #94a3b8;
+}
+
+.empty-section i {
+  font-size: 56px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+  color: #cbd5e1;
+}
+
+.empty-section p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.skeleton-coupon-list {
+  padding: 12px;
+  min-height: 400px;
+}
+
+.skeleton-card {
+  margin-bottom: 12px;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f2f5 25%, #e8ecf0 50%, #f0f2f5 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 6px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-left {
+  width: 80px;
+  height: 60px;
+  border-radius: 8px;
+}
+
+.skeleton-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.skeleton-line {
+  height: 14px;
+  width: 100%;
+}
+
+.skeleton-line.short {
+  width: 60%;
+}
+
+.skeleton-line.medium {
+  width: 80%;
+}
+
+.tab-content {
+  animation: tabContentIn 0.25s ease;
+}
+
+@keyframes tabContentIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

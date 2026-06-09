@@ -3,7 +3,7 @@
 .setting-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #ffffff 0%, #f8faff 30%, #f0f4fe 60%, #eef2fc 100%);
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
   position: relative;
   overflow-x: hidden;
 }
@@ -16,8 +16,8 @@
   left: -30%;
   width: 160%;
   height: 160%;
-  background: radial-gradient(ellipse at 30% 40%, 
-    rgba(74, 100, 145, 0.04) 0%, 
+  background: radial-gradient(ellipse at 30% 40%,
+    rgba(74, 100, 145, 0.04) 0%,
     rgba(107, 138, 181, 0.03) 30%,
     rgba(139, 92, 246, 0.02) 60%,
     transparent 80%);
@@ -38,11 +38,11 @@
   right: -25%;
   width: 75%;
   height: 75%;
-  background: conic-gradient(from 0deg, 
-    transparent, 
-    rgba(74, 100, 145, 0.06), 
-    rgba(139, 92, 246, 0.08), 
-    rgba(107, 138, 181, 0.05), 
+  background: conic-gradient(from 0deg,
+    transparent,
+    rgba(74, 100, 145, 0.06),
+    rgba(139, 92, 246, 0.08),
+    rgba(107, 138, 181, 0.05),
     transparent);
   border-radius: 50%;
   animation: ringRotate 30s linear infinite;
@@ -62,11 +62,11 @@
   width: 100%;
   height: 100%;
   transform: translate(-50%, -50%);
-  background: conic-gradient(from 120deg, 
-    transparent, 
-    rgba(74, 100, 145, 0.04), 
-    rgba(255, 255, 255, 0.1), 
-    rgba(74, 100, 145, 0.04), 
+  background: conic-gradient(from 120deg,
+    transparent,
+    rgba(74, 100, 145, 0.04),
+    rgba(255, 255, 255, 0.1),
+    rgba(74, 100, 145, 0.04),
     transparent);
   border-radius: 50%;
   animation: ringRotateReverse 40s linear infinite;
@@ -162,13 +162,6 @@
   letter-spacing: 0.5px;
 }
 
-.setting-page .page-nav-title i {
-  background: linear-gradient(135deg, #4a6491, #8b5cf6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 .setting-page .page-nav-right {
   width: 38px;
 }
@@ -227,8 +220,8 @@
   inset: 0;
   border-radius: 0;
   padding: 1px;
-  background: linear-gradient(135deg, 
-    transparent 0%, 
+  background: linear-gradient(135deg,
+    transparent 0%,
     rgba(74, 100, 145, 0.3) 30%,
     rgba(139, 92, 246, 0.4) 50%,
     rgba(74, 100, 145, 0.3) 70%,
@@ -577,39 +570,39 @@ input:checked + .toggle-slider:before {
     padding: 18px 16px;
     margin: 16px 12px;
   }
-  
+
   .user-avatar {
     width: 60px;
     height: 60px;
   }
-  
+
   .user-info-row .avatar-ring {
     width: 68px;
     height: 68px;
     left: 48px;
   }
-  
+
   .user-name {
     font-size: 16px;
   }
-  
+
   .setting-list {
     margin: 12px 12px;
   }
-  
+
   .setting-item {
     padding: 14px 16px;
   }
-  
+
   .setting-item i:first-child {
     width: 24px;
     font-size: 16px;
   }
-  
+
   .setting-item span {
     font-size: 14px;
   }
-  
+
   .logout-btn {
     width: calc(100% - 24px);
     margin: 24px 12px 32px;
@@ -630,36 +623,36 @@ input:checked + .toggle-slider:before {
   .setting-page {
     background: linear-gradient(180deg, #1a1a2e 0%, #16213e 30%, #0f3460 70%, #1a1a2e 100%);
   }
-  
+
   .setting-page .page-navbar {
     background: rgba(26, 26, 46, 0.88);
     border-bottom-color: rgba(255, 255, 255, 0.05);
   }
-  
+
   .user-info-row {
     background: rgba(26, 26, 46, 0.9);
     border-color: rgba(255, 255, 255, 0.08);
   }
-  
+
   .setting-list {
     background: rgba(26, 26, 46, 0.9);
     border-color: rgba(255, 255, 255, 0.08);
   }
-  
+
   .setting-item {
     border-bottom-color: rgba(255, 255, 255, 0.05);
   }
-  
+
   .setting-item span {
     color: #e2e8f0;
   }
-  
+
   .user-name {
     background: linear-gradient(135deg, #cbd5e1, #8aa6c4);
     -webkit-background-clip: text;
     background-clip: text;
   }
-  
+
   .logout-btn {
     background: rgba(239, 68, 68, 0.12);
     border-color: rgba(239, 68, 68, 0.35);

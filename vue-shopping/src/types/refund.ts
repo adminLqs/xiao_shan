@@ -1,1 +1,1 @@
-export type RefundStatus = 'REFUNDING' | 'AFTER_SALE' | 'WAITING_RETURN' | 'RETURNING' | 'APPROVED' | 'COMPLETED' | 'FAILED'
+export type RefundStatus = 'PROCESSING' | 'WAITING_RETURN' | 'RETURNING' | 'SUCCESS' | 'FAILED'

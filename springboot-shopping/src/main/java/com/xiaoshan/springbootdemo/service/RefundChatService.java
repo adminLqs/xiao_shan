@@ -39,6 +39,7 @@ public class RefundChatService {
     private final OrderItemMapper orderItemMapper;
     private final RefundImageMapper refundImageMapper;
     private final SnowflakeIdGenerator snowflakeIdGenerator;
+    private final WebSocketService webSocketService;
 
     /**
      * 发送消息
@@ -54,18 +55,9 @@ public class RefundChatService {
         OrderRefund refund = orderRefundMapper.findById(refundId)
                 .orElseThrow(() -> new RuntimeException("退款记录不存在"));
 
-        // 验证发送者权限
-        validateSenderPermission(refundId, senderType, senderId);
-
-        // 验证沟通轮次限制（买家最多3轮，商家不受限制）
-        int currentRound = refund.getCommunicationRound() != null ? refund.getCommunicationRound() : 0;
-        if (!"SELLER".equals(senderType) && currentRound >= 3) {
-            throw new RuntimeException("已达到最大沟通次数限制");
-        }
-
-        // 发送纯图片消息时，content 设置默认值
-        if (message == null || message.trim().isEmpty()) {
-            message = "[图片]";
+        // 验证发送者权限（系统消息不验证）
+        if (!"SYSTEM".equals(senderType)) {
+            validateSenderPermission(refundId, senderType, senderId);
         }
 
         // 1. 先创建聊天记录（不包含图片信息）
@@ -73,9 +65,8 @@ public class RefundChatService {
         chat.setId(snowflakeIdGenerator.nextId());
         chat.setRefundId(refundId);
         chat.setSenderType(senderType);
-        chat.setSenderId(senderId);
-        chat.setMessage(message);
-        chat.setRound(currentRound);
+        chat.setSenderId(senderId != null ? senderId : 0L);
+        chat.setMessage(message != null ? message : "");
         chat.setSendTime(LocalDateTime.now());
 
         refundChatMapper.insert(chat);
@@ -89,7 +80,7 @@ public class RefundChatService {
                 RefundImage refundImage = RefundImage.builder()
                         .id(snowflakeIdGenerator.nextId())
                         .refundId(refundId)
-                        .communicationId(chat.getId())  // 关联消息ID
+                        .communicationId(chat.getId())
                         .image(url.trim())
                         .imageType(RefundImage.ImageType.CHAT.name())
                         .sortOrder(sortOrder++)
@@ -99,11 +90,8 @@ public class RefundChatService {
             }
         }
 
-        // 只有买家发送消息时，沟通轮次 + 1
-        if (!"SELLER".equals(senderType)) {
-            refund.setCommunicationRound(currentRound + 1);
-            orderRefundMapper.updateStatus(refund);
-        }
+        // 发送消息通知给接收方
+        sendNotificationToReceiver(refund, senderType, senderId, message);
 
         return chat;
     }
@@ -122,38 +110,21 @@ public class RefundChatService {
         OrderRefund refund = orderRefundMapper.findById(refundId)
                 .orElseThrow(() -> new RuntimeException("退款记录不存在"));
 
-        // 验证发送者权限
-        validateSenderPermission(refundId, senderType, senderId);
-
-        // 获取当前沟通轮次
-        int currentRound = refund.getCommunicationRound() != null ? refund.getCommunicationRound() : 0;
-
-        // 标记是否需要增加轮次
-        boolean hasTextMessage = message != null && !message.trim().isEmpty() && !message.trim().equals("[图片]");
-
-        // 验证沟通轮次限制（买家最多3轮）
-        if ("BUYER".equals(senderType) && hasTextMessage && currentRound >= 3) {
-            throw new RuntimeException("已达到最大沟通次数限制");
+        // 验证发送者权限（系统消息不验证）
+        if (!"SYSTEM".equals(senderType)) {
+            validateSenderPermission(refundId, senderType, senderId);
         }
 
         // 确定消息内容
-        String content;
-        if (hasTextMessage) {
-            content = message;
-        } else if (files != null && !files.isEmpty()) {
-            content = "[图片]";
-        } else {
-            content = "[空消息]";
-        }
+        String content = message != null ? message.trim() : "";
 
         // 1. 先创建聊天记录
         RefundChat chat = new RefundChat();
         chat.setId(snowflakeIdGenerator.nextId());
         chat.setRefundId(refundId);
         chat.setSenderType(senderType);
-        chat.setSenderId(senderId);
+        chat.setSenderId(senderId != null ? senderId : 0L);
         chat.setMessage(content);
-        chat.setRound(currentRound);
         chat.setSendTime(LocalDateTime.now());
 
         refundChatMapper.insert(chat);
@@ -164,14 +135,12 @@ public class RefundChatService {
             for (MultipartFile file : files) {
                 if (file.isEmpty()) continue;
 
-                // 上传图片获取 URL
                 String url = saveFile(file);
 
-                // 插入 refund_images，设置 communication_id
                 RefundImage refundImage = RefundImage.builder()
                         .id(snowflakeIdGenerator.nextId())
                         .refundId(refundId)
-                        .communicationId(chat.getId())  // 关联消息ID
+                        .communicationId(chat.getId())
                         .image(url)
                         .imageType(RefundImage.ImageType.CHAT.name())
                         .sortOrder(sortOrder++)
@@ -181,10 +150,39 @@ public class RefundChatService {
             }
         }
 
-        // 3. 买家发送任何消息都触发轮次+1
-        if ("BUYER".equals(senderType)) {
-            refund.setCommunicationRound(currentRound + 1);
-            orderRefundMapper.updateStatus(refund);
+        // 发送消息通知给接收方
+        sendNotificationToReceiver(refund, senderType, senderId, content);
+    }
+
+    /**
+     * 发送消息通知给接收方
+     */
+    private void sendNotificationToReceiver(OrderRefund refund, String senderType, Long senderId, String message) {
+        // 获取接收方ID
+        Long receiverId = null;
+        String receiverType = null;
+
+        if ("SELLER".equals(senderType)) {
+            // 商家发送消息，接收方是用户
+            receiverId = refund.getUserId();
+            receiverType = "USER";
+        } else {
+            // 用户发送消息，接收方是商家
+            List<OrderItem> orderItems = orderItemMapper.findByOrderId(refund.getOrderId());
+            if (!orderItems.isEmpty()) {
+                receiverId = orderItems.get(0).getSellerId();
+                receiverType = "SELLER";
+            }
+        }
+
+        // 发送通知
+        if (receiverId != null) {
+            if ("SELLER".equals(receiverType)) {
+                webSocketService.sendSellerRefundChat(receiverId, message, refund.getId(), senderType);
+            } else {
+                webSocketService.sendRefundChatMessage(receiverId, message, refund.getId(), senderType);
+            }
+            log.info("发送退款沟通消息通知: receiverType={}, receiverId={}, refundId={}", receiverType, receiverId, refund.getId());
         }
     }
 
@@ -313,7 +311,6 @@ public class RefundChatService {
         result.put("refund", refund);
         result.put("orderItems", orderItems);
         result.put("chatHistory", chatHistory);
-        result.put("communicationRound", refund.getCommunicationRound());
 
         return result;
     }

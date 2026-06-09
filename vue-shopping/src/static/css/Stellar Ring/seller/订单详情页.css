@@ -253,8 +253,8 @@
 .product-name { font-size: 14px; font-weight: 500; color: #1e293b; margin-bottom: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .tags-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.tag-spec { padding: 4px 12px; background: rgba(74, 100, 145, 0.1); border-radius: 20px; font-size: 12px; color: #64748b; }
-.tag-quantity { padding: 4px 8px; font-size: 12px; color: #64748b; background: transparent; }
+.tag-spec { font-size: 12px; color: #94a3b8; background: transparent; padding: 0; border-radius: 0; }
+.tag-quantity { padding: 0; font-size: 12px; color: #94a3b8; font-weight: 500; background: transparent; white-space: nowrap; }
 .tag-refund {
   padding: 4px 12px;
   border-radius: 20px;
@@ -267,36 +267,22 @@
   color: #ef4444;
 }
 
-.tag-refund.refund-processing {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
 .tag-refund.refund-waiting {
   background: #fef3c7;
   color: #d97706;
 }
 
-.tag-refund.refund-completed {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.tag-refund.refund-approved {
-  background-color: #fee2e2;
-  color: #dc2626;
-}
-
-.tag-refund.refund-failed {
-  background-color: #ffebee;
-  color: #c62828;
+.tag-refund-text {
+  font-size: 11px;
+  font-weight: 400;
+  color: #6b7280;
 }
 
 .product-price { font-size: 15px; font-weight: 600; color: #ef4444; white-space: nowrap; flex-shrink: 0; align-self: center; text-align: right; }
 .product-list-footer { padding: 16px 20px; background: rgba(74, 100, 145, 0.03); border-top: 1px solid rgba(74, 100, 145, 0.08); }
 .amount-row { display: flex; justify-content: flex-end; align-items: baseline; gap: 16px; padding: 6px 0; }
 .amount-label { font-size: 14px; color: #64748b; }
-.amount-value { font-size: 14px; color: #1e293b; }
+.amount-value { font-size: 14px; color: #64748b; }
 .total-row { padding-top: 12px; border-top: 1px dashed rgba(74, 100, 145, 0.15); margin-top: 6px; }
 .total-price { font-size: 20px; font-weight: 700; color: #ef4444; }
 

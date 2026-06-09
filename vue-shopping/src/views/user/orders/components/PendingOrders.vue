@@ -14,17 +14,16 @@
       <button class="btn-primary" @click="goShopping">去逛逛</button>
     </div>
     <div v-else>
-      <div v-for="orderWrapper in orders" :key="orderWrapper.order.id" class="order-card">
+      <div v-for="orderWrapper in orders" :key="orderWrapper.order.id" class="order-card" @click="viewOrderDetail(orderWrapper.order.id)">
         <div class="order-header">
-          <div class="order-header-top">
-            <span class="order-number">订单号：{{ orderWrapper.order.orderNumber }}</span>
-            <div class="order-status-group">
-              <span class="order-status status-pending">待付款</span>
-            </div>
+          <div class="order-header-left">
+            <img :src="getSellerAvatar(orderWrapper)" class="seller-avatar" />
+            <span class="seller-name">{{ getSellerName(orderWrapper) }}</span>
           </div>
+          <span class="order-status status-pending">待付款</span>
         </div>
         <div class="order-items">
-          <div v-for="item in orderWrapper.orderItems" :key="item.id" class="order-item" @click="viewProduct(item.productId)">
+          <div v-for="item in orderWrapper.orderItems" :key="item.id" class="order-item">
             <img :src="item.productImage" class="item-image">
             <div class="item-info">
               <div class="item-name">{{ item.productName }}</div>
@@ -36,11 +35,11 @@
             <div class="item-price">¥{{ formatPrice(item.price) }}</div>
           </div>
         </div>
-        <div class="order-footer">
+        <div class="order-footer" @click.stop>
           <div class="order-actions">
-            <button class="btn-pay" @click="goToPay(orderWrapper.order.id)">去支付</button>
-            <button class="btn-outline btn-danger" @click="cancelOrder(orderWrapper.order.id)">取消订单</button>
             <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
+            <button class="btn-outline btn-danger" @click="cancelOrder(orderWrapper.order.id)">取消订单</button>
+            <button class="btn-pay" @click="goToPay(orderWrapper.order.id)">去支付</button>
           </div>
         </div>
       </div>
@@ -54,19 +53,6 @@
         </div>
       </div>
     </div>
-    <div class="pay-confirm-overlay" v-if="showPayConfirm" @click.self="showPayConfirm = false">
-      <div class="pay-confirm-dialog">
-        <i class="fas fa-check-circle pay-icon"></i>
-        <h3>请在支付页面完成付款</h3>
-        <p class="pay-tip">支付完成后请点击下方按钮</p>
-        <div class="pay-actions">
-          <button class="btn-pay-done" @click="checkPayStatus" :disabled="checkingPay">
-            {{ checkingPay ? '查询中...' : '已完成支付' }}
-          </button>
-          <button class="btn-pay-later" @click="handlePayLater">稍后支付</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -76,6 +62,7 @@ import { useRouter } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
 import { useAuthStore } from '@/stores/auth'
+import sellerDefaultAvatar from '@/static/images/seller-avatar.jpg'
 
 defineOptions({ name: 'PendingOrders' })
 
@@ -90,11 +77,14 @@ interface OrderItem {
   id: number
   orderId: number
   productId: number
+  sellerId: number
   productName: string
   productImage: string
   skuName?: string
   quantity: number
   price: number
+  sellerName?: string
+  sellerAvatar?: string
 }
 
 interface Order {
@@ -117,9 +107,6 @@ const page = ref(1)
 const pageSize = ref(10)
 const hasMore = ref(true)
 const loadingMore = ref(false)
-const showPayConfirm = ref(false)
-const payingOrderId = ref<number | null>(null)
-const checkingPay = ref(false)
 
 const loadOrders = async (): Promise<void> => {
   if (loading.value) return
@@ -128,7 +115,7 @@ const loadOrders = async (): Promise<void> => {
     const params = {
       page: page.value,
       pageSize: pageSize.value,
-      status: 'PENDING'
+      status: ['PENDING']
     }
     const response = await authAPI.getOrders(params)
     if (response.success) {
@@ -182,8 +169,6 @@ const goToPay = async (orderId: number): Promise<void> => {
         payWindow.document.write(paymentHtml)
         payWindow.document.close()
       }
-      payingOrderId.value = orderId
-      showPayConfirm.value = true
     } else {
       Message.error(response.message || '支付失败')
     }
@@ -192,35 +177,6 @@ const goToPay = async (orderId: number): Promise<void> => {
   } finally {
     loading.value = false
   }
-}
-
-const checkPayStatus = async () => {
-  if (!payingOrderId.value || checkingPay.value) return
-  checkingPay.value = true
-  try {
-    const response = await authAPI.getOrderDetail(payingOrderId.value)
-    const order = response.data?.order || response.data?.orderDetail?.order || response.data
-    const status = order?.status
-    if (status && (status === 'PAID' || status === 'PROCESSING' || status === 'SHIPPED')) {
-      showPayConfirm.value = false
-      Message.success('支付成功')
-      page.value = 1
-      hasMore.value = true
-      await loadOrders()
-    } else if (status === 'PENDING') {
-      Message.warning('暂未收到支付通知，请确认是否已完成支付')
-    } else {
-      Message.error('查询订单失败')
-    }
-  } catch (error: any) {
-    Message.error(error.message || '查询失败')
-  } finally {
-    checkingPay.value = false
-  }
-}
-
-const handlePayLater = () => {
-  showPayConfirm.value = false
 }
 
 const viewOrderDetail = (orderId: number) => {
@@ -233,6 +189,14 @@ const viewProduct = (productId: number) => {
 
 const goShopping = () => {
   router.push({ name: 'UserDashboard' })
+}
+
+const getSellerName = (orderWrapper: OrderWithItems): string => {
+  return (orderWrapper as any).sellerName || orderWrapper.orderItems[0]?.sellerName || '商家'
+}
+
+const getSellerAvatar = (orderWrapper: OrderWithItems): string => {
+  return (orderWrapper as any).sellerAvatar || orderWrapper.orderItems[0]?.sellerAvatar || sellerDefaultAvatar
 }
 
 const formatPrice = (price: number) => {
@@ -270,11 +234,19 @@ onMounted(() => {
   if (!authStore.validateUserPermission()) return
   loadOrders()
   window.addEventListener('scroll', handleScroll)
+  window.addEventListener('payment-success', handlePaymentSuccess)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('payment-success', handlePaymentSuccess)
 })
+
+const handlePaymentSuccess = () => {
+  page.value = 1
+  hasMore.value = true
+  loadOrders()
+}
 </script>
 
 <style scoped>

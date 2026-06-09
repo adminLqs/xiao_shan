@@ -1,7 +1,7 @@
 .review-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #f8fafc 0%, #e8eef5 100%);
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
 }
 
 .product-card {
@@ -49,16 +49,7 @@
 
 .product-spec {
   font-size: 12px;
-  color: #64748b;
-  background: #f0f2f5;
-  padding: 2px 8px;
-  border-radius: 12px;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
-  width: fit-content;
+  color: #1e293b;
 }
 
 .product-price-row {

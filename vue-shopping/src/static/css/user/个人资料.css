@@ -46,15 +46,13 @@
   gap: 8px;
   font-size: 17px;
   font-weight: 700;
-  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  /* background: linear-gradient(135deg, #4a6491, #6b8ab5); */
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
+  color: #1e293b;
 }
 
-.page-nav-title i {
-  color: #4a6491;
-}
+
 
 .page-nav-right {
   width: 36px;
@@ -81,16 +79,16 @@
 }
 
 .btn {
-  padding: 10px 24px;
-  border-radius: 30px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  border: none;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
 }
 
 .primary-btn {
@@ -105,8 +103,8 @@
 
 .outline-btn {
   background: white;
-  color: #4a6491;
-  border: 1px solid #4a6491;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
 }
 
 .outline-btn:active {
@@ -297,12 +295,12 @@
 }
 
 .secondary-btn {
-  background: rgba(74, 100, 145, 0.1);
+  background: #f5f7fa;
   color: #4a6491;
-  border: none;
-  border-radius: 30px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   padding: 10px 20px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;

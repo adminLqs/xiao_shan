@@ -33,7 +33,7 @@
         <result property="commentCount" column="comment_count"/>
     </resultMap>
 
-    <!-- 查询商品详情（返回 ProductVO） -->
+    <!-- 查询商品详情（返回 ProductVO，排除已删除商品） -->
     <select id="findProductVOById" resultMap="ProductVOMap">
         SELECT p.id, p.name, p.brand, p.description, p.detail_html,
                p.sales_count, p.view_count,
@@ -46,7 +46,7 @@
                (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id) as comment_count
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.id
-        WHERE p.id = #{productId}
+        WHERE p.id = #{productId} AND p.status != 2
     </select>
 
 </mapper>

@@ -127,9 +127,7 @@ html {
   color: transparent;
 }
 
-.page-nav-title i {
-  color: #00d4ff;
-}
+
 
 .page-nav-right {
   width: 36px;
@@ -300,26 +298,25 @@ html {
 .tags-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 8px;
   margin-top: 4px;
 }
 
 .tag-spec {
-  padding: 2px 8px;
-  background: rgba(0, 212, 255, 0.1);
-  border-radius: 16px;
-  font-size: 11px;
-  color: #00d4ff;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  color: #94a3b8;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 
 .tag-quantity {
-  padding: 2px 8px;
-  font-size: 11px;
+  font-size: 12px;
   color: #94a3b8;
+  font-weight: 500;
+  background: transparent;
+  padding: 0;
+  white-space: nowrap;
 }
 
 .product-price {
@@ -991,34 +988,34 @@ input:checked + .slider:before {
   .product-item {
     padding: 10px;
   }
-  
+
   .product-image {
     width: 64px;
     height: 64px;
   }
-  
+
   .product-name {
     font-size: 13px;
   }
-  
+
   .product-price {
     font-size: 14px;
   }
-  
+
   .bottom-bar {
     height: 54px;
     padding: 0 12px;
   }
-  
+
   .total-price {
     font-size: 18px;
   }
-  
+
   .submit-btn {
     padding: 10px 20px;
     font-size: 14px;
   }
-  
+
   .payment-options {
     flex-direction: column;
   }
@@ -1029,7 +1026,7 @@ input:checked + .slider:before {
   .checkout-container {
     padding-bottom: calc(100px + env(safe-area-inset-bottom));
   }
-  
+
   .bottom-bar {
     bottom: calc(16px + env(safe-area-inset-bottom));
   }

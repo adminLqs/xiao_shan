@@ -56,9 +56,7 @@
   color: #1e293b;
 }
 
-.page-nav-title i {
-  color: #4a6491;
-}
+
 
 .page-nav-right {
   width: 36px;
@@ -366,16 +364,16 @@
 .tags-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 
 .tag-spec {
   font-size: 12px !important;
-  color: #64748b !important;
-  background: rgba(74, 100, 145, 0.08);
-  padding: 2px 8px;
-  border-radius: 12px;
+  color: #94a3b8 !important;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
   max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -384,10 +382,10 @@
 
 .tag-quantity {
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8;
   font-weight: 500;
   background: transparent;
-  padding: 2px 4px;
+  padding: 0;
   white-space: nowrap;
 }
 

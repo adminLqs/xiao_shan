@@ -16,16 +16,14 @@
     <div v-else>
       <div v-for="orderWrapper in orders" :key="orderWrapper.order.id" class="order-card">
         <div class="order-header">
-          <div class="order-header-top">
-            <span class="order-number">订单号：{{ orderWrapper.order.orderNumber }}</span>
-            <div class="order-status-group">
-              <span v-if="!getOrderRefundStatus(orderWrapper)" class="order-status status-shipped">已发货</span>
-              <span v-else class="order-status refund-status" :class="getOrderRefundStatusClass(orderWrapper)">{{ getOrderRefundStatus(orderWrapper) }}</span>
-            </div>
+          <div class="order-header-left" @click.stop="goToShop(orderWrapper)">
+            <img :src="getSellerAvatar(orderWrapper)" class="seller-avatar" />
+            <span class="seller-name">{{ getSellerName(orderWrapper) }}</span>
           </div>
+          <span class="order-status status-shipped">待收货</span>
         </div>
         <div class="order-items">
-          <div v-for="item in orderWrapper.orderItems" :key="item.id" class="order-item" @click="viewProduct(item.productId)">
+          <div v-for="item in orderWrapper.orderItems" :key="item.id" class="order-item" @click="viewOrderDetail(orderWrapper.order.id)">
             <img :src="item.productImage" class="item-image">
             <div class="item-info">
               <div class="item-name">{{ item.productName }}</div>
@@ -37,40 +35,47 @@
             <div class="item-price">¥{{ formatPrice(item.price) }}</div>
           </div>
         </div>
-        <div class="order-footer">
+        <div class="order-footer" @click.stop>
           <div class="order-actions">
             <template v-if="orderWrapper.orderItems.length === 1">
-              <button
-                v-if="orderWrapper.orderItems[0]!.refundStatus === 'RETURNING'"
-                class="btn-outline"
-                @click="viewReturnLogistics(orderWrapper.orderItems[0]!)"
-              >查看退货物流</button>
-              <button class="btn-success" @click="confirmReceive(orderWrapper.order.id)">确认收货</button>
-              <button
-                v-if="orderWrapper.order.trackingNumber"
-                class="btn-outline"
-                @click="viewLogistics(orderWrapper.order.id)"
-              >查看物流</button>
               <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
+              <button
+                class="btn-outline"
+                @click="viewLogistics(orderWrapper)"
+              >查看物流</button>
+              <button class="btn-success" @click="confirmReceive(orderWrapper.order.id)">确认收货</button>
               <button class="btn-more" @click="toggleMoreActions(orderWrapper.order.id)">
                 <i class="fas fa-ellipsis-h"></i>
               </button>
               <div class="more-actions-dropdown" v-if="showMoreActions[orderWrapper.order.id]">
-                <button class="dropdown-item" @click="goToAfterSale(orderWrapper); toggleMoreActions(orderWrapper.order.id)">
-                  {{ orderWrapper.orderItems[0]!.refundStatus && orderWrapper.orderItems[0]!.refundStatus !== 'COMPLETED'
-                    ? getRefundStatusText(orderWrapper.orderItems[0]!.refundStatus)
-                    : (canAfterSale(orderWrapper.order) ? '申请售后' : '已过权益期') }}
-                </button>
+                <template v-if="orderWrapper.orderItems[0]!.refundStatus && orderWrapper.orderItems[0]!.refundStatus !== 'SUCCESS'">
+                  <button
+                    v-if="orderWrapper.orderItems[0]!.refundStatus === 'FAILED'"
+                    class="dropdown-item"
+                    @click="goToAfterSale(orderWrapper); toggleMoreActions(orderWrapper.order.id)"
+                  >再次申请</button>
+                  <button
+                    v-else
+                    class="dropdown-item"
+                    @click="goToAfterSale(orderWrapper); toggleMoreActions(orderWrapper.order.id)"
+                  >{{ getRefundStatusText(orderWrapper.orderItems[0]!.refundStatus) }}</button>
+                </template>
+                <button
+                  v-else
+                  class="dropdown-item"
+                  :class="{ disabled: !canAfterSale(orderWrapper.order) }"
+                  :disabled="!canAfterSale(orderWrapper.order)"
+                  @click="canAfterSale(orderWrapper.order) && (goToAfterSale(orderWrapper), toggleMoreActions(orderWrapper.order.id))"
+                >{{ canAfterSale(orderWrapper.order) ? '申请售后' : '已过权益期' }}</button>
               </div>
             </template>
             <template v-else>
-              <button class="btn-success" @click="confirmReceive(orderWrapper.order.id)">确认收货</button>
-              <button
-                v-if="orderWrapper.order.trackingNumber"
-                class="btn-outline"
-                @click="viewLogistics(orderWrapper.order.id)"
-              >查看物流</button>
               <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
+              <button
+                class="btn-outline"
+                @click="viewLogistics(orderWrapper)"
+              >查看物流</button>
+              <button class="btn-success" @click="confirmReceive(orderWrapper.order.id)">确认收货</button>
             </template>
           </div>
         </div>
@@ -94,6 +99,7 @@ import { useRouter } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
 import { useAuthStore } from '@/stores/auth'
+import sellerDefaultAvatar from '@/static/images/seller-avatar.jpg'
 
 defineOptions({ name: 'ShippedOrders' })
 
@@ -108,13 +114,15 @@ interface OrderItem {
   id: number
   orderId: number
   productId: number
+  sellerId: number
   productName: string
   productImage: string
   skuName?: string
   quantity: number
   price: number
   refundStatus?: string
-  refundId?: number
+  sellerName?: string
+  sellerAvatar?: string
 }
 
 interface Order {
@@ -148,7 +156,7 @@ const loadOrders = async (): Promise<void> => {
     const params = {
       page: page.value,
       pageSize: pageSize.value,
-      status: 'SHIPPED'
+      status: ['SHIPPED']
     }
     const response = await authAPI.getOrders(params)
     if (response.success) {
@@ -189,23 +197,42 @@ const canAfterSale = (order: Order): boolean => {
   return days <= 15
 }
 
+const checkRefundCount = async (orderItemId: number): Promise<boolean> => {
+  const res = await authAPI.getSellerRefundsByOrderItem(orderItemId)
+  if (res.success && res.data) {
+    if (res.data.length >= 3) {
+      Message.warning('已达最大申请次数')
+      return false
+    }
+  }
+  return true
+}
+
 const goToAfterSale = async (orderWrapper: OrderWithItems) => {
   const orderItem = orderWrapper.orderItems[0]
   if (!orderItem) return
+
   if (orderItem.refundStatus) {
     try {
       const response = await authAPI.getRefundByOrderItemId(orderItem.id)
       if (response.success && response.data) {
-        router.push({ name: 'RefundChat', params: { refundId: response.data.id } })
-      } else {
-        router.push({ name: 'Refund', query: { orderItemId: orderItem.id, orderId: orderWrapper.order.id, type: 'AFTER_SALE' } })
+        const refund = response.data
+        if (refund.refundType === 'AFTER_SALE' && refund.refundStatus === 'WAITING_RETURN' && !refund.returnStatus) {
+          router.push({ name: 'ReturnGoods', params: { refundId: String(refund.id), orderItemId: String(orderItem.id) } })
+        } else {
+          router.push({ name: 'RefundChatStep', params: { refundId: String(refund.id) } })
+        }
       }
     } catch {
-      router.push({ name: 'Refund', query: { orderItemId: orderItem.id, orderId: orderWrapper.order.id, type: 'AFTER_SALE' } })
+      // ignore
     }
-  } else {
-    router.push({ name: 'Refund', query: { orderItemId: orderItem.id, orderId: orderWrapper.order.id, type: 'AFTER_SALE' } })
+    return
   }
+
+  const canApply = await checkRefundCount(orderItem.id)
+  if (!canApply) return
+
+  router.push({ name: 'RefundApply', params: { orderItemId: String(orderItem.id) }, query: { orderId: orderWrapper.order.id } })
 }
 
 const confirmReceive = async (orderId: number) => {
@@ -223,30 +250,40 @@ const confirmReceive = async (orderId: number) => {
   }
 }
 
-const viewLogistics = (orderId: number) => {
-  router.push({ name: 'UserLogistics', query: { orderId: String(orderId) } })
+const viewLogistics = (orderWrapper: OrderWithItems) => {
+  const sellerId = orderWrapper.orderItems[0]?.sellerId
+  router.push({
+    name: 'UserLogistics',
+    query: {
+      orderId: String(orderWrapper.order.id),
+      sellerId: sellerId ? String(sellerId) : ''
+    }
+  })
 }
 
 const viewReturnLogistics = async (orderItem: OrderItem) => {
-  if (!orderItem.refundId) {
-    Message.error('退款记录不存在')
-    return
-  }
   try {
-    const response = await authAPI.getRefundDetail(orderItem.refundId)
+    const response = await authAPI.getRefundByOrderItemId(orderItem.id)
     if (response.success && response.data) {
       const refundData = response.data
       if (refundData.returnTrackingNumber) {
+        const refundType = refundData.refundType === 'RETURN' ? 'AFTER_SALE' : refundData.refundType
         router.push({
           name: 'UserLogistics',
           query: {
             trackingNumber: refundData.returnTrackingNumber,
-            logisticsName: refundData.returnLogisticsName
+            logisticsName: refundData.returnLogisticsName,
+            refundId: String(refundData.id),
+            type: 'return',
+            refundType,
+            sellerId: orderItem.sellerId ? String(orderItem.sellerId) : ''
           }
         })
       } else {
         Message.warning('暂无物流单号')
       }
+    } else {
+      Message.error('退款记录不存在')
     }
   } catch (error) {
     Message.error('获取物流信息失败')
@@ -257,6 +294,13 @@ const viewOrderDetail = (orderId: number) => {
   router.push({ name: 'OrderDetail', params: { orderId } })
 }
 
+const goToShop = (orderWrapper: any) => {
+  const sellerId = orderWrapper.orderItems[0]?.sellerId
+  if (sellerId) {
+    router.push({ name: 'Shop', params: { sellerId } })
+  }
+}
+
 const viewProduct = (productId: number) => {
   router.push({ name: 'ProductDetail', params: { productId } })
 }
@@ -265,53 +309,31 @@ const goShopping = () => {
   router.push({ name: 'UserDashboard' })
 }
 
-const getOrderRefundStatus = (orderWrapper: OrderWithItems) => {
-  const items = orderWrapper.orderItems || []
-  const refunding = items.filter(item =>
-    item.refundStatus === 'REFUNDING' || item.refundStatus === 'AFTER_SALE' || item.refundStatus === 'WAITING_RETURN' || item.refundStatus === 'RETURNING' || item.refundStatus === 'APPROVED'
-  ).length
-  const refunded = items.filter(item => item.refundStatus === 'COMPLETED').length
-  if (refunding === items.length) return '退款中'
-  if (refunded === items.length) return '已退款'
-  if (refunding > 0 || refunded > 0) return '部分退款'
-  return null
+const getSellerName = (orderWrapper: OrderWithItems): string => {
+  return (orderWrapper as any).sellerName || orderWrapper.orderItems[0]?.sellerName || '商家'
 }
 
-const getOrderRefundStatusClass = (orderWrapper: OrderWithItems) => {
-  const items = orderWrapper.orderItems || []
-  const refunding = items.filter(item =>
-    item.refundStatus === 'REFUNDING' || item.refundStatus === 'AFTER_SALE' || item.refundStatus === 'WAITING_RETURN' || item.refundStatus === 'RETURNING' || item.refundStatus === 'APPROVED'
-  ).length
-  const refunded = items.filter(item => item.refundStatus === 'COMPLETED').length
-  if (refunding === items.length) return 'status-refunding'
-  if (refunded === items.length) return 'status-refunded'
-  return 'status-partial-refund'
+const getSellerAvatar = (orderWrapper: OrderWithItems): string => {
+  return (orderWrapper as any).sellerAvatar || orderWrapper.orderItems[0]?.sellerAvatar || sellerDefaultAvatar
 }
 
 const getRefundStatusText = (status: string, refundType?: string, returnStatus?: string): string => {
   if (refundType === 'AFTER_SALE' && status === 'PROCESSING') {
     return '售后处理中'
   }
-  if (refundType === 'AFTER_SALE' && status === 'APPROVED') {
-    return '请退货'
-  }
   if (returnStatus === 'RETURNING') {
     return '退货中'
   }
   if (returnStatus === 'RECEIVED') {
-    return '已收货，退款中'
+    return '已退款'
   }
 
   const map: Record<string, string> = {
-    'REFUNDING': '退款中',
-    'AFTER_SALE': '售后处理中',
+    'PROCESSING': '处理中',
     'WAITING_RETURN': '待退货',
     'RETURNING': '退货中',
-    'RECEIVED': '已完成',
-    'APPROVED': '已同意',
-    'COMPLETED': '已完成',
-    'FAILED': '已拒绝',
-    'SUCCESS': '已完成'
+    'SUCCESS': '已退款',
+    'FAILED': '已拒绝'
   }
   return map[status] || status
 }
@@ -349,11 +371,19 @@ onMounted(() => {
   if (!authStore.validateUserPermission()) return
   loadOrders()
   window.addEventListener('scroll', handleScroll)
+  window.addEventListener('refund-update', handleRefundUpdate)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('refund-update', handleRefundUpdate)
 })
+
+const handleRefundUpdate = () => {
+  page.value = 1
+  hasMore.value = true
+  loadOrders()
+}
 </script>
 
 <style scoped>

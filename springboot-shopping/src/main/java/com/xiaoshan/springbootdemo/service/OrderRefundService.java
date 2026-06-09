@@ -11,6 +11,7 @@ import com.xiaoshan.springbootdemo.mapper.OrderMapper;
 import com.xiaoshan.springbootdemo.mapper.OrderRefundMapper;
 import com.xiaoshan.springbootdemo.mapper.RefundImageMapper;
 import com.xiaoshan.springbootdemo.mapper.RefundVideoMapper;
+import com.xiaoshan.springbootdemo.mapper.UserMapper;
 import com.xiaoshan.springbootdemo.util.SnowflakeIdGenerator;
 import com.xiaoshan.springbootdemo.util.IpUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -83,11 +84,14 @@ public class OrderRefundService {
     private final OrderItemMapper orderItemMapper;
     private final RefundImageMapper refundImageMapper;
     private final RefundVideoMapper refundVideoMapper;
+    private final UserMapper userMapper;
     private final AlipayService alipayService;
-    private final SnowflakeIdGenerator snowflakeIdGenerator;
     private final AddressService addressService;
     private final SellerProfileService sellerProfileService;
     private final WebSocketService webSocketService;
+    private final RefundChatService refundChatService;
+    private final NotificationService notificationService;
+    private final SnowflakeIdGenerator snowflakeIdGenerator;
 
     /**
      * 根据ID获取退款记录
@@ -130,32 +134,21 @@ public class OrderRefundService {
             throw new RuntimeException("无权操作此订单");
         }
 
-        // 根据退款类型区分状态判断
-        if ("REFUND".equals(refundType)) {
-            // 退款（未发货）：仅允许已付款、处理中状态
-            Set<Order.OrderStatus> refundableStatuses = Set.of(
-                    Order.OrderStatus.PAID,
-                    Order.OrderStatus.PROCESSING
-            );
-            if (!refundableStatuses.contains(order.getStatus())) {
-                throw new RuntimeException("当前订单状态不允许申请退款");
-            }
-        } else if ("AFTER_SALE".equals(refundType)) {
-            // 售后（已发货）：允许已发货、已送达、已完成状态
-            Set<Order.OrderStatus> refundableStatuses = Set.of(
-                    Order.OrderStatus.SHIPPED,
-                    Order.OrderStatus.DELIVERED,
-                    Order.OrderStatus.COMPLETED
-            );
-            if (!refundableStatuses.contains(order.getStatus())) {
-                throw new RuntimeException("当前订单状态不允许申请售后");
-            }
+        // 校验订单是否允许退款（不限制退款类型，用户可自由选择）
+        Set<Order.OrderStatus> refundableStatuses = Set.of(
+                Order.OrderStatus.PAID,
+                Order.OrderStatus.PROCESSING,
+                Order.OrderStatus.SHIPPED,
+                Order.OrderStatus.COMPLETED
+        );
+        if (!refundableStatuses.contains(order.getStatus())) {
+            throw new RuntimeException("当前订单状态不允许申请退款");
         }
 
-        // 检查该订单项是否已有退款申请
-        List<OrderRefund> existingRefunds = orderRefundMapper.findByOrderItemId(orderItemId);
-        if (!existingRefunds.isEmpty()) {
-            throw new RuntimeException("该商品已有退款申请");
+        // 检查该订单项已有退款记录数量，同一订单项最多3条PROCESSING/FAILED记录
+        int activeRefundCount = orderRefundMapper.countActiveByOrderItemId(orderItemId);
+        if (activeRefundCount >= 3) {
+            throw new RuntimeException("已达最大申请次数");
         }
 
         // 创建退款记录
@@ -172,24 +165,20 @@ public class OrderRefundService {
         refund.setRefundType(refundType);
         refund.setDescription(description);
         refund.setApplyTime(LocalDateTime.now());
-        refund.setCommunicationRound(0); // 初始轮次为0（表示还没开始沟通）
 
         orderRefundMapper.insert(refund);
 
         // 保存证据图片到 refund_images 表
         saveRefundImages(refund.getId(), evidenceImages, RefundImage.ImageType.EVIDENCE);
 
-        // 更新订单项的售后状态和退款ID
-        String itemRefundStatus = "REFUND".equals(refundType) ?
-                com.xiaoshan.springbootdemo.entity.OrderItem.RefundStatus.REFUNDING :
-                com.xiaoshan.springbootdemo.entity.OrderItem.RefundStatus.AFTER_SALE;
-        orderItemMapper.updateRefundStatusWithId(orderItemId, itemRefundStatus, refund.getId());
+        // 同步订单项退款状态为 PROCESSING
+        syncOrderItemRefundStatus(orderItemId);
 
         log.info("{}申请成功，退款ID: {}", refundType.equals("AFTER_SALE") ? "售后" : "退款", refund.getId());
 
         // 发送退款申请通知给商家
         if (refund.getSellerId() != null) {
-            webSocketService.sendRefundApplication(refund.getSellerId(), order.getOrderNumber(), refundAmount);
+            webSocketService.sendRefundApplication(refund.getSellerId(), refund.getId(), order.getId(), order.getOrderNumber(), refundAmount);
         }
 
         return refund;
@@ -216,7 +205,6 @@ public class OrderRefundService {
                 Order.OrderStatus.PAID,
                 Order.OrderStatus.PROCESSING,
                 Order.OrderStatus.SHIPPED,
-                Order.OrderStatus.DELIVERED,
                 Order.OrderStatus.COMPLETED
         );
         if (!refundableStatuses.contains(order.getStatus())) {
@@ -237,7 +225,6 @@ public class OrderRefundService {
         refund.setRefundStatus(OrderRefund.RefundStatus.PROCESSING);
         refund.setRefundReason(refundReason);
         refund.setApplyTime(LocalDateTime.now());
-        refund.setCommunicationRound(0); // 初始轮次为0（表示还没开始沟通）
 
         orderRefundMapper.insert(refund);
 
@@ -279,29 +266,31 @@ public class OrderRefundService {
 
         // 根据退款类型区分处理
         if ("AFTER_SALE".equals(refund.getRefundType())) {
-            // 售后类型：商家同意后需要退货
-            // 1. 更新退款状态为 APPROVED（商家已同意，待退货）
-            refund.setRefundStatus(OrderRefund.RefundStatus.APPROVED);
+            // 售后类型：商家同意后进入待退货状态
+            // 1. 更新退款状态为 WAITING_RETURN（待退货）
+            refund.setRefundStatus(OrderRefund.RefundStatus.WAITING_RETURN);
             refund.setReviewTime(LocalDateTime.now());
             refund.setReviewedBy(sellerId);
             refund.setReviewNotes(notes);
             orderRefundMapper.updateStatus(refund);
 
-            // 2. 更新订单项状态为 WAITING_RETURN（待退货）
-            orderItem.setRefundStatus("WAITING_RETURN");
-            orderItemMapper.updateById(orderItem);
-            log.info("售后申请已同意，更新订单项退款状态为 WAITING_RETURN，订单项ID: {}", orderItem.getId());
+            // 2. 同步订单项退款状态
+            syncOrderItemRefundStatus(orderItem.getId());
+            log.info("售后申请已同意，同步订单项退款状态，订单项ID: {}", orderItem.getId());
 
             // 3. 订单状态保持不变，等待退货完成
 
             log.info("售后申请已同意，等待用户退货，退款ID: {}", refundId);
 
             // 发送退款结果通知给用户
-            webSocketService.sendUserRefundResult(refund.getUserId(), "商家已同意售后申请，请尽快退货");
+            webSocketService.sendUserRefundResult(refund.getUserId(), refund.getId(), refund.getOrderId(), "商家已同意售后申请，请尽快退货");
+
+            // 发送带 refundId 的聊天消息通知，触发前端自动跳转到退货页
+            webSocketService.sendRefundChatMessage(refund.getUserId(), "商家已同意您的退货退款申请，请尽快提交退货物流", refundId);
 
             return Map.of(
                     "refundId", refundId,
-                    "status", "APPROVED",
+                    "status", "WAITING_RETURN",
                     "message", "已同意售后申请，请等待用户退货",
                     "refundType", "AFTER_SALE"
             );
@@ -332,17 +321,13 @@ public class OrderRefundService {
             String now = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             orderRefundMapper.markAsSuccess(refundId, now, refundTransactionId);
 
-            // 更新订单项退款状态为已完成
-            orderItem.setRefundStatus("COMPLETED");
-            orderItemMapper.updateById(orderItem);
-            log.info("更新订单项退款状态为 COMPLETED，订单项ID: {}", orderItem.getId());
+            // 同步订单项退款状态
+            syncOrderItemRefundStatus(refund.getOrderItemId());
 
             // 检查该订单下所有订单项是否都已退款
             int unrefundCount = orderItemMapper.countUnrefundedByOrderId(refund.getOrderId());
             if (unrefundCount == 0) {
-                // 全部退款 → 订单状态改为已退款
-                orderMapper.updateStatus(refund.getOrderId(), "REFUNDED");
-                log.info("订单所有订单项已退款，更新订单状态为 REFUNDED，订单ID: {}", refund.getOrderId());
+                log.info("订单所有订单项已退款，订单ID: {}", refund.getOrderId());
             } else {
                 log.info("订单还有 {} 个订单项未退款，订单状态保持不变", unrefundCount);
             }
@@ -353,7 +338,7 @@ public class OrderRefundService {
             log.info("退款处理成功，退款ID: {}", refundId);
 
             // 发送退款成功通知给用户
-            webSocketService.sendUserRefundResult(refund.getUserId(), "退款已成功，款项将在1-3个工作日内到账");
+            webSocketService.sendUserRefundResult(refund.getUserId(), refund.getId(), refund.getOrderId(), "退款已成功，款项将在1-3个工作日内到账");
 
             return Map.of(
                     "refundId", refundId,
@@ -375,10 +360,18 @@ public class OrderRefundService {
     public Map<String, Object> rejectRefund(Long refundId, Long sellerId, String notes) {
         log.info("商家 {} 拒绝退款申请，ID: {}", sellerId, refundId);
 
+        // 1. 查退款记录
         OrderRefund refund = orderRefundMapper.findById(refundId)
                 .orElseThrow(() -> new RuntimeException("退款记录不存在"));
 
-        if (refund.getRefundStatus() != OrderRefund.RefundStatus.PROCESSING) {
+        log.info("查询到退款记录，当前状态: refund_status={}, return_status={}", 
+                refund.getRefundStatus(), refund.getReturnStatus());
+
+        // 检查状态是否允许拒绝：PROCESSING（处理中）和 RETURNING（退货中）状态可拒绝
+        boolean canReject = refund.getRefundStatus() == OrderRefund.RefundStatus.PROCESSING 
+                || refund.getRefundStatus() == OrderRefund.RefundStatus.WAITING_RETURN;
+        
+        if (!canReject) {
             throw new RuntimeException("退款状态不允许操作");
         }
 
@@ -388,28 +381,44 @@ public class OrderRefundService {
             throw new RuntimeException("无权操作此退款申请");
         }
 
-        // 更新退款状态为失败
+        // 2. 更新退款记录
         refund.setRefundStatus(OrderRefund.RefundStatus.FAILED);
-        refund.setReviewTime(LocalDateTime.now());
-        refund.setReviewedBy(sellerId);
         refund.setReviewNotes(notes);
+        refund.setReviewedBy(sellerId);
+        refund.setReviewTime(LocalDateTime.now());
 
-        orderRefundMapper.updateStatus(refund);
+        log.info("更新退款记录: refund_status=FAILED, review_notes={}, reviewed_by={}, review_time={}",
+                notes, sellerId, refund.getReviewTime());
 
-        // 更新订单项的退款状态（清除退款中状态，使订单列表不再显示"退款中"）
-        OrderItem orderItem = orderItemMapper.findById(refund.getOrderItemId()).orElse(null);
-        if (orderItem == null) {
-            log.warn("订单项不存在，订单ID: {}", refund.getOrderItemId());
-        } else {
-            orderItem.setRefundStatus(null);
-            orderItemMapper.updateById(orderItem);
+        int updateCount = orderRefundMapper.updateStatus(refund);
+        log.info("更新退款记录结果: {} 条记录被更新", updateCount);
+
+        // 3. 更新订单项退款状态为 FAILED
+        Long orderItemId = refund.getOrderItemId();
+        if (orderItemId != null) {
+            int itemUpdateCount = orderItemMapper.updateRefundStatus(orderItemId, "FAILED");
+            log.info("更新订单项退款状态为 FAILED，订单项ID: {}, 更新记录数: {}", orderItemId, itemUpdateCount);
         }
 
-        log.info("退款申请已拒绝，退款ID: {}", refundId);
+        // 4. WebSocket 通知用户
+        String rejectMessage = notes != null 
+                ? "商家拒绝了您的退款申请，原因：" + notes 
+                : "商家拒绝了您的退款申请";
+        webSocketService.sendUserRefundResult(refund.getUserId(), refund.getId(), refund.getOrderId(), rejectMessage);
+        log.info("已发送 WebSocket 通知给用户，用户ID: {}", refund.getUserId());
 
-        // 发送退款拒绝通知给用户
-        String rejectMessage = notes != null ? "商家拒绝了您的退款申请，原因：" + notes : "商家拒绝了您的退款申请";
-        webSocketService.sendUserRefundResult(refund.getUserId(), rejectMessage);
+        // 5. 记录退款沟通消息
+        String chatMessage = notes != null 
+                ? "已拒绝退款申请，原因：" + notes 
+                : "已拒绝退款申请";
+        try {
+            refundChatService.sendMessage(refundId, "SELLER", sellerId, chatMessage, null);
+            log.info("已发送退款沟通消息，退款ID: {}", refundId);
+        } catch (Exception e) {
+            log.warn("发送拒绝消息失败，退款ID: {}", refundId, e);
+        }
+
+        log.info("退款申请已拒绝完成，退款ID: {}", refundId);
 
         return Map.of(
                 "refundId", refundId,
@@ -537,10 +546,20 @@ public class OrderRefundService {
         String skuName = null;
         Integer quantity = null;
         BigDecimal price = null;
+        String buyerAvatar = null;
+        String buyerName = null;
+        String sellerAvatar = null;
+        String sellerName = null;
         try {
             Order order = orderMapper.findById(refund.getOrderId()).orElse(null);
             if (order != null) {
                 buyerId = order.getUserId();
+                // 获取买家头像和昵称
+                Map<String, Object> buyerProfile = userMapper.getAccountProfile(buyerId);
+                if (buyerProfile != null) {
+                    buyerAvatar = (String) buyerProfile.get("avatar");
+                    buyerName = (String) buyerProfile.get("nickname");
+                }
             }
             OrderItem orderItem = orderItemMapper.findById(refund.getOrderItemId()).orElse(null);
             if (orderItem != null) {
@@ -550,6 +569,12 @@ public class OrderRefundService {
                 skuName = orderItem.getSkuName();
                 quantity = orderItem.getQuantity();
                 price = orderItem.getPrice();
+                // 获取商家头像和昵称
+                Map<String, Object> sellerProfile = userMapper.getAccountProfile(sellerId);
+                if (sellerProfile != null) {
+                    sellerAvatar = (String) sellerProfile.get("avatar");
+                    sellerName = (String) sellerProfile.get("nickname");
+                }
             }
         } catch (Exception e) {
             log.warn("获取订单信息失败: {}", e.getMessage());
@@ -577,7 +602,6 @@ public class OrderRefundService {
         result.put("completeTime", refund.getCompleteTime());
         result.put("reviewNotes", refund.getReviewNotes());
         result.put("reviewedBy", refund.getReviewedBy());
-        result.put("communicationRound", refund.getCommunicationRound());
         result.put("refundTransactionId", refund.getRefundTransactionId());
         result.put("evidenceImages", evidenceImages);
         result.put("appealImages", appealImages);
@@ -587,6 +611,10 @@ public class OrderRefundService {
         result.put("skuName", skuName);
         result.put("quantity", quantity);
         result.put("price", price);
+        result.put("buyerAvatar", buyerAvatar);
+        result.put("buyerName", buyerName);
+        result.put("sellerAvatar", sellerAvatar);
+        result.put("sellerName", sellerName);
 
         return result;
     }
@@ -621,7 +649,6 @@ public class OrderRefundService {
         result.put("completeTime", refund.getCompleteTime());
         result.put("reviewNotes", refund.getReviewNotes());
         result.put("reviewedBy", refund.getReviewedBy());
-        result.put("communicationRound", refund.getCommunicationRound());
         result.put("refundTransactionId", refund.getRefundTransactionId());
 
         // 根据 orderItemId 查询 order_items 表获取商品信息
@@ -636,6 +663,15 @@ public class OrderRefundService {
         }
 
         return result;
+    }
+
+    /**
+     * 根据订单项ID获取退款记录列表
+     * @param orderItemId 订单项ID
+     * @return 退款记录列表
+     */
+    public List<OrderRefund> getByOrderItemId(Long orderItemId) {
+        return orderRefundMapper.findByOrderItemId(orderItemId);
     }
 
     /**
@@ -705,17 +741,6 @@ public class OrderRefundService {
             throw new RuntimeException("当前状态不允许申诉");
         }
 
-        // 检查沟通轮次
-        if (refund.getCommunicationRound() == null) {
-            refund.setCommunicationRound(1);
-        }
-        if (refund.getCommunicationRound() >= 3) {
-            throw new RuntimeException("已达到最大申诉次数");
-        }
-
-        // 更新申诉信息
-        refund.setCommunicationRound(refund.getCommunicationRound() + 1);
-
         // 将退款状态改回处理中
         refund.setRefundStatus(OrderRefund.RefundStatus.PROCESSING);
 
@@ -724,11 +749,10 @@ public class OrderRefundService {
         // 保存申诉图片到 refund_images 表
         saveRefundImages(refundId, appealEvidence, RefundImage.ImageType.APPEAL);
 
-        log.info("用户申诉提交成功，退款ID: {}, 沟通轮次: {}", refundId, refund.getCommunicationRound());
+        log.info("用户申诉提交成功，退款ID: {}", refundId);
 
         return Map.of(
                 "refundId", refundId,
-                "communicationRound", refund.getCommunicationRound(),
                 "message", "申诉提交成功"
         );
     }
@@ -779,6 +803,80 @@ public class OrderRefundService {
     }
 
     /**
+     * 同步订单项的退款状态
+     * 根据该订单项的退款记录情况，同步 order_items.refund_status
+     *
+     * 规则：
+     * 1. 有进行中的退款记录（refund_status 为 PROCESSING/WAITING_RETURN）
+     *    → 取最新那条的状态：return_status=RETURNING 则显示 RETURNING，否则显示 refund_status
+     * 2. 无进行中的记录，但有 SUCCESS 状态的记录 → 显示 SUCCESS（已退款）
+     * 3. 无进行中的记录，也无 SUCCESS，但 FAILED 数量 >= 3 → 显示 FAILED
+     * 4. 其他情况 → 设置为 null（允许再次申请）
+     *
+     * @param orderItemId 订单项ID
+     */
+    private void syncOrderItemRefundStatus(Long orderItemId) {
+        if (orderItemId == null) {
+            return;
+        }
+
+        List<OrderRefund> allRefunds = orderRefundMapper.findByOrderItemId(orderItemId);
+        if (allRefunds == null || allRefunds.isEmpty()) {
+            orderItemMapper.updateRefundStatus(orderItemId, null);
+            log.info("同步订单项退款状态为 null（无退款记录），订单项ID: {}", orderItemId);
+            return;
+        }
+
+        OrderRefund latestActive = null;
+        boolean hasSuccess = false;
+        boolean hasFailed = false;
+        int failedCount = 0;
+
+        for (OrderRefund refund : allRefunds) {
+            boolean isActive = refund.getRefundStatus() == OrderRefund.RefundStatus.PROCESSING
+                    || refund.getRefundStatus() == OrderRefund.RefundStatus.WAITING_RETURN;
+
+            if (isActive) {
+                if (latestActive == null || refund.getApplyTime().isAfter(latestActive.getApplyTime())) {
+                    latestActive = refund;
+                }
+            } else if (refund.getRefundStatus() == OrderRefund.RefundStatus.SUCCESS) {
+                hasSuccess = true;
+            } else if (refund.getRefundStatus() == OrderRefund.RefundStatus.FAILED) {
+                hasFailed = true;
+                failedCount++;
+            }
+        }
+
+        if (latestActive != null) {
+            String displayStatus;
+            if ("RETURNING".equals(latestActive.getReturnStatus())) {
+                displayStatus = "RETURNING";
+            } else {
+                displayStatus = latestActive.getRefundStatus().name();
+            }
+            orderItemMapper.updateRefundStatus(orderItemId, displayStatus);
+            log.info("同步订单项退款状态为最新进行中状态: {}，订单项ID: {}", displayStatus, orderItemId);
+            return;
+        }
+
+        if (hasSuccess) {
+            orderItemMapper.updateRefundStatus(orderItemId, "SUCCESS");
+            log.info("同步订单项退款状态为 SUCCESS（已退款），订单项ID: {}", orderItemId);
+            return;
+        }
+
+        if (hasFailed) {
+            orderItemMapper.updateRefundStatus(orderItemId, "FAILED");
+            log.info("同步订单项退款状态为 FAILED（已拒绝），订单项ID: {}", orderItemId);
+            return;
+        }
+
+        orderItemMapper.updateRefundStatus(orderItemId, null);
+        log.info("同步订单项退款状态为 null（可再次申请），订单项ID: {}", orderItemId);
+    }
+
+    /**
      * 用户申请退款/售后（支持图片和视频上传）
      * @param userId 用户ID
      * @param orderItemId 订单项ID
@@ -815,32 +913,21 @@ public class OrderRefundService {
             throw new RuntimeException("无权操作此订单");
         }
 
-        // 根据退款类型区分状态判断
-        if ("REFUND".equals(refundType)) {
-            // 退款（未发货）：仅允许已付款、处理中状态
-            Set<Order.OrderStatus> refundableStatuses = Set.of(
-                    Order.OrderStatus.PAID,
-                    Order.OrderStatus.PROCESSING
-            );
-            if (!refundableStatuses.contains(order.getStatus())) {
-                throw new RuntimeException("当前订单状态不允许申请退款");
-            }
-        } else if ("AFTER_SALE".equals(refundType)) {
-            // 售后（已发货）：允许已发货、已送达、已完成状态
-            Set<Order.OrderStatus> refundableStatuses = Set.of(
-                    Order.OrderStatus.SHIPPED,
-                    Order.OrderStatus.DELIVERED,
-                    Order.OrderStatus.COMPLETED
-            );
-            if (!refundableStatuses.contains(order.getStatus())) {
-                throw new RuntimeException("当前订单状态不允许申请售后");
-            }
+        // 校验订单是否允许退款（不限制退款类型，用户可自由选择）
+        Set<Order.OrderStatus> refundableStatuses = Set.of(
+                Order.OrderStatus.PAID,
+                Order.OrderStatus.PROCESSING,
+                Order.OrderStatus.SHIPPED,
+                Order.OrderStatus.COMPLETED
+        );
+        if (!refundableStatuses.contains(order.getStatus())) {
+            throw new RuntimeException("当前订单状态不允许申请退款");
         }
 
-        // 检查该订单项是否已有退款申请
-        List<OrderRefund> existingRefunds = orderRefundMapper.findByOrderItemId(orderItemId);
-        if (!existingRefunds.isEmpty()) {
-            throw new RuntimeException("该商品已有退款申请");
+        // 检查该订单项已有退款记录数量，同一订单项最多3条PROCESSING/FAILED记录
+        int activeRefundCount = orderRefundMapper.countByStatuses(orderItemId, List.of("PROCESSING", "FAILED"));
+        if (activeRefundCount >= 3) {
+            throw new RuntimeException("该商品已达最大申请次数(3次)，无法再次申请");
         }
 
         // 校验图片
@@ -849,21 +936,20 @@ public class OrderRefundService {
         // 校验视频
         validateVideos(videos);
 
-        // 创建退款记录
+        // 创建新的退款记录
         OrderRefund refund = new OrderRefund();
         refund.setId(snowflakeIdGenerator.nextId());
         refund.setOrderId(order.getId());
         refund.setOrderItemId(orderItemId);
         refund.setOrderNumber(order.getOrderNumber());
         refund.setUserId(userId);
-        refund.setSellerId(orderItem.getSellerId()); // 设置商家ID
+        refund.setSellerId(orderItem.getSellerId());
         refund.setRefundAmount(refundAmount);
         refund.setRefundStatus(OrderRefund.RefundStatus.PROCESSING);
         refund.setRefundReason(refundReason);
         refund.setRefundType(refundType);
         refund.setDescription(description);
         refund.setApplyTime(LocalDateTime.now());
-        refund.setCommunicationRound(0);
 
         orderRefundMapper.insert(refund);
 
@@ -877,13 +963,15 @@ public class OrderRefundService {
             saveRefundVideos(refund.getId(), videos, videoCovers);
         }
 
-        // 更新订单项的售后状态和退款ID
-        String itemRefundStatus = "REFUND".equals(refundType) ?
-                com.xiaoshan.springbootdemo.entity.OrderItem.RefundStatus.REFUNDING :
-                com.xiaoshan.springbootdemo.entity.OrderItem.RefundStatus.AFTER_SALE;
-        orderItemMapper.updateRefundStatusWithId(orderItemId, itemRefundStatus, refund.getId());
+        // 同步订单项退款状态为 PROCESSING
+        syncOrderItemRefundStatus(orderItemId);
 
         log.info("{}申请成功，退款ID: {}", refundType.equals("AFTER_SALE") ? "售后" : "退款", refund.getId());
+
+        // 发送退款申请通知给商家
+        if (refund.getSellerId() != null) {
+            webSocketService.sendRefundApplication(refund.getSellerId(), refund.getId(), order.getId(), order.getOrderNumber(), refundAmount);
+        }
 
         return Map.of(
                 "refundId", refund.getId(),
@@ -1082,9 +1170,8 @@ public class OrderRefundService {
             throw new RuntimeException("当前退款类型不需要退货");
         }
 
-        // 验证退款状态（商家已同意或已同意待退货的才能提交退货）
-        if (refund.getRefundStatus() != OrderRefund.RefundStatus.APPROVED &&
-            refund.getRefundStatus() != OrderRefund.RefundStatus.PROCESSING) {
+        // 验证退款状态（待退货状态才能提交退货）
+        if (refund.getRefundStatus() != OrderRefund.RefundStatus.WAITING_RETURN) {
             throw new RuntimeException("当前状态不允许提交退货");
         }
 
@@ -1163,10 +1250,29 @@ public class OrderRefundService {
 
         orderRefundMapper.updateReturnInfo(refund);
 
-        // 更新 order_items 表的 refund_status 为 RETURNING
-        if (refund.getOrderItemId() != null) {
-            orderItemMapper.updateRefundStatus(refund.getOrderItemId(), "RETURNING");
-            log.info("更新订单项状态为 RETURNING，订单项ID: {}", refund.getOrderItemId());
+        // 同步订单项退款状态
+        syncOrderItemRefundStatus(refund.getOrderItemId());
+
+        // WebSocket 通知商家
+        if (refund.getSellerId() != null) {
+            Map<String, Object> returnData = new HashMap<>();
+            returnData.put("type", "return-submitted");
+            returnData.put("refundId", refund.getId());
+            returnData.put("orderItemId", refund.getOrderItemId());
+            returnData.put("orderNumber", refund.getOrderNumber());
+            returnData.put("trackingNumber", refund.getReturnTrackingNumber());
+            returnData.put("logisticsName", refund.getReturnLogisticsName());
+            returnData.put("returnMethod", returnMethod);
+            webSocketService.sendReturnSubmitted(refund.getSellerId(), returnData);
+
+            // 创建数据库通知
+            notificationService.create(
+                    refund.getSellerId(),
+                    "ORDER",
+                    "退货通知",
+                    "买家已提交退货，物流单号：" + refund.getReturnTrackingNumber(),
+                    "{\"refundId\":" + refund.getId() + ",\"orderItemId\":" + refund.getOrderItemId() + "}"
+            );
         }
 
         log.info("用户退货信息提交成功，退款ID: {}", refundId);
@@ -1656,27 +1762,29 @@ public class OrderRefundService {
         refund.setReturnReceiveTime(LocalDateTime.now());
         refund.setRefundStatus(OrderRefund.RefundStatus.SUCCESS);
         refund.setCompleteTime(LocalDateTime.now());
+        
+        // 设置退款交易号
+        Order order = orderMapper.findById(refund.getOrderId()).orElse(null);
+        if (order != null && order.getTransactionId() != null) {
+            refund.setRefundTransactionId(order.getTransactionId());
+        }
 
         orderRefundMapper.confirmReceive(refund);
 
-        // 更新订单项状态
-        if (refund.getOrderItemId() != null) {
-            orderItemMapper.updateRefundStatus(refund.getOrderItemId(), "COMPLETED");
-            log.info("更新订单项状态为 COMPLETED，订单项ID: {}", refund.getOrderItemId());
-        }
+        // 同步订单项退款状态
+        syncOrderItemRefundStatus(refund.getOrderItemId());
 
-        // 更新订单状态为 REFUNDED（只有当所有订单项都已退款完成时）
+        // 检查订单所有订单项是否都已退款
         if (refund.getOrderId() != null) {
             List<OrderItem> orderItems = orderItemMapper.findByOrderId(refund.getOrderId());
             boolean allRefunded = orderItems.stream().allMatch(
-                item -> "COMPLETED".equals(item.getRefundStatus())
+                item -> "SUCCESS".equals(item.getRefundStatus())
             );
-            
+
             if (allRefunded) {
-                orderMapper.updateStatus(refund.getOrderId(), "REFUNDED");
-                log.info("更新订单状态为 REFUNDED，订单ID: {}", refund.getOrderId());
+                log.info("订单所有订单项已退款，订单ID: {}", refund.getOrderId());
             } else {
-                log.info("订单部分退款完成，保持原状态，订单ID: {}", refund.getOrderId());
+                log.info("订单部分退款完成，订单ID: {}", refund.getOrderId());
             }
         }
 
@@ -1691,6 +1799,29 @@ public class OrderRefundService {
         }
 
         log.info("商家确认收货成功，退款ID: {}", refundId);
+
+        try {
+            webSocketService.sendUserRefundResult(
+                    order.getUserId(),
+                    refund.getId(),
+                    order.getId(),
+                    "您的退款已到账，金额 ¥" + refund.getRefundAmount()
+            );
+        } catch (Exception e) {
+            log.warn("发送退款结果通知失败，退款ID: {}", refundId, e);
+        }
+
+        try {
+            refundChatService.sendMessage(
+                    refundId,
+                    "SELLER",
+                    sellerId,
+                    "商家已确认收货，退款已到账",
+                    null
+            );
+        } catch (Exception e) {
+            log.warn("发送退款聊天消息失败，退款ID: {}", refundId, e);
+        }
 
         return Map.of(
                 "refundId", refundId,
@@ -1783,5 +1914,163 @@ public class OrderRefundService {
                     "message", "物流查询失败: " + e.getMessage()
             );
         }
+    }
+
+    /**
+     * 用户申请平台介入（投诉仲裁）
+     * @param refundId 退款ID
+     * @param reason 介入原因
+     */
+    @Transactional
+    public void applyIntervene(Long refundId, String reason) {
+        log.info("用户申请平台介入，退款ID: {}, 原因: {}", refundId, reason);
+
+        OrderRefund refund = orderRefundMapper.findById(refundId)
+                .orElseThrow(() -> new RuntimeException("退款记录不存在"));
+
+        refund.setReviewNotes(reason);
+        refund.setReviewedBy(0L);
+        refund.setReviewTime(LocalDateTime.now());
+        orderRefundMapper.updateStatus(refund);
+
+        refundChatService.sendMessage(refundId, "SYSTEM", null, "平台已介入此纠纷，将在24小时内处理", null);
+
+        log.info("平台介入申请已记录，退款ID: {}", refundId);
+    }
+
+    /**
+     * 管理员仲裁处理（强制退款）
+     * @param refundId 退款ID
+     * @param adminId 管理员ID
+     * @param notes 仲裁备注
+     * @return 处理结果
+     */
+    @Transactional
+    public Map<String, Object> arbitrateRefund(Long refundId, Long adminId, String notes) {
+        log.info("管理员 {} 仲裁强制退款，退款ID: {}", adminId, refundId);
+
+        OrderRefund refund = orderRefundMapper.findById(refundId)
+                .orElseThrow(() -> new RuntimeException("退款记录不存在"));
+
+        Order order = orderMapper.findById(refund.getOrderId())
+                .orElseThrow(() -> new RuntimeException("订单不存在"));
+
+        boolean refundSuccess = false;
+        try {
+            refundSuccess = alipayService.refund(
+                    order.getTransactionId(),
+                    refund.getRefundAmount(),
+                    "平台仲裁强制退款"
+            );
+        } catch (Exception e) {
+            log.error("支付宝退款失败: {}", e.getMessage());
+            throw new RuntimeException("退款失败：" + e.getMessage());
+        }
+
+        if (!refundSuccess) {
+            throw new RuntimeException("支付宝退款失败");
+        }
+
+        String refundTransactionId = order.getTransactionId();
+        String now = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        orderRefundMapper.markAsSuccess(refundId, now, refundTransactionId);
+
+        refund.setReviewedBy(adminId);
+        refund.setReviewNotes(notes);
+        refund.setReviewTime(LocalDateTime.now());
+        orderRefundMapper.updateStatus(refund);
+
+        syncOrderItemRefundStatus(refund.getOrderItemId());
+        restoreStock(refund.getOrderId());
+
+        refundChatService.sendMessage(refundId, "SYSTEM", null, 
+                "平台仲裁：已强制退款给买家" + (notes != null ? "，备注：" + notes : ""), null);
+
+        webSocketService.sendUserRefundResult(refund.getUserId(), refund.getId(), refund.getOrderId(), 
+                "平台已仲裁，退款已成功，款项将在1-3个工作日内到账");
+
+        return Map.of(
+                "refundId", refundId,
+                "status", "SUCCESS",
+                "message", "仲裁成功，已强制退款"
+        );
+    }
+
+    /**
+     * 管理员仲裁处理（驳回申请）
+     * @param refundId 退款ID
+     * @param adminId 管理员ID
+     * @param notes 仲裁备注
+     * @return 处理结果
+     */
+    @Transactional
+    public Map<String, Object> arbitrateReject(Long refundId, Long adminId, String notes) {
+        log.info("管理员 {} 仲裁驳回申请，退款ID: {}", adminId, refundId);
+
+        OrderRefund refund = orderRefundMapper.findById(refundId)
+                .orElseThrow(() -> new RuntimeException("退款记录不存在"));
+
+        refund.setRefundStatus(OrderRefund.RefundStatus.FAILED);
+        refund.setReviewedBy(adminId);
+        refund.setReviewNotes(notes);
+        refund.setReviewTime(LocalDateTime.now());
+        orderRefundMapper.updateStatus(refund);
+
+        syncOrderItemRefundStatus(refund.getOrderItemId());
+
+        refundChatService.sendMessage(refundId, "SYSTEM", null, 
+                "平台仲裁：已驳回退款申请" + (notes != null ? "，原因：" + notes : ""), null);
+
+        webSocketService.sendUserRefundResult(refund.getUserId(), refund.getId(), refund.getOrderId(), 
+                "平台已仲裁，驳回退款申请" + (notes != null ? "，原因：" + notes : ""));
+
+        return Map.of(
+                "refundId", refundId,
+                "status", "FAILED",
+                "message", "仲裁成功，已驳回申请"
+        );
+    }
+
+    /**
+     * 获取需要仲裁的纠纷列表（管理员）
+     * @param page 页码
+     * @param size 每页大小
+     * @return 纠纷列表
+     */
+    public Map<String, Object> getDisputeList(int page, int size) {
+        int offset = (page - 1) * size;
+        List<OrderRefund> refunds = orderRefundMapper.findDisputesWithPage(offset, size);
+
+        int total = orderRefundMapper.countDisputes();
+
+        List<Map<String, Object>> records = new ArrayList<>();
+        for (OrderRefund refund : refunds) {
+            Map<String, Object> record = new HashMap<>();
+            record.put("id", refund.getId());
+            record.put("orderNumber", refund.getOrderNumber());
+            record.put("refundAmount", refund.getRefundAmount());
+            record.put("refundStatus", refund.getRefundStatus());
+            record.put("refundType", refund.getRefundType());
+            record.put("refundReason", refund.getRefundReason());
+            record.put("userId", refund.getUserId());
+            record.put("sellerId", refund.getSellerId());
+            record.put("applyTime", refund.getApplyTime() != null ? 
+                    refund.getApplyTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+
+            OrderItem orderItem = orderItemMapper.findById(refund.getOrderItemId()).orElse(null);
+            if (orderItem != null) {
+                record.put("productName", orderItem.getProductName());
+                record.put("productImage", orderItem.getProductImage());
+            }
+
+            records.add(record);
+        }
+
+        return Map.of(
+                "records", records,
+                "total", total,
+                "page", page,
+                "size", size
+        );
     }
 }

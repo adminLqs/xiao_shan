@@ -1,20 +1,11 @@
-/* ========== 消息中心 - 简洁版样式 ========== */
 
 .messages-page {
   min-height: 100vh;
   background: #f5f7fa;
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
-  position: relative;
+  padding-top: 60px;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
 }
 
-/* 移除所有动态背景 */
-.messages-page::before,
-.messages-page::after {
-  display: none;
-  content: none;
-}
-
-/* ========== 页面导航栏 ========== */
 .page-navbar {
   display: flex;
   align-items: center;
@@ -22,286 +13,125 @@
   padding: 12px 16px;
   padding-top: calc(12px + env(safe-area-inset-top));
   background: white;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   border-bottom: 1px solid #e8ecf0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  visibility: hidden;
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .page-nav-right {
   width: 36px;
 }
 
-.page-nav-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 17px;
-  font-weight: 700;
-  color: #1e293b;
+/* 骨架屏 */
+.skeleton-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.skeleton-card {
+  display: flex; gap: 12px; padding: 16px;
+  background: white; border-radius: 12px;
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0f2f5 25%, #e2e8f0 50%, #f0f2f5 75%);
+  background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px;
+}
+.skeleton-line { height: 14px; }
+.skeleton-line.medium { width: 60%; }
+.skeleton-line.short { width: 40%; }
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
-.page-nav-title i {
-  color: #4a6491;
-}
+/* 消息内容区 */
+.messages-content { padding-top: 8px; }
 
-.page-nav-action {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f5f7fa;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  color: #4a6491;
-  font-size: 18px;
-  transition: all 0.2s;
-}
-
-.page-nav-action:active {
-  background: #e8ecf0;
-  transform: scale(0.95);
-}
-
-/* ========== 未读提醒 ========== */
-.unread-reminder {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+/* 置顶卡片区 */
+.notify-cards { padding: 0 0 8px 0; }
+.notify-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px; background: white;
   margin: 0 0 8px 0;
-  background: #f5f7fa;
-  border-radius: 0;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  cursor: pointer; transition: all 0.2s;
 }
-
-.unread-reminder:active {
-  transform: scale(0.98);
-  background: #e8ecf0;
-}
-
-.unread-reminder i:first-child {
-  font-size: 20px;
-  color: #4a6491;
-}
-
-.unread-reminder span {
-  flex: 1;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1e293b;
-}
-
-.unread-reminder i:last-child {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-/* ========== 消息列表 ========== */
-.message-list {
-  padding: 0;
-  position: relative;
-  z-index: 1;
-}
-
-/* 消息卡片 */
-.message-item {
-  display: flex;
-  gap: 12px;
-  padding: 16px;
-  margin-bottom: 8px;
-  background: white;
-  border-radius: 0;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid #e8ecf0;
-  position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.message-item:active {
-  transform: scale(0.98);
-  background: #fafbfc;
-}
-
-/* 未读消息卡片样式 */
-.message-item.unread {
-  background: white;
-  border-left: 3px solid #4a6491;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-/* 消息头像/图标 */
-.msg-avatar {
-  width: 48px;
-  height: 48px;
-  background: #f5f7fa;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.notify-card:active { transform: scale(0.98); }
+.card-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  transition: all 0.2s;
 }
-
-.message-item:active .msg-avatar {
-  transform: scale(0.95);
-}
-
-.msg-avatar i {
+.card-icon i {
   font-size: 22px;
-  color: #4a6491;
+  color: white;
 }
-
-/* 消息内容区域 */
-.msg-content {
-  flex: 1;
-  min-width: 0;
-  position: relative;
+.card-info { flex: 1; min-width: 0; }
+.card-title { font-size: 15px; font-weight: 600; color: #1e293b; margin-bottom: 4px; }
+.card-preview {
+  font-size: 13px; color: #94a3b8;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-
-.msg-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 6px;
+.card-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.card-badge {
+  min-width: 18px; height: 18px; background: #ef4444; color: white;
+  font-size: 10px; font-weight: 600; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; padding: 0 5px;
 }
+.card-arrow { font-size: 12px; color: #cbd5e1; }
 
-.msg-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* 客服消息区 */
+.chat-section { padding: 0; margin-top: 8px; }
+.section-title {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 12px 16px; font-size: 14px; font-weight: 600; color: #64748b;
 }
-
-.message-item.unread .msg-title {
-  color: #4a6491;
+.section-hint { font-size: 12px; color: #94a3b8; font-weight: 400; }
+.chat-cards { display: flex; flex-direction: column; }
+.chat-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; background: white;
+  margin: 0 0 1px 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  cursor: pointer; transition: all 0.2s;
 }
-
-.msg-time {
-  font-size: 11px;
-  color: #94a3b8;
-  flex-shrink: 0;
-  margin-left: 8px;
+.chat-card:active { transform: scale(0.98); }
+.shop-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  object-fit: cover; flex-shrink: 0;
 }
-
-.msg-preview {
-  font-size: 13px;
-  color: #64748b;
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.chat-info { flex: 1; min-width: 0; }
+.shop-name { font-size: 15px; font-weight: 600; color: #1e293b; margin-bottom: 4px; }
+.last-message {
+  font-size: 13px; color: #94a3b8;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.chat-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.chat-time { font-size: 11px; color: #94a3b8; }
 
-/* 未读红点 - 简单样式 */
-.unread-dot {
-  position: absolute;
-  top: 2px;
-  right: -4px;
-  width: 8px;
-  height: 8px;
-  background: #ef4444;
-  border-radius: 50%;
-}
-
-/* ========== 空状态 ========== */
+/* 空状态 */
 .empty-messages {
-  text-align: center;
-  padding: 60px 20px;
-  background: white;
-  border-radius: 16px;
-  margin-top: 40px;
-  border: 1px solid #e8ecf0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  text-align: center; padding: 80px 20px; color: #94a3b8;
 }
+.empty-messages i { font-size: 48px; margin-bottom: 12px; display: block; }
 
-.empty-messages i {
-  font-size: 64px;
-  color: #cbd5e1;
-  margin-bottom: 16px;
-}
-
-.empty-messages p {
-  font-size: 14px;
-  color: #94a3b8;
-}
-
-/* ========== 设置入口 ========== */
-.settings-entry {
-  padding: 12px;
-  position: relative;
-  z-index: 1;
-}
-
-.settings-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: white;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid #e8ecf0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.settings-card:active {
-  transform: scale(0.98);
-  background: #fafbfc;
-}
-
-.settings-icon {
-  width: 44px;
-  height: 44px;
-  background: #f5f7fa;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.settings-icon i {
-  font-size: 20px;
-  color: #4a6491;
-}
-
-.settings-text {
-  flex: 1;
-  font-size: 15px;
-  font-weight: 500;
-  color: #1e293b;
-}
-
-.settings-card i:last-child {
-  font-size: 14px;
-  color: #94a3b8;
-}
-
-/* ========== 底部留空 ========== */
-.bottom-space {
-  height: 40px;
-}
-
-/* ========== 响应式 ========== */
-@media (max-width: 480px) {
-  .unread-reminder {
-    padding: 10px 14px;
-    margin: 8px;
-  }
-}
-
-/* 安全区域适配 */
+/* 安全区域 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .messages-page {
-    padding-bottom: calc(100px + env(safe-area-inset-bottom));
-  }
+  .messages-page { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
 }

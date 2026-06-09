@@ -66,14 +66,18 @@ public interface FavoriteMapper {
      * 分页查询用户收藏列表（关联商品信息）
      */
     @Select("SELECT f.id, f.user_id, f.product_id, f.created_at, " +
-            "p.name as product_name, p.brand, " +
+            "p.name as product_name, p.brand, p.status as product_status, " +
             "(SELECT MIN(ps.price) FROM product_skus ps WHERE ps.product_id = p.id) as price, " +
             "(SELECT MIN(ps.original_price) FROM product_skus ps WHERE ps.product_id = p.id) as original_price, " +
             "(SELECT COALESCE(SUM(ps.stock), 0) FROM product_skus ps WHERE ps.product_id = p.id) as stock, " +
             "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as product_image, " +
-            "(SELECT ps.sku_name FROM product_skus ps WHERE ps.product_id = p.id ORDER BY ps.price ASC LIMIT 1) as sku_name " +
+            "(SELECT ps.sku_name FROM product_skus ps WHERE ps.product_id = p.id ORDER BY ps.price ASC LIMIT 1) as sku_name, " +
+            "COALESCE(sp.store_name, up.nickname) as seller_name, " +
+            "COALESCE(sp.store_avatar, up.avatar) as seller_avatar " +
             "FROM favorites f " +
             "LEFT JOIN products p ON f.product_id = p.id " +
+            "LEFT JOIN seller_profiles sp ON p.seller_id = sp.user_id " +
+            "LEFT JOIN user_profiles up ON p.seller_id = up.user_id " +
             "WHERE f.user_id = #{userId} " +
             "ORDER BY f.created_at DESC " +
             "LIMIT #{limit} OFFSET #{offset}")
@@ -96,9 +100,13 @@ public interface FavoriteMapper {
             "(SELECT MIN(ps.original_price) FROM product_skus ps WHERE ps.product_id = p.id) as original_price, " +
             "(SELECT COALESCE(SUM(ps.stock), 0) FROM product_skus ps WHERE ps.product_id = p.id) as stock, " +
             "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as product_image, " +
-            "(SELECT ps.sku_name FROM product_skus ps WHERE ps.product_id = p.id ORDER BY ps.price ASC LIMIT 1) as sku_name " +
+            "(SELECT ps.sku_name FROM product_skus ps WHERE ps.product_id = p.id ORDER BY ps.price ASC LIMIT 1) as sku_name, " +
+            "COALESCE(sp.store_name, up.nickname) as seller_name, " +
+            "COALESCE(sp.store_avatar, up.avatar) as seller_avatar " +
             "FROM favorites f " +
             "LEFT JOIN products p ON f.product_id = p.id " +
+            "LEFT JOIN seller_profiles sp ON p.seller_id = sp.user_id " +
+            "LEFT JOIN user_profiles up ON p.seller_id = up.user_id " +
             "WHERE f.user_id = #{userId} " +
             "ORDER BY f.created_at DESC")
     List<FavoriteVO> findAllFavoritesWithProduct(Long userId);

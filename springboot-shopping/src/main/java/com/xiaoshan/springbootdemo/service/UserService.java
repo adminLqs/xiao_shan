@@ -1,16 +1,21 @@
 package com.xiaoshan.springbootdemo.service;
 
+import com.xiaoshan.springbootdemo.entity.Role;
 import com.xiaoshan.springbootdemo.entity.User;
 import com.xiaoshan.springbootdemo.entity.UserProfile;
+import com.xiaoshan.springbootdemo.entity.UserRole;
 import com.xiaoshan.springbootdemo.entity.dto.LoginDTO;
 import com.xiaoshan.springbootdemo.entity.dto.RegisterDTO;
 import com.xiaoshan.springbootdemo.entity.dto.UserProfileDTO;
 import com.xiaoshan.springbootdemo.mapper.ProductMapper;
+import com.xiaoshan.springbootdemo.mapper.RoleMapper;
 import com.xiaoshan.springbootdemo.mapper.SellerProfileMapper;
 import com.xiaoshan.springbootdemo.mapper.UserMapper;
 import com.xiaoshan.springbootdemo.mapper.UserProfileMapper;
+import com.xiaoshan.springbootdemo.mapper.UserRoleMapper;
 import com.xiaoshan.springbootdemo.util.JwtUtil;
 import com.xiaoshan.springbootdemo.util.SnowflakeIdGenerator;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,8 +36,6 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
-import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -47,6 +50,8 @@ public class UserService {
     private final UserProfileMapper userProfileMapper;
     private final SellerProfileMapper sellerProfileMapper;
     private final ProductMapper productMapper;
+    private final RoleMapper roleMapper;
+    private final UserRoleMapper userRoleMapper;
     private final JwtUtil jwtUtil;
     private final SnowflakeIdGenerator snowflakeIdGenerator;
     private final StringRedisTemplate stringRedisTemplate;
@@ -56,7 +61,6 @@ public class UserService {
     @Value("${app.file.upload-dir:uploads}")
     private String uploadDir;
 
-    // 登录逻辑
     public User loginUser(LoginDTO loginDTO, HttpServletResponse response){
         User user = userMapper.findByAccount(loginDTO.getAccount())
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
@@ -69,27 +73,24 @@ public class UserService {
             throw new RuntimeException("密码错误！");
         }
 
+        user.setRoles(getUserRoles(user.getId()));
+
         String userId = user.getId().toString();
         String jwtUserKey = "jwt:user:" + userId;
 
-        // 检查是否有旧 token（在生成新 token 之前）
         String oldToken = stringRedisTemplate.opsForValue().get(jwtUserKey);
 
-        // 如果有旧 token，说明其他设备已登录，踢下线
         if (oldToken != null && !oldToken.isEmpty()) {
-            // 旧 token 加入黑名单
             Long remainTime = jwtUtil.getRemainTime(oldToken);
             if (remainTime > 0) {
                 stringRedisTemplate.opsForValue().set("jwt:blacklist:" + oldToken, "1",
                         remainTime, TimeUnit.MILLISECONDS);
             }
 
-            // 通过 WebSocket 通知旧设备被踢下线
             webSocketService.kickOut(user.getId(), "您的账号在其他设备登录，请重新登录");
             log.info("用户 {} 在新设备登录，已踢出旧设备", userId);
         }
 
-        // 生成新 token 并存入 Redis
         String newToken = jwtUtil.generateToken(user);
         stringRedisTemplate.opsForValue().set(jwtUserKey, newToken);
 
@@ -131,15 +132,19 @@ public class UserService {
 
         // 创建用户资料
         UserProfile profile = new UserProfile();
-        profile.setId(snowflakeIdGenerator.nextId()); // 生成雪花ID
+        profile.setId(snowflakeIdGenerator.nextId());
         profile.setUserId(user.getId());
         profile.setNickname(registerDTO.getAccount());
         profile.setGender(UserProfile.Gender.UNKNOWN);
-
-        // 保存UserProfile对象
         userProfileMapper.insert(profile);
 
-        return user; // 返回用户对象
+        // 分配 ROLE_USER 角色 (role_id=1)
+        UserRole userRole = new UserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRoleId(1L);
+        userRoleMapper.insert(userRole);
+
+        return user;
     }
 
     /**
@@ -150,33 +155,22 @@ public class UserService {
      * @param token JWT认证令牌
      */
     public void setAuthCookie(HttpServletResponse response, String token) {
-        // 获取当前时间
-        ZonedDateTime now = ZonedDateTime.now();
-        // 计算Cookie有效期（1个月后的时间戳）
-        long seconds = now.until(now.plusMonths(1), ChronoUnit.SECONDS);
-
-        // 构建安全Cookie
-        ResponseCookie cookie = ResponseCookie.from("AUTH_TOKEN", token)
-                .httpOnly(true)      // 禁止JavaScript访问，防止XSS攻击
-              //  .secure(true)        // 仅通过HTTPS传输 开发环境false
-                .sameSite("Lax")     // 防止CSRF攻击，允许同站点请求携带Cookie
-                .path("/")           // Cookie生效路径，整个应用可用
-                .maxAge(seconds)     // Cookie有效期
-                .build();
-
-        // 将Cookie添加到响应头
-        response.addHeader("Set-Cookie", cookie.toString());
+        Cookie cookie = new Cookie("AUTH_TOKEN", token);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
+        cookie.setPath("/");
+        cookie.setMaxAge(30 * 24 * 60 * 60);
+        response.addCookie(cookie);
     }
 
-    // 清除Cookie信息
     public void clearAuthCookie(HttpServletResponse response, Long userId) {
-        ResponseCookie cookie = ResponseCookie.from("AUTH_TOKEN", "")
-                .path("/")
-                .maxAge(0)
-                .build();
-        response.setHeader("Set-Cookie", cookie.toString());
+        Cookie cookie = new Cookie("AUTH_TOKEN", "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
 
-        // 清除Redis中的会话
         if (userId != null) {
             stringRedisTemplate.delete("ws:user:" + userId);
         }
@@ -491,22 +485,93 @@ public class UserService {
      * @return 用户账号信息（包含 id, account, role, status, created_at, avatar, nickname）
      */
     public java.util.Map<String, Object> getAccountProfile(Long userId) {
-        return userMapper.getAccountProfile(userId);
+        java.util.Map<String, Object> profile = userMapper.getAccountProfile(userId);
+        if (profile != null) {
+            List<Role> userRoles = getUserRoles(userId);
+            java.util.List<String> roleNames = new java.util.ArrayList<>();
+            for (Role role : userRoles) {
+                roleNames.add(role.getName());
+            }
+            profile.put("roles", roleNames);
+            Object avatar = profile.get("avatar");
+            if (avatar != null && avatar.toString().contains("default-admin-avatar")) {
+                profile.put("avatar", "");
+            }
+        }
+        return profile;
     }
 
     // 获取用户个人资料
     public UserProfile getUserProfile(Long userId) {
-        return userProfileMapper.findByUserId(userId)
+        UserProfile profile = userProfileMapper.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("用户资料不存在"));
+        if (profile.getAvatar() != null && profile.getAvatar().contains("default-admin-avatar")) {
+            profile.setAvatar("");
+        }
+        return profile;
     }
 
-    // 判断当前用户是否为商家
     public boolean isSeller(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
         return authentication.getAuthorities().stream()
                 .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_SELLER"));
+    }
+
+    public boolean hasRole(Long userId, String roleName) {
+        return userRoleMapper.findByUserIdAndRoleName(userId, roleName) != null;
+    }
+
+    public List<Role> getUserRoles(Long userId) {
+        List<Role> roles = new ArrayList<>();
+        List<UserRole> userRoles = userRoleMapper.findByUserId(userId);
+        for (UserRole ur : userRoles) {
+            Role role = roleMapper.findById(ur.getRoleId());
+            if (role != null) {
+                roles.add(role);
+            }
+        }
+        return roles;
+    }
+
+    public User getUserWithRoles(Long userId) {
+        User user = userMapper.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        user.setRoles(getUserRoles(userId));
+        return user;
+    }
+
+    @Transactional
+    public void addRoleToUser(Long userId, String roleName) {
+        if (hasRole(userId, roleName)) {
+            throw new RuntimeException("用户已拥有该角色");
+        }
+        Role role = roleMapper.findByName(roleName);
+        if (role == null) {
+            throw new RuntimeException("角色不存在");
+        }
+        UserRole userRole = new UserRole();
+        userRole.setUserId(userId);
+        userRole.setRoleId(role.getId());
+        userRoleMapper.insert(userRole);
+    }
+
+    @Transactional
+    public void removeRoleFromUser(Long userId, String roleName) {
+        UserRole userRole = userRoleMapper.findByUserIdAndRoleName(userId, roleName);
+        if (userRole == null) {
+            throw new RuntimeException("用户不拥有该角色");
+        }
+        userRoleMapper.deleteByUserIdAndRoleId(userId, userRole.getRoleId());
+    }
+
+    @Transactional
+    public void switchActiveRole(Long userId, String newRole) {
+        if (!hasRole(userId, newRole)) {
+            throw new RuntimeException("用户不拥有该角色");
+        }
+        userMapper.updateRole(userId, newRole);
     }
 
 

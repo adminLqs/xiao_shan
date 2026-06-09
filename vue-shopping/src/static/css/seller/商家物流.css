@@ -1,108 +1,206 @@
-/* ========== 商家物流页 - 简洁版样式 ========== */
+/* ========== 商家物流页 - 与用户端一致 ========== */
 
 .logistics-container {
   min-height: 100vh;
   background: #f5f7fa;
   padding: 0;
+  padding-top: 60px;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
   position: relative;
 }
 
-/* ========== 页面头部 ========== */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
+/* ========== 物流内容区域 ========== */
+.logistics-content {
+  padding: 0;
   position: relative;
-  z-index: 5;
+  z-index: 1;
 }
 
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+/* ========== 骨架屏样式 ========== */
+.skeleton-card {
   background: white;
-  border: 1px solid #e8ecf0;
-  border-radius: 30px;
-  color: #4a6491;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-btn:active {
-  transform: scale(0.95);
-  background: #f5f7fa;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-}
-
-.page-title i {
-  color: #4a6491;
-}
-
-.header-placeholder {
-  width: 70px;
-  visibility: hidden;
-}
-
-/* ========== 订单号行 ========== */
-.order-number-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: white;
+  padding: 16px;
   margin: 0 0 8px 0;
   border-radius: 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
-.order-label {
-  font-size: 13px;
+.skeleton-line {
+  height: 16px;
+  background: linear-gradient(90deg, #f0f2f5 25%, #e8ecf0 50%, #f0f2f5 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-line.short {
+  width: 60%;
+}
+
+.skeleton-line.long {
+  width: 100%;
+}
+
+.skeleton-company {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(90deg, #f0f2f5 25%, #e8ecf0 50%, #f0f2f5 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 50%;
+}
+
+.skeleton-company-info {
+  flex: 1;
+}
+
+.skeleton-timeline-item {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.skeleton-timeline-dot {
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(90deg, #f0f2f5 25%, #e8ecf0 50%, #f0f2f5 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 50%;
+}
+
+.skeleton-timeline-content {
+  flex: 1;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 0;
+  margin: 0;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.empty-state i {
+  font-size: 64px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 4px 0;
+}
+
+.empty-state .tips {
+  font-size: 12px;
   color: #94a3b8;
 }
 
-.order-value {
-  font-size: 13px;
+/* ========== 页面头部 ========== */
+.page-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  border-bottom: 1px solid #e8ecf0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.page-nav-back {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #4a6491;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.page-nav-back:active {
+  background: #e8ecf0;
+  transform: scale(0.95);
+}
+
+.page-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 600;
   color: #1e293b;
-  font-weight: 500;
+}
+
+
+
+.page-nav-right {
+  width: 36px;
+}
+
+/* ========== 商品列表滚动容器 ========== */
+.product-list-wrapper {
+  max-height: 200px;
+  overflow-y: auto;
+  background: white;
+  margin: 0 0 8px 0;
 }
 
 /* ========== 商品信息卡片 ========== */
 .product-info-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 12px 16px;
   background: white;
   border-radius: 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  margin: 0 0 8px 0;
+  margin: 0;
 }
 .product-info-card .product-image {
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   border-radius: 8px;
   object-fit: cover;
   flex-shrink: 0;
+  align-self: center;
 }
 .product-detail {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  align-self: flex-start;
 }
 .product-detail .product-name {
   font-size: 14px;
@@ -115,132 +213,201 @@
 }
 .tags-group {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
 }
 .tag-spec {
   font-size: 12px;
-  color: #64748b;
-  background: #f0f2f5;
-  padding: 2px 8px;
-  border-radius: 12px;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
-  width: fit-content;
+  color: #94a3b8;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 .tag-quantity {
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8;
   font-weight: 500;
   background: transparent;
-  padding: 4px 6px;
+  padding: 0;
   white-space: nowrap;
 }
 
-/* ========== 物流卡片 ========== */
-.logistics-card {
-  background: white;
-  border-radius: 0;
-  padding: 24px;
-  margin: 0 0 8px 0;
-  border: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  position: relative;
-  z-index: 5;
-}
-
-.logistics-header {
+/* ========== 收货地址卡片 ========== */
+.address-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #f0f2f5;
-  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: white;
+  margin: 0 0 8px 0;
 }
 
-.logistics-header i {
-  font-size: 28px;
-  color: #4a6491;
+.address-card.empty {
+  opacity: 0.7;
 }
 
-.logistics-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-/* 物流公司信息 */
-.logistics-info {
-  background: #fafbfc;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 24px;
-  border: 1px solid #f0f2f5;
-}
-
-.info-row {
+.address-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fef3c7;
   display: flex;
   align-items: center;
-  padding: 8px 0;
-  font-size: 14px;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.info-label {
-  width: 80px;
-  color: #64748b;
-  font-weight: 500;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.info-value {
-  flex: 1;
-  color: #1e293b;
-  font-weight: 500;
-  word-break: break-all;
+.address-icon i {
+  color: #d97706;
+  font-size: 16px;
 }
 
-/* ========== 物流时间线 ========== */
+.address-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.address-detail {
+  font-size: 14px;
+  color: #1e293b;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.phone-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.phone-row .phone {
+  color: #64748b;
+}
+
+.phone-row .eye-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phone-row .eye-btn:active {
+  opacity: 0.7;
+}
+
+.phone-row .privacy-tip {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+/* ========== 物流公司卡片 ========== */
+.logistics-company-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: white;
+  border-radius: 0;
+  margin: 0 0 8px 0;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.company-logo {
+  width: 48px;
+  height: 48px;
+  background: #f5f7fa;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.company-logo i {
+  font-size: 24px;
+  color: #4a6491;
+}
+
+.company-info {
+  flex: 1;
+}
+
+.company-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.tracking-number {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.copy-btn {
+  width: 36px;
+  height: 36px;
+  background: #f5f7fa;
+  border: none;
+  border-radius: 50%;
+  color: #4a6491;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.copy-btn:active {
+  background: #e8ecf0;
+  transform: scale(0.92);
+}
+
+/* ========== 物流轨迹卡片 ========== */
+.logistics-card {
+  background: white;
+  border-radius: 0;
+  padding: 16px;
+  margin: 0 0 8px 0;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 物流时间线 */
 .logistics-timeline {
   position: relative;
-  padding-left: 20px;
-}
-
-.logistics-timeline::before {
-  content: '';
-  position: absolute;
-  left: 8px;
-  top: 20px;
-  bottom: 20px;
-  width: 2px;
-  background: #e2e8f0;
-  border-radius: 2px;
 }
 
 .timeline-item {
-  position: relative;
-  padding-left: 28px;
-  margin-bottom: 24px;
-  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .timeline-item:last-child {
   margin-bottom: 0;
 }
 
+.timeline-line {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 28px;
+  flex-shrink: 0;
+}
+
 .timeline-dot {
-  position: absolute;
-  left: 0;
-  top: 4px;
   width: 12px;
   height: 12px;
-  background: #cbd5e1;
   border-radius: 50%;
+  background: #cbd5e1;
   transition: all 0.2s;
 }
 
@@ -251,152 +418,144 @@
   box-shadow: 0 0 0 2px rgba(74, 100, 145, 0.2);
 }
 
+.timeline-line::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: calc(100% + 20px);
+  background: #e2e8f0;
+}
+
+.timeline-item:last-child .timeline-line::after {
+  display: none;
+}
+
 .timeline-content {
-  background: #fafbfc;
-  border-radius: 16px;
-  padding: 12px 16px;
-  border: 1px solid #f0f2f5;
+  flex: 1;
+  padding-bottom: 8px;
+}
+
+.timeline-status {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.timeline-item.is-first .timeline-status {
+  color: #4a6491;
+  font-weight: 600;
 }
 
 .timeline-time {
   font-size: 12px;
   color: #94a3b8;
-  margin-bottom: 6px;
-}
-
-.timeline-status {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
   margin-bottom: 4px;
 }
 
 .timeline-location {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11px;
   color: #64748b;
-  background: white;
-  padding: 4px 12px;
+  background: #f5f7fa;
+  padding: 4px 10px;
   border-radius: 16px;
-  margin-top: 8px;
-  border: 1px solid #e8ecf0;
+  margin-top: 4px;
 }
 
+.timeline-location i {
+  font-size: 10px;
+  color: #4a6491;
+}
+
+/* 无物流信息 */
 .no-trace {
   text-align: center;
   padding: 40px 20px;
-  background: #fafbfc;
-  border-radius: 16px;
+  color: #94a3b8;
 }
 
 .no-trace i {
   font-size: 48px;
-  color: #cbd5e1;
   margin-bottom: 12px;
+  opacity: 0.5;
+  color: #4a6491;
 }
 
 .no-trace p {
-  color: #64748b;
+  margin: 4px 0;
   font-size: 14px;
-  margin-bottom: 4px;
 }
 
 .no-trace .tips {
-  font-size: 13px;
-  color: #94a3b8;
-}
-
-/* ========== 未发货卡片 ========== */
-.not-shipped-card {
-  background: white;
-  border-radius: 0;
-  padding: 48px;
-  text-align: center;
-  margin: 0 0 8px 0;
-  border: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  position: relative;
-  z-index: 5;
-}
-
-.not-shipped-card i {
-  font-size: 56px;
-  color: #4a6491;
-  opacity: 0.4;
-  margin-bottom: 16px;
-}
-
-.not-shipped-card p {
-  font-size: 16px;
-  color: #64748b;
-  margin-bottom: 8px;
-}
-
-.not-shipped-card .tips {
-  font-size: 13px;
-  color: #94a3b8;
+  font-size: 12px;
+  color: #cbd5e1;
 }
 
 /* ========== 操作按钮组 ========== */
-.action-buttons {
+.order-footer {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
-  padding: 8px 12px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fafbfc;
+  border-top: 1px solid #f0f2f5;
+  z-index: 100;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+.order-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: nowrap;
   justify-content: flex-end;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
-  z-index: 100;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
 }
 
-.action-buttons button {
-  padding: 6px 14px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 500;
-  border: none;
-  cursor: pointer;
-  flex: none;
+.order-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.order-actions button {
+  white-space: nowrap;
   flex-shrink: 0;
-}
-
-.btn-outline, .btn-primary, .btn-success {
-  padding: 6px 14px;
-  border-radius: 4px;
+  flex: none;
+  padding: 6px 16px;
   font-size: 13px;
-  font-weight: 500;
+  border-radius: 4px;
   cursor: pointer;
-  border: none;
-}
-
-.bottom-space {
-  height: 50px;
-}
-
-.btn-outline {
-  background: white;
-  border: 1px solid #4a6491;
-  color: #4a6491;
-}
-
-.btn-outline:active {
-  transform: scale(0.97);
-  background: #f5f7fa;
+  text-align: center;
+  transition: all 0.2s;
 }
 
 .btn-primary {
+  padding: 8px 18px;
   background: #4a6491;
   color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .btn-primary:active {
-  transform: scale(0.97);
+  transform: scale(0.95);
   background: #3a5479;
 }
 
@@ -406,68 +565,68 @@
 }
 
 .btn-success {
+  padding: 8px 18px;
   background: #10b981;
   color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .btn-success:active {
-  transform: scale(0.97);
+  transform: scale(0.95);
   background: #059669;
 }
 
-/* ========== 响应式 ========== */
-@media (max-width: 768px) {
-  .back-btn span {
-    display: none;
-  }
-
-  .back-btn {
-    justify-content: center;
-  }
-
-  .header-placeholder {
-    width: 38px;
-  }
-
-  .info-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .info-label {
-    width: auto;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-  }
+.btn-contact {
+  padding: 6px 16px;
+  background: white;
+  border: 1px solid #d0d5dc;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #4a6491;
 }
 
-/* 横屏模式 */
-@media (max-width: 896px) and (orientation: landscape) {
-  .back-btn span {
-    display: inline;
-  }
+.btn-contact:active {
+  background: #f5f7fa;
+  transform: scale(0.95);
+}
 
-  .back-btn {
-    width: auto;
-  }
+.order-actions .btn-outline {
+  padding: 6px 16px;
+  background: white;
+  border: 1px solid #d0d5dc;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
 
-  .action-buttons {
-    flex-direction: row;
-  }
+.order-actions .btn-outline:active {
+  background: #f5f7fa;
+  transform: scale(0.95);
 }
 
 /* 安全区域适配 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .logistics-container {
-    padding-bottom: calc(60px + env(safe-area-inset-bottom));
-  }
-}
-
-@supports (padding-top: env(safe-area-inset-top)) {
-  .logistics-container {
-    padding-top: calc(20px + env(safe-area-inset-top));
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
   }
 }
 
@@ -488,4 +647,97 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* ========== 移动端响应式布局 ========== */
+@media (max-width: 768px) {
+  /* 物流信息 */
+  .logistics-info {
+    grid-template-columns: 1fr;
+  }
+
+  /* 商品信息卡片 */
+  .product-info-card {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .product-info-card .product-image {
+    width: 56px;
+    height: 56px;
+  }
+
+  .product-detail .product-name {
+    font-size: 13px;
+  }
+
+  /* 收货地址卡片 */
+  .address-card {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .address-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .address-icon i {
+    font-size: 14px;
+  }
+
+  .address-detail {
+    font-size: 13px;
+  }
+
+  /* 物流公司卡片 */
+  .logistics-company-card {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .company-logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .company-logo i {
+    font-size: 20px;
+  }
+
+  .company-name {
+    font-size: 14px;
+  }
+
+  .tracking-number {
+    font-size: 11px;
+  }
+
+  /* 物流轨迹卡片 */
+  .logistics-card {
+    padding: 12px;
+  }
+
+  .timeline-content {
+    padding: 10px 14px;
+  }
+
+  .timeline-status {
+    font-size: 13px;
+  }
+
+  .timeline-time {
+    font-size: 11px;
+  }
+
+  /* 底部操作栏 */
+  .order-footer {
+    padding: 10px 12px;
+  }
+
+  .order-actions button {
+    min-width: 70px;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
 }

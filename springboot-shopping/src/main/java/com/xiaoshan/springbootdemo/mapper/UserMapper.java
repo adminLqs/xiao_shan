@@ -22,8 +22,9 @@ public interface UserMapper {
      * @param user 用户对象
      * @return 影响的行数（1表示插入成功，0表示失败）
      */
-    @Insert("INSERT INTO users (id, account, password, status, created_at, role) " +
-            "VALUES (#{id}, #{account}, #{password}, #{status}, #{createdAt}, #{role})")
+    @Insert("INSERT INTO users (account, password, status, created_at, role) " +
+            "VALUES (#{account}, #{password}, #{status}, #{createdAt}, #{role})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(User user);
 
     /**
@@ -34,6 +35,16 @@ public interface UserMapper {
      */
     @Select("SELECT * FROM users WHERE id = #{id}")
     Optional<User> findById(Long id);
+
+    /**
+     * 根据主键ID查询用户（包含角色列表）
+     */
+    @Select("SELECT u.*, r.id as role_id, r.name as role_name, r.description as role_description " +
+            "FROM users u " +
+            "LEFT JOIN user_roles ur ON u.id = ur.user_id " +
+            "LEFT JOIN roles r ON ur.role_id = r.id " +
+            "WHERE u.id = #{id}")
+    java.util.List<java.util.Map<String, Object>> findByIdWithRoles(Long id);
 
     /**
      * 根据账号查询用户
@@ -242,4 +253,52 @@ public interface UserMapper {
             "LEFT JOIN seller_profiles sp ON u.id = sp.user_id " +
             "WHERE u.id = #{userId}")
     java.util.Map<String, Object> getAccountProfile(Long userId);
+
+    @Select("SELECT u.id, u.account, u.role, u.status, u.created_at, " +
+            "up.nickname, up.avatar " +
+            "FROM users u " +
+            "LEFT JOIN user_profiles up ON u.id = up.user_id " +
+            "WHERE u.role = 'ROLE_ADMIN' ORDER BY u.created_at DESC")
+    java.util.List<java.util.Map<String, Object>> findAdmins();
+
+    /**
+     * 分页查询普通用户列表（ROLE_USER）
+     */
+    @Select("<script>" +
+            "SELECT u.id, u.account, u.role, u.status, u.created_at, " +
+            "up.nickname, up.avatar " +
+            "FROM users u " +
+            "LEFT JOIN user_profiles up ON u.id = up.user_id " +
+            "WHERE u.role = 'ROLE_USER' " +
+            "<if test='status != null'>" +
+            "AND u.status = #{status} " +
+            "</if>" +
+            "<if test='keyword != null and keyword != \"\"'>" +
+            "AND (u.account LIKE CONCAT('%', #{keyword}, '%') OR up.nickname LIKE CONCAT('%', #{keyword}, '%')) " +
+            "</if>" +
+            "ORDER BY u.created_at DESC " +
+            "LIMIT #{offset}, #{limit}" +
+            "</script>")
+    java.util.List<java.util.Map<String, Object>> findUsersPage(
+            @Param("offset") int offset,
+            @Param("limit") int limit,
+            @Param("keyword") String keyword,
+            @Param("status") Integer status);
+
+    /**
+     * 统计普通用户数量（ROLE_USER）
+     */
+    @Select("<script>" +
+            "SELECT COUNT(*) " +
+            "FROM users u " +
+            "LEFT JOIN user_profiles up ON u.id = up.user_id " +
+            "WHERE u.role = 'ROLE_USER' " +
+            "<if test='status != null'>" +
+            "AND u.status = #{status} " +
+            "</if>" +
+            "<if test='keyword != null and keyword != \"\"'>" +
+            "AND (u.account LIKE CONCAT('%', #{keyword}, '%') OR up.nickname LIKE CONCAT('%', #{keyword}, '%')) " +
+            "</if>" +
+            "</script>")
+    long countUsers(@Param("keyword") String keyword, @Param("status") Integer status);
 }

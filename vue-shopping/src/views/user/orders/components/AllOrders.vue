@@ -22,17 +22,13 @@
       <div v-for="orderWrapper in orders" :key="orderWrapper.order.id" class="order-card">
         <!-- 订单头部 -->
         <div class="order-header">
-          <div class="order-header-top">
-            <span class="order-number">订单号：{{ orderWrapper.order.orderNumber }}</span>
-            <div class="order-status-group">
-              <span v-if="!getOrderRefundStatus(orderWrapper)" class="order-status" :class="getStatusClass(orderWrapper.order.status)">
-                {{ getStatusText(orderWrapper.order.status) }}
-              </span>
-              <span v-if="getOrderRefundStatus(orderWrapper)" class="order-status refund-status" :class="getOrderRefundStatusClass(orderWrapper)">
-                {{ getOrderRefundStatus(orderWrapper) }}
-              </span>
-            </div>
+          <div class="order-header-left" @click.stop="goToShop(orderWrapper)">
+            <img :src="getSellerAvatar(orderWrapper)" class="seller-avatar" />
+            <span class="seller-name">{{ getSellerName(orderWrapper) }}</span>
           </div>
+          <span class="order-status" :class="getStatusClass(orderWrapper.order.status)">
+            {{ getStatusText(orderWrapper.order.status) }}
+          </span>
         </div>
 
         <!-- 订单商品列表 -->
@@ -41,7 +37,7 @@
             v-for="item in orderWrapper.orderItems"
             :key="item.id"
             class="order-item"
-            @click="viewProduct(item.productId)"
+            @click="viewOrderDetail(orderWrapper.order.id)"
           >
             <img :src="item.productImage" class="item-image">
             <div class="item-info">
@@ -56,128 +52,98 @@
         </div>
 
         <!-- 订单底部 -->
-        <div class="order-footer">
+        <div class="order-footer" @click.stop>
           <div class="order-actions">
-            <!-- 退款状态（包括部分退款）- 优先处理 -->
-            <template v-if="getOrderRefundStatus(orderWrapper)">
-              <button 
-                v-if="orderWrapper.order.trackingNumber" 
-                class="btn-outline" 
-                @click="viewLogistics(orderWrapper.order.id)" 
-              >查看物流</button>
+            <!-- 待付款状态：查看详情 + 取消订单 + 去支付 -->
+            <template v-if="orderWrapper.order.status === 'PENDING'">
               <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
-            </template>
-
-            <!-- 待付款状态：去支付 + 取消订单 + 查看详情 -->
-            <template v-else-if="orderWrapper.order.status === 'PENDING'">
-              <button class="btn-pay" @click="goToPay(orderWrapper.order.id)">去支付</button>
               <button class="btn-outline btn-danger" @click="cancelOrder(orderWrapper.order.id)">取消订单</button>
-              <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
+              <button class="btn-pay" @click="goToPay(orderWrapper.order.id)">去支付</button>
             </template>
 
-            <!-- 已付款状态：申请退款 + 查看详情 -->
-            <template v-else-if="orderWrapper.order.status === 'PAID'">
+            <!-- 已付款/待发货状态：查看详情 + 申请退款 -->
+            <template v-if="orderWrapper.order.status === 'PAID' || orderWrapper.order.status === 'PROCESSING'">
               <template v-if="orderWrapper.orderItems.length === 1">
-                <button
-                  v-if="orderWrapper.orderItems[0]!.refundStatus && orderWrapper.orderItems[0]!.refundStatus !== 'COMPLETED'"
-                  class="btn-outline"
-                  @click="goToRefund(orderWrapper)"
-                >{{ getRefundStatusText(orderWrapper.orderItems[0]!.refundStatus) }}</button>
+                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
+                <template v-if="orderWrapper.orderItems[0]!.refundStatus && orderWrapper.orderItems[0]!.refundStatus !== 'SUCCESS'">
+                  <button
+                    v-if="orderWrapper.orderItems[0]!.refundStatus === 'FAILED'"
+                    class="btn-outline"
+                    @click="goToRefund(orderWrapper)"
+                  >再次申请</button>
+                  <button
+                    v-else
+                    class="btn-outline"
+                    @click="goToRefund(orderWrapper)"
+                  >查看售后</button>
+                </template>
                 <button
                   v-else
                   :class="canRefund(orderWrapper.order) ? 'btn-outline' : 'btn-outline btn-expired'"
                   :disabled="!canRefund(orderWrapper.order)"
                   @click="canRefund(orderWrapper.order) && goToRefund(orderWrapper)"
                 >{{ canRefund(orderWrapper.order) ? '申请退款' : '已过权益期' }}</button>
-                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
               </template>
               <template v-else>
                 <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
               </template>
             </template>
 
-            <!-- 处理中状态：查看详情 -->
-            <template v-else-if="orderWrapper.order.status === 'PROCESSING'">
-              <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
-            </template>
-
-            <!-- 已发货状态：退货物流 + 确认收货 + 查看物流 + 查看详情 + 更多 -->
-            <template v-else-if="orderWrapper.order.status === 'SHIPPED'">
+            <!-- 已发货状态：查看详情 + 查看物流 + 确认收货 + 更多 -->
+            <template v-if="orderWrapper.order.status === 'SHIPPED'">
               <template v-if="orderWrapper.orderItems.length === 1">
-                <button
-                  v-if="orderWrapper.orderItems[0]!.refundStatus === 'RETURNING'"
-                  class="btn-outline"
-                  @click="viewReturnLogistics(orderWrapper.orderItems[0]!)"
-                >查看退货物流</button>
-                <button class="btn-success" @click="confirmReceive(orderWrapper.order.id)">确认收货</button>
+                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
                 <button
                   v-if="orderWrapper.order.trackingNumber"
                   class="btn-outline"
                   @click="viewLogistics(orderWrapper.order.id)"
                 >查看物流</button>
-                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
+                <button class="btn-success" @click="confirmReceive(orderWrapper.order.id)">确认收货</button>
                 <button class="btn-more" @click="toggleMoreActions(orderWrapper.order.id)">
-                  <i class="fas fa-ellipsis-h"></i>
+                    <i class="fas fa-ellipsis-h"></i>
                 </button>
                 <div class="more-actions-dropdown" v-if="showMoreActions[orderWrapper.order.id]">
-                  <button class="dropdown-item" @click="handleAfterSaleAction(orderWrapper)">
-                    {{ orderWrapper.orderItems[0]!.refundStatus && orderWrapper.orderItems[0]!.refundStatus !== 'COMPLETED'
-                      ? getRefundStatusText(orderWrapper.orderItems[0]!.refundStatus)
-                      : (canAfterSale(orderWrapper.order) ? '申请售后' : '已过权益期') }}
-                  </button>
-                </div>
+                    <template v-if="orderWrapper.orderItems[0]!.refundStatus && orderWrapper.orderItems[0]!.refundStatus !== 'SUCCESS'">
+                      <button
+                        v-if="orderWrapper.orderItems[0]!.refundStatus === 'FAILED'"
+                        class="dropdown-item"
+                        @click="handleAfterSaleAction(orderWrapper)"
+                      >再次申请</button>
+                      <button
+                        v-else
+                        class="dropdown-item"
+                        @click="handleAfterSaleAction(orderWrapper)"
+                      >{{ getRefundStatusText(orderWrapper.orderItems[0]!.refundStatus) }}</button>
+                    </template>
+                    <button
+                      v-else
+                      class="dropdown-item"
+                      :class="{ disabled: !canAfterSale(orderWrapper.order) }"
+                      :disabled="!canAfterSale(orderWrapper.order)"
+                      @click="canAfterSale(orderWrapper.order) && handleAfterSaleAction(orderWrapper)"
+                    >{{ canAfterSale(orderWrapper.order) ? '申请售后' : '已过权益期' }}</button>
+                  </div>
               </template>
               <template v-else>
-                <button class="btn-success" @click="confirmReceive(orderWrapper.order.id)">确认收货</button>
+                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
                 <button
                   v-if="orderWrapper.order.trackingNumber"
                   class="btn-outline"
                   @click="viewLogistics(orderWrapper.order.id)"
                 >查看物流</button>
-                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
+                <button class="btn-success" @click="confirmReceive(orderWrapper.order.id)">确认收货</button>
               </template>
             </template>
 
-            <!-- 已送达状态：退货物流 + 确认收货 + 查看物流 + 查看详情 + 更多 -->
-            <template v-else-if="orderWrapper.order.status === 'DELIVERED'">
+            <!-- 已完成状态：查看详情 + 查看物流 + 评价 + 更多 -->
+            <template v-if="orderWrapper.order.status === 'COMPLETED'">
               <template v-if="orderWrapper.orderItems.length === 1">
-                <button
-                  v-if="orderWrapper.orderItems[0]!.refundStatus === 'RETURNING'"
-                  class="btn-outline"
-                  @click="viewReturnLogistics(orderWrapper.orderItems[0]!)"
-                >查看退货物流</button>
-                <button class="btn-success" @click="confirmReceive(orderWrapper.order.id)">确认收货</button>
+                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
                 <button
                   v-if="orderWrapper.order.trackingNumber"
                   class="btn-outline"
                   @click="viewLogistics(orderWrapper.order.id)"
                 >查看物流</button>
-                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
-                <button class="btn-more" @click="toggleMoreActions(orderWrapper.order.id)">
-                  <i class="fas fa-ellipsis-h"></i>
-                </button>
-                <div class="more-actions-dropdown" v-if="showMoreActions[orderWrapper.order.id]">
-                  <button class="dropdown-item" @click="handleAfterSaleAction(orderWrapper)">
-                    {{ orderWrapper.orderItems[0]!.refundStatus && orderWrapper.orderItems[0]!.refundStatus !== 'COMPLETED'
-                      ? getRefundStatusText(orderWrapper.orderItems[0]!.refundStatus)
-                      : (canAfterSale(orderWrapper.order) ? '申请售后' : '已过权益期') }}
-                  </button>
-                </div>
-              </template>
-              <template v-else>
-                <button class="btn-success" @click="confirmReceive(orderWrapper.order.id)">确认收货</button>
-                <button
-                  v-if="orderWrapper.order.trackingNumber"
-                  class="btn-outline"
-                  @click="viewLogistics(orderWrapper.order.id)"
-                >查看物流</button>
-                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
-              </template>
-            </template>
-
-            <!-- 已完成状态：评价 + 查看物流 + 查看详情 + 更多 -->
-            <template v-else-if="orderWrapper.order.status === 'COMPLETED'">
-              <template v-if="orderWrapper.orderItems.length === 1">
                 <button
                   v-if="orderWrapper.orderItems[0]!.isReviewed"
                   class="btn-outline"
@@ -188,35 +154,43 @@
                   class="btn-outline"
                   @click="reviewOrder(orderWrapper.orderItems[0]!.id)"
                 >评价</button>
-                <button
-                  v-if="orderWrapper.order.trackingNumber"
-                  class="btn-outline"
-                  @click="viewLogistics(orderWrapper.order.id)"
-                >查看物流</button>
-                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
                 <button class="btn-more" @click="toggleMoreActions(orderWrapper.order.id)">
                   <i class="fas fa-ellipsis-h"></i>
                 </button>
                 <div class="more-actions-dropdown" v-if="showMoreActions[orderWrapper.order.id]">
-                  <button class="dropdown-item" @click="handleAfterSaleAction(orderWrapper)">
-                    {{ orderWrapper.orderItems[0]!.refundStatus && orderWrapper.orderItems[0]!.refundStatus !== 'COMPLETED'
-                      ? getRefundStatusText(orderWrapper.orderItems[0]!.refundStatus)
-                      : (canAfterSale(orderWrapper.order) ? '申请售后' : '已过权益期') }}
-                  </button>
-                </div>
+                    <template v-if="orderWrapper.orderItems[0]!.refundStatus && orderWrapper.orderItems[0]!.refundStatus !== 'SUCCESS'">
+                      <button
+                        v-if="orderWrapper.orderItems[0]!.refundStatus === 'FAILED'"
+                        class="dropdown-item"
+                        @click="handleAfterSaleAction(orderWrapper)"
+                      >再次申请</button>
+                      <button
+                        v-else
+                        class="dropdown-item"
+                        @click="handleAfterSaleAction(orderWrapper)"
+                      >{{ getRefundStatusText(orderWrapper.orderItems[0]!.refundStatus) }}</button>
+                    </template>
+                    <button
+                      v-else
+                      class="dropdown-item"
+                      :class="{ disabled: !canAfterSale(orderWrapper.order) }"
+                      :disabled="!canAfterSale(orderWrapper.order)"
+                      @click="canAfterSale(orderWrapper.order) && handleAfterSaleAction(orderWrapper)"
+                    >{{ canAfterSale(orderWrapper.order) ? '申请售后' : '已过权益期' }}</button>
+                  </div>
               </template>
               <template v-else>
+                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
                 <button
                   v-if="orderWrapper.order.trackingNumber"
                   class="btn-outline"
                   @click="viewLogistics(orderWrapper.order.id)"
                 >查看物流</button>
-                <button class="btn-outline" @click="viewOrderDetail(orderWrapper.order.id)">查看详情</button>
               </template>
             </template>
 
             <!-- 已取消状态 -->
-            <template v-else-if="orderWrapper.order.status === 'CANCELLED'">
+            <template v-if="orderWrapper.order.status === 'CANCELLED'">
               <button class="btn-outline btn-danger" @click="deleteOrder(orderWrapper.order.id)">删除订单</button>
             </template>
           </div>
@@ -234,21 +208,6 @@
         </div>
       </div>
     </div>
-
-    <!-- 支付确认弹窗 -->
-    <div class="pay-confirm-overlay" v-if="showPayConfirm" @click.self="showPayConfirm = false">
-      <div class="pay-confirm-dialog">
-        <i class="fas fa-check-circle pay-icon"></i>
-        <h3>请在支付页面完成付款</h3>
-        <p class="pay-tip">支付完成后请点击下方按钮</p>
-        <div class="pay-actions">
-          <button class="btn-pay-done" @click="checkPayStatus" :disabled="checkingPay">
-            {{ checkingPay ? '查询中...' : '已完成支付' }}
-          </button>
-          <button class="btn-pay-later" @click="handlePayLater">稍后支付</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -258,6 +217,7 @@ import { useRouter } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
 import { useAuthStore } from '@/stores/auth'
+import sellerDefaultAvatar from '@/static/images/seller-avatar.jpg'
 
 // 事件定义
 const emit = defineEmits(['update-tab-counts'])
@@ -286,10 +246,11 @@ interface OrderItem {
   reviewedAt: string
   createdAt: string
   refundStatus?: string
-  refundId?: number
+  sellerName?: string
+  sellerAvatar?: string
 }
 
-type OrderStatus = 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED'
+type OrderStatus = 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED'
 
 type PaymentMethod = 'ALIPAY' | 'WECHAT'
 
@@ -308,7 +269,6 @@ interface Order {
   logisticsCode?: string
   logisticsName?: string
   shippedAt?: string
-  deliveredAt?: string
   completedAt?: string
   createdAt: string
   updatedAt: string
@@ -326,23 +286,19 @@ interface OrderWithItems {
 const statusClassMap: Record<OrderStatus, string> = {
   PENDING: 'status-pending',
   PAID: 'status-paid',
-  PROCESSING: 'status-processing',
+  PROCESSING: 'status-paid',
   SHIPPED: 'status-shipped',
-  DELIVERED: 'status-delivered',
   COMPLETED: 'status-completed',
-  CANCELLED: 'status-cancelled',
-  REFUNDED: 'status-refunded'
+  CANCELLED: 'status-cancelled'
 }
 
 const statusTextMap: Record<OrderStatus, string> = {
   PENDING: '待付款',
-  PAID: '已付款',
-  PROCESSING: '处理中',
-  SHIPPED: '已发货',
-  DELIVERED: '已送达',
+  PAID: '待发货',
+  PROCESSING: '待发货',
+  SHIPPED: '待收货',
   COMPLETED: '已完成',
-  CANCELLED: '已取消',
-  REFUNDED: '已退款'
+  CANCELLED: '已取消'
 }
 
 // ==================== 响应式数据 ====================
@@ -353,9 +309,6 @@ const page = ref(1)
 const pageSize = ref(10)
 const hasMore = ref(true)
 const loadingMore = ref(false)
-const showPayConfirm = ref(false)
-const payingOrderId = ref<number | null>(null)
-const checkingPay = ref(false)
 const showMoreActions = ref<Record<number, boolean>>({})
 
 // ==================== 数据加载 ====================
@@ -455,9 +408,6 @@ const goToPay = async (orderId: number): Promise<void> => {
         payWindow.document.write(paymentHtml)
         payWindow.document.close()
       }
-
-      payingOrderId.value = orderId
-      showPayConfirm.value = true
     } else {
       Message.error(response.message || '支付失败')
     }
@@ -466,41 +416,6 @@ const goToPay = async (orderId: number): Promise<void> => {
   } finally {
     loading.value = false
   }
-}
-
-const checkPayStatus = async () => {
-  if (!payingOrderId.value || checkingPay.value) return
-
-  checkingPay.value = true
-
-  try {
-    const response = await authAPI.getOrderDetail(payingOrderId.value)
-
-    const order = response.data?.order || response.data?.orderDetail?.order || response.data
-    const status = order?.status
-
-    if (status && (status === 'PAID' || status === 'PROCESSING' || status === 'SHIPPED')) {
-      showPayConfirm.value = false
-      Message.success('支付成功')
-      page.value = 1
-      hasMore.value = true
-      await loadOrders()
-    } else if (status === 'PENDING') {
-      Message.warning('暂未收到支付通知，请确认是否已完成支付')
-    } else if (status) {
-      Message.warning(`订单状态：${status}`)
-    } else {
-      Message.error('查询订单失败：无法获取订单状态')
-    }
-  } catch (error: any) {
-    Message.error(error.message || '查询失败，请重试')
-  } finally {
-    checkingPay.value = false
-  }
-}
-
-const handlePayLater = () => {
-  showPayConfirm.value = false
 }
 
 const confirmReceive = async (orderId: number): Promise<void> => {
@@ -533,6 +448,13 @@ const reviewOrder = (orderItemId: number): void => {
     name: 'Review',
     params: { orderItemId }
   })
+}
+
+const goToShop = (orderWrapper: OrderWithItems): void => {
+  const sellerId = orderWrapper.orderItems[0]?.sellerId
+  if (sellerId) {
+    router.push({ name: 'Shop', params: { sellerId } })
+  }
 }
 
 const viewOrderDetail = (orderId: number): void => {
@@ -579,6 +501,22 @@ const canAfterSale = (order: Order): boolean => {
   return days <= 15
 }
 
+const checkRefundCount = async (orderItemId: number): Promise<boolean> => {
+  try {
+    const res = await authAPI.getSellerRefundsByOrderItem(orderItemId)
+    if (res.success && res.data) {
+      if (res.data.length >= 3) {
+        Message.warning('已超过申请上限（3次），无法再次申请')
+        return false
+      }
+    }
+    return true
+  } catch {
+    Message.error('检查退款记录失败')
+    return false
+  }
+}
+
 const goToRefund = async (orderWrapper: OrderWithItems): Promise<void> => {
   const orderItem = orderWrapper.orderItems[0]
   if (!orderItem) return
@@ -588,24 +526,28 @@ const goToRefund = async (orderWrapper: OrderWithItems): Promise<void> => {
       const response = await authAPI.getRefundByOrderItemId(orderItem.id)
       if (response.success && response.data) {
         router.push({
-          name: 'RefundChat',
-          params: { refundId: response.data.id }
+          name: 'RefundChatStep',
+          params: { refundId: String(response.data.id) }
         })
       } else {
+        const canApply = await checkRefundCount(orderItem.id)
+        if (!canApply) return
         router.push({
-          name: 'Refund',
+          name: 'RefundApply',
+          params: { orderItemId: String(orderItem.id) },
           query: {
-            orderItemId: orderItem.id,
             orderId: orderWrapper.order.id,
             type: 'REFUND'
           }
         })
       }
     } catch {
+      const canApply = await checkRefundCount(orderItem.id)
+      if (!canApply) return
       router.push({
-        name: 'Refund',
+        name: 'RefundApply',
+        params: { orderItemId: String(orderItem.id) },
         query: {
-          orderItemId: orderItem.id,
           orderId: orderWrapper.order.id,
           type: 'REFUND'
         }
@@ -614,10 +556,13 @@ const goToRefund = async (orderWrapper: OrderWithItems): Promise<void> => {
     return
   }
 
+  const canApply = await checkRefundCount(orderItem.id)
+  if (!canApply) return
+
   router.push({
-    name: 'Refund',
+    name: 'RefundApply',
+    params: { orderItemId: String(orderItem.id) },
     query: {
-      orderItemId: orderItem.id,
       orderId: orderWrapper.order.id,
       type: 'REFUND'
     }
@@ -632,25 +577,35 @@ const goToAfterSale = async (orderWrapper: OrderWithItems): Promise<void> => {
     try {
       const response = await authAPI.getRefundByOrderItemId(orderItem.id)
       if (response.success && response.data) {
-        router.push({
-          name: 'RefundChat',
-          params: { refundId: response.data.id }
-        })
+        const refund = response.data
+        // 退货退款 + 待退货 → 直接跳转到退货页（未提交退货物流时）
+        if (refund.refundType === 'AFTER_SALE' && refund.refundStatus === 'WAITING_RETURN' && !refund.returnStatus) {
+          router.push({ name: 'ReturnGoods', params: { refundId: String(refund.id), orderItemId: String(orderItem.id) } })
+        } else {
+          router.push({
+            name: 'RefundChatStep',
+            params: { refundId: String(refund.id) }
+          })
+        }
       } else {
+        const canApply = await checkRefundCount(orderItem.id)
+        if (!canApply) return
         router.push({
-          name: 'Refund',
+          name: 'RefundApply',
+          params: { orderItemId: String(orderItem.id) },
           query: {
-            orderItemId: orderItem.id,
             orderId: orderWrapper.order.id,
             type: 'AFTER_SALE'
           }
         })
       }
     } catch {
+      const canApply = await checkRefundCount(orderItem.id)
+      if (!canApply) return
       router.push({
-        name: 'Refund',
+        name: 'RefundApply',
+        params: { orderItemId: String(orderItem.id) },
         query: {
-          orderItemId: orderItem.id,
           orderId: orderWrapper.order.id,
           type: 'AFTER_SALE'
         }
@@ -659,25 +614,34 @@ const goToAfterSale = async (orderWrapper: OrderWithItems): Promise<void> => {
     return
   }
 
+  const canApply = await checkRefundCount(orderItem.id)
+  if (!canApply) return
+
   router.push({
-    name: 'Refund',
+    name: 'RefundApply',
+    params: { orderItemId: String(orderItem.id) },
     query: {
-      orderItemId: orderItem.id,
       orderId: orderWrapper.order.id,
       type: 'AFTER_SALE'
     }
   })
 }
 
-const viewReturnLogistics = (orderItem: OrderItem): void => {
-  if (!orderItem.refundId) return
-  router.push({
-    name: 'UserLogistics',
-    query: {
-      refundId: String(orderItem.refundId),
-      type: 'return'
+const viewReturnLogistics = async (orderItem: OrderItem): Promise<void> => {
+  try {
+    const response = await authAPI.getRefundByOrderItemId(orderItem.id)
+    if (response.success && response.data) {
+      router.push({
+        name: 'UserLogistics',
+        query: {
+          refundId: String(response.data.id),
+          type: 'return'
+        }
+      })
     }
-  })
+  } catch {
+    Message.error('获取退款记录失败')
+  }
 }
 
 const handleAfterSaleAction = (orderWrapper: OrderWithItems): void => {
@@ -700,63 +664,34 @@ const getStatusText = (status: OrderStatus): string => {
   return statusTextMap[status] || status
 }
 
-const getOrderRefundStatus = (orderWrapper: OrderWithItems): string | null => {
-  const orderItems = orderWrapper.orderItems || []
-  if (orderItems.length === 0) return null
-
-  const refundingCount = orderItems.filter(item =>
-    item.refundStatus === 'REFUNDING' || item.refundStatus === 'AFTER_SALE' ||
-    item.refundStatus === 'WAITING_RETURN' || item.refundStatus === 'RETURNING' ||
-    item.refundStatus === 'APPROVED'
-  ).length
-  const refundedCount = orderItems.filter(item => item.refundStatus === 'COMPLETED').length
-
-  if (refundingCount === orderItems.length) return '退款中'
-  if (refundedCount === orderItems.length) return '已退款'
-  if (refundingCount > 0 || refundedCount > 0) return '部分退款'
-  return null
+const getSellerName = (orderWrapper: OrderWithItems): string => {
+  return (orderWrapper as any).sellerName || orderWrapper.orderItems[0]?.sellerName || '商家'
 }
 
-const getOrderRefundStatusClass = (orderWrapper: OrderWithItems): string => {
-  const orderItems = orderWrapper.orderItems || []
-  if (orderItems.length === 0) return ''
-
-  const refundingCount = orderItems.filter(item =>
-    item.refundStatus === 'REFUNDING' || item.refundStatus === 'AFTER_SALE' ||
-    item.refundStatus === 'WAITING_RETURN' || item.refundStatus === 'RETURNING' ||
-    item.refundStatus === 'APPROVED'
-  ).length
-  const refundedCount = orderItems.filter(item => item.refundStatus === 'COMPLETED').length
-
-  if (refundingCount === orderItems.length) return 'status-refunding'
-  if (refundedCount === orderItems.length) return 'status-refunded'
-  return 'status-partial-refund'
+const getSellerAvatar = (orderWrapper: OrderWithItems): string => {
+  return (orderWrapper as any).sellerAvatar || orderWrapper.orderItems[0]?.sellerAvatar || sellerDefaultAvatar
 }
 
 const getRefundStatusText = (status: string, refundType?: string, returnStatus?: string): string => {
+  if (status === 'FAILED') return '已拒绝'
+  if (status === 'SUCCESS') return '已退款'
+
   if (refundType === 'AFTER_SALE' && status === 'PROCESSING') {
     return '售后处理中'
-  }
-  if (refundType === 'AFTER_SALE' && status === 'APPROVED') {
-    return '请退货'
   }
   if (returnStatus === 'RETURNING') {
     return '退货中'
   }
   if (returnStatus === 'RECEIVED') {
-    return '已收货，退款中'
+    return '已退款'
   }
 
   const statusMap: Record<string, string> = {
-    'REFUNDING': '退款中',
-    'AFTER_SALE': '售后处理中',
+    'PROCESSING': '处理中',
     'WAITING_RETURN': '待退货',
     'RETURNING': '退货中',
-    'RECEIVED': '已完成',
-    'APPROVED': '已同意',
-    'COMPLETED': '已完成',
-    'FAILED': '已拒绝',
-    'SUCCESS': '已完成'
+    'SUCCESS': '已退款',
+    'FAILED': '已拒绝'
   }
   return statusMap[status] || status
 }
@@ -806,11 +741,27 @@ onMounted(() => {
   if (!authStore.validateUserPermission()) return
   loadOrders()
   window.addEventListener('scroll', handleScroll)
+  window.addEventListener('payment-success', handlePaymentSuccess)
+  window.addEventListener('refund-update', handleRefundUpdate)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('payment-success', handlePaymentSuccess)
+  window.removeEventListener('refund-update', handleRefundUpdate)
 })
+
+const handlePaymentSuccess = () => {
+  page.value = 1
+  hasMore.value = true
+  loadOrders()
+}
+
+const handleRefundUpdate = () => {
+  page.value = 1
+  hasMore.value = true
+  loadOrders()
+}
 </script>
 
 <style scoped>

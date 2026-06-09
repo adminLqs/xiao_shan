@@ -21,8 +21,9 @@ class Message {
     return ElMessage({
       type: 'success',
       message,
-      duration: 2000,
-      showClose: true,
+      duration: 2500,
+      showClose: false,
+      customClass: 'business-message',
       ...options,
     })
   }
@@ -37,7 +38,8 @@ class Message {
       type: 'warning',
       message,
       duration: 3000,
-      showClose: true,
+      showClose: false,
+      customClass: 'business-message',
       ...options,
     })
   }
@@ -52,7 +54,8 @@ class Message {
       type: 'error',
       message,
       duration: 3000,
-      showClose: true,
+      showClose: false,
+      customClass: 'business-message',
       ...options,
     })
   }
@@ -66,8 +69,9 @@ class Message {
     return ElMessage({
       type: 'info',
       message,
-      duration: 2000,
-      showClose: true,
+      duration: 2500,
+      showClose: false,
+      customClass: 'business-message',
       ...options,
     })
   }
@@ -234,6 +238,96 @@ class Message {
   static closeAll() {
     ElMessage.closeAll()
     ElNotification.closeAll()
+  }
+
+  // ==================== WebSocket 消息通知 ====================
+
+  /**
+   * 发货通知（右上角弹窗 + HTML换行）
+   */
+  static websocketShip(orderNumber: string, trackingNumber: string) {
+    return ElNotification({
+      title: '🚚 发货通知',
+      message: `订单 <strong>${orderNumber}</strong> 已发货<br>物流单号: ${trackingNumber}`,
+      type: 'success',
+      dangerouslyUseHTMLString: true,
+      duration: 5000,
+    })
+  }
+
+  /**
+   * 新订单通知
+   */
+  static websocketNewOrder(orderNumber: string, amount: string) {
+    return ElNotification({
+      title: '🛒 新订单通知',
+      message: `订单号: <strong>${orderNumber}</strong><br>金额: ¥${amount}`,
+      type: 'warning',
+      dangerouslyUseHTMLString: true,
+      duration: 8000,
+    })
+  }
+
+  /**
+   * 退款申请通知
+   */
+  static websocketRefundApply(orderNumber: string, amount: string) {
+    return ElNotification({
+      title: '💰 退款申请',
+      message: `订单号: <strong>${orderNumber}</strong><br>退款金额: ¥${amount}`,
+      type: 'warning',
+      dangerouslyUseHTMLString: true,
+      duration: 8000,
+    })
+  }
+
+  /**
+   * 退款处理结果通知
+   */
+  static websocketRefundResult(content: string) {
+    return ElNotification({
+      title: '📋 退款通知',
+      message: content,
+      type: 'info',
+      duration: 5000,
+    })
+  }
+
+  /**
+   * 套餐到期通知
+   */
+  static websocketPackage(content: string) {
+    return ElNotification({
+      title: '📦 套餐提醒',
+      message: content,
+      type: 'warning',
+      duration: 10000,
+    })
+  }
+
+  /**
+   * 踢下线通知
+   */
+  static websocketKickout(content: string) {
+    return ElNotification({
+      title: '⚠️ 安全提醒',
+      message: content,
+      type: 'error',
+      duration: 0,
+    })
+  }
+
+  /**
+   * 支付成功通知
+   */
+  static websocketPaymentSuccess(orderNumber: string) {
+    return ElNotification({
+      title: '✅ 支付成功',
+      message: `订单 <strong>${orderNumber}</strong> 支付成功`,
+      type: 'success',
+      dangerouslyUseHTMLString: true,
+      duration: 5000,
+    })
   }
 }
 

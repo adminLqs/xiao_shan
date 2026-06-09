@@ -2,7 +2,9 @@ package com.xiaoshan.springbootdemo.config;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.CustomExchange;
 import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.Exchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -12,6 +14,9 @@ import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 public class RabbitMQConfig {
@@ -66,21 +71,37 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public DirectExchange packageExpireExchange() {
-        return new DirectExchange("package.expire.exchange");
+    public Exchange packageExpireExchange() {
+        Map<String, Object> args = new HashMap<>();
+        args.put("x-delayed-type", "direct");
+        return new CustomExchange(
+            "package.expire.exchange",
+            "x-delayed-message",
+            true,
+            false,
+            args
+        );
     }
 
     @Bean
     public Binding packageExpireRemindBinding() {
-        return BindingBuilder.bind(packageExpireQueue())
-                .to(packageExpireExchange())
-                .with("package.expire.remind");
+        return new Binding(
+            packageExpireQueue().getName(),
+            Binding.DestinationType.QUEUE,
+            packageExpireExchange().getName(),
+            "package.expire.remind",
+            null
+        );
     }
 
     @Bean
     public Binding packageExpireProcessBinding() {
-        return BindingBuilder.bind(packageExpireQueue())
-                .to(packageExpireExchange())
-                .with("package.expire.process");
+        return new Binding(
+            packageExpireQueue().getName(),
+            Binding.DestinationType.QUEUE,
+            packageExpireExchange().getName(),
+            "package.expire.process",
+            null
+        );
     }
 }

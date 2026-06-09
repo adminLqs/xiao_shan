@@ -3,11 +3,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
-// 用户
 @Data
-@NoArgsConstructor // 无参构造器 1.首先通过无参构造器创建对象实例 2.通过反射各个字段的值
+@NoArgsConstructor
 public class User {
 
     private Long id;
@@ -16,16 +16,18 @@ public class User {
 
     private String password;
 
-    private Boolean status = true; // 默认值为 true
+    private Boolean status = true;
 
-    private LocalDateTime createdAt; // 自动映射到 created_at 列
+    private LocalDateTime createdAt;
 
-    private Role role = Role.ROLE_USER;
+    private String role = "ROLE_USER";
 
-    public enum Role {
-        ROLE_USER,    // 普通用户
-        ROLE_SELLER,  // 商家
-        ROLE_ADMIN    // 管理员
+    private List<com.xiaoshan.springbootdemo.entity.Role> roles;
+
+    public enum UserRoleType {
+        ROLE_USER,
+        ROLE_SELLER,
+        ROLE_ADMIN
     }
 
     public User(String account,String password){

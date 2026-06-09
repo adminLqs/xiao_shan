@@ -16,10 +16,10 @@ export interface OrderItem {
   isReviewed: boolean
   reviewedAt: string
   createdAt: string
-  refundStatus?: 'REFUNDING' | 'AFTER_SALE' | 'WAITING_RETURN' | 'RETURNING' | 'APPROVED' | 'COMPLETED' | 'FAILED'
+  refundStatus?: 'PROCESSING' | 'WAITING_RETURN' | 'RETURNING' | 'SUCCESS' | 'FAILED'
 }
 
-export type OrderStatus = 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED'
+export type OrderStatus = 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED'
 
 export interface Order {
   id: number
@@ -36,7 +36,6 @@ export interface Order {
   logisticsCode?: string
   logisticsName?: string
   shippedAt?: string
-  deliveredAt?: string
   completedAt?: string
   createdAt: string
   updatedAt: string

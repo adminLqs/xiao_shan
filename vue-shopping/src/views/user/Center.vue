@@ -37,9 +37,6 @@
             <div class="avatar-ring">
               <img :src="userProfile.avatar || defaultAvatar" class="avatar-img" />
             </div>
-            <div class="avatar-badge">
-              <i class="fas fa-check"></i>
-            </div>
           </div>
           <div class="user-info">
             <h3 class="user-name">{{ userProfile.nickname || '云杉用户' }}</h3>
@@ -139,8 +136,6 @@ import defaultAvatar from '@/static/images/user-avatar.jpg'
 const authStore = useAuthStore()
 const router = useRouter()
 
-const { isSeller, isAdmin } = authStore
-
 // 状态类映射
 const getStatusClass = (status: string) => {
   const map: Record<string, string> = {
@@ -174,9 +169,9 @@ const orderStatusItems = ref([
 ])
 
 const commonTools = computed(() => [
-  { name: 'UserFavorites', label: '我的收藏', icon: 'fas fa-heart', badge: favoriteCount.value, gradient: 'linear-gradient(135deg, #ff6b6b, #ee5a24)' },
+  { name: 'UserFavorites', label: '我的收藏', icon: 'fas fa-heart', badge: 0, gradient: 'linear-gradient(135deg, #ff6b6b, #ee5a24)' },
   { name: 'UserAddresses', label: '收货地址', icon: 'fas fa-map-marker-alt', badge: 0, gradient: 'linear-gradient(135deg, #4facfe, #00f2fe)' },
-  { name: '', label: '优惠券', icon: 'fas fa-tag', badge: couponCount.value, gradient: 'linear-gradient(135deg, #f093fb, #f5576c)' },
+  { name: 'MyCoupons', label: '我的优惠券', icon: 'fas fa-tag', badge: couponCount.value, gradient: 'linear-gradient(135deg, #f093fb, #f5576c)' },
   { name: 'ReviewList', label: '评价', icon: 'fas fa-star', badge: pendingReviewCount.value, gradient: 'linear-gradient(135deg, #4facfe, #00f2fe)' },
   { name: 'AfterSaleList', label: '售后', icon: 'fas fa-headset', badge: afterSaleCount.value, gradient: 'linear-gradient(135deg, #fee2e2, #dc2626)' },
 ])
@@ -185,7 +180,7 @@ const tradeTools = computed(() => {
   const items: { name: string; label: string; icon: string; badge: number; gradient: string }[] = [
     { name: '', label: '客服中心', icon: 'fas fa-comments', badge: 0, gradient: 'linear-gradient(135deg, #ff9a9e, #fecfef)' },
   ]
-  if (isSeller || isAdmin) {
+  if (authStore.hasRole('ROLE_SELLER') || authStore.hasRole('ROLE_ADMIN')) {
     items.push({ name: 'SellerDashboard', label: '商家中心', icon: 'fas fa-store', badge: 0, gradient: 'linear-gradient(135deg, #43e97b, #38f9d7)' })
   } else {
     items.push({ name: 'MerchantApply', label: '商家入驻', icon: 'fas fa-store-alt', badge: 0, gradient: 'linear-gradient(135deg, #43e97b, #38f9d7)' })
@@ -193,7 +188,7 @@ const tradeTools = computed(() => {
   return items
 })
 
-const goTo = (name: string) => {
+const goTo = async (name: string) => {
   if (!name) {
     Message.info('该功能正在扩展中，敬请期待...')
     return
@@ -204,6 +199,15 @@ const goTo = (name: string) => {
   }
   if (name === 'MerchantApply') {
     router.push({ name: 'MerchantApply' })
+    return
+  }
+  if (name === 'SellerDashboard') {
+    const success = await authStore.switchRole('ROLE_SELLER')
+    if (success) {
+      router.push({ name: 'SellerDashboard' })
+    } else {
+      Message.error('切换角色失败')
+    }
     return
   }
   router.push({ name })
@@ -253,7 +257,12 @@ const loadStats = async () => {
   try {
     const favResponse = await authAPI.getFavorites({ page: 1, pageSize: 1 })
     if (favResponse.success) {
-      favoriteCount.value = favResponse.data?.total || 0
+      const data = favResponse.data
+      if (Array.isArray(data)) {
+        favoriteCount.value = data.length
+      } else if (data) {
+        favoriteCount.value = data.total || (data.records ? data.records.length : 0)
+      }
     }
   } catch {}
 }

@@ -1,80 +1,57 @@
 <template>
   <div class="login-page">
-    <div id="main_background">
-      <div class="ring-layer"></div>
+    <div class="brand-area">
+      <div class="brand-icon">🛍️</div>
+      <h1 class="brand-name">云杉购</h1>
+      <p class="brand-slogan">精品生活 · 从这里开始</p>
     </div>
 
-    <!-- 购物主题装饰元素 -->
-    <div class="shopping-elements" id="shopping-elements"></div>
-
-    <div class="main-container">
-    <div class="main_section">
-      <!-- 左侧欢迎区域 -->
-      <div class="welcome-section">
-        <h2 class="welcome-title">欢迎来到云杉购</h2>
-        <p class="welcome-text">登录您的账户，发现更多精彩商品和专属优惠</p>
-
-        <ul class="shopping-benefits">
-          <li><i class="fas fa-check-circle"></i> 获取独家折扣和促销信息</li>
-          <li><i class="fas fa-check-circle"></i> 查看您的订单历史和收藏夹</li>
-          <li><i class="fas fa-check-circle"></i> 享受更快捷的结账体验</li>
-          <li><i class="fas fa-check-circle"></i> 获取个性化商品推荐</li>
-        </ul>
+    <div class="form-area">
+      <div v-if="checkingLogin" class="checking-overlay">
+        <i class="fas fa-spinner fa-spin"></i>
+        <span>正在检查登录状态...</span>
       </div>
 
-      <!-- 右侧表单区域 -->
-      <div class="form-section">
-        <div class="logo">
-          <h2><i class="fas fa-shopping-bag"></i> 云杉购</h2>
-          <p>登录并开始您的购物之旅</p>
+      <div v-else-if="existingUser" class="existing-user-card">
+        <img :src="existingUser.avatar || defaultAvatar" class="existing-avatar" />
+        <h3>检测到已登录账号</h3>
+        <p class="existing-username">{{ existingUser.nickname || existingUser.account }}</p>
+        <p class="existing-tip">是否继续使用当前账号？</p>
+        <div class="existing-actions">
+          <button class="btn continue-btn" @click="continueWithAccount">
+            <i class="fas fa-arrow-right"></i> 继续使用
+          </button>
+          <button class="btn switch-btn" @click="switchAccount">
+            <i class="fas fa-exchange-alt"></i> 切换账号
+          </button>
         </div>
+      </div>
 
-        <!-- 已登录检测卡片 -->
-        <div v-if="checkingLogin" class="checking-overlay">
-          <i class="fas fa-spinner fa-spin"></i>
-          <span>正在检查登录状态...</span>
-        </div>
-
-        <div v-else-if="existingUser" class="existing-user-card">
-          <img :src="existingUser.avatar || defaultAvatar" class="existing-avatar" />
-          <h3>检测到已登录账号</h3>
-          <p class="existing-username">{{ existingUser.nickname || existingUser.account }}</p>
-          <p class="existing-tip">是否继续使用当前账号？</p>
-          <div class="existing-actions">
-            <button class="btn continue-btn" @click="continueWithAccount">
-              <i class="fas fa-arrow-right"></i> 继续使用
-            </button>
-            <button class="btn switch-btn" @click="switchAccount">
-              <i class="fas fa-exchange-alt"></i> 切换账号
-            </button>
+      <div v-else>
+        <div class="tabs">
+          <div
+            class="tab"
+            :class="{ active: activeTab === 'login' }"
+            @click="switchTab('login')"
+          >
+            登录
+          </div>
+          <div
+            class="tab"
+            :class="{ active: activeTab === 'register' }"
+            @click="switchTab('register')"
+          >
+            注册
           </div>
         </div>
 
-        <div v-else>
-          <div class="tabs">
-            <div
-              class="tab"
-              :class="{ active: activeTab === 'login' }"
-              @click="switchTab('login')"
-            >
-              登录
-            </div>
-            <div
-              class="tab"
-              :class="{ active: activeTab === 'register' }"
-              @click="switchTab('register')"
-            >
-              注册
-            </div>
-          </div>
-
-        <!-- 登录表单 -->
         <form class="login-form" v-if="activeTab === 'login'">
           <div class="input-container">
             <i class="fas fa-user input-icon"></i>
             <input
               type="text"
-              placeholder="用户名/手机号/邮箱"
+              name="loginAccount"
+              placeholder="请输入账号"
               v-model="loginData.account"
               required
               @focus="handleFocus"
@@ -86,7 +63,8 @@
             <i class="fas fa-lock input-icon"></i>
             <input
               :type="showLoginPassword ? 'text' : 'password'"
-              placeholder="密码"
+              name="loginPassword"
+              placeholder="请输入密码"
               v-model="loginData.password"
               required
               @focus="handleFocus"
@@ -101,7 +79,7 @@
 
           <button
             type="button"
-            class="btn login_button"
+            class="btn login-btn"
             @click="handleLogin"
             :disabled="isLoggingIn"
           >
@@ -109,18 +87,38 @@
             {{ isLoggingIn ? '登录中...' : '登 录' }}
           </button>
 
-          <div class="helper-links">
-            <a href="#">忘记密码?</a>
-            <a href="#">手机快速登录</a>
+          <div class="register-link">
+            没有账号？<a @click="switchTab('register')">立即注册</a>
+          </div>
+
+          <div class="divider">
+            <span class="divider-line"></span>
+            <span class="divider-text">或使用以下方式登录</span>
+            <span class="divider-line"></span>
+          </div>
+
+          <div class="social-login">
+            <button type="button" class="social-btn wechat-btn">
+              <img src="@/static/images/icons/wechat.svg" class="social-icon" />
+              <span>微信</span>
+            </button>
+            <button type="button" class="social-btn alipay-btn">
+              <img src="@/static/images/icons/alipay.svg" class="social-icon" />
+              <span>支付宝</span>
+            </button>
+            <button type="button" class="social-btn phone-btn">
+              <i class="fas fa-mobile-alt"></i>
+              <span>手机号</span>
+            </button>
           </div>
         </form>
 
-        <!-- 注册表单 -->
         <form class="register-form" v-if="activeTab === 'register'">
           <div class="input-container">
             <i class="fas fa-user input-icon"></i>
             <input
               type="text"
+              name="registerAccount"
               placeholder="设置用户名"
               v-model="registerData.account"
               required
@@ -133,6 +131,7 @@
             <i class="fas fa-lock input-icon"></i>
             <input
               :type="showRegisterPassword ? 'text' : 'password'"
+              name="registerPassword"
               placeholder="设置密码"
               v-model="registerData.password"
               required
@@ -150,6 +149,7 @@
             <i class="fas fa-lock input-icon"></i>
             <input
               :type="showRegisterConfirm ? 'text' : 'password'"
+              name="registerConfirmPassword"
               placeholder="确认密码"
               v-model="registerData.confirmPassword"
               required
@@ -165,18 +165,20 @@
 
           <button
             type="button"
-            class="btn register_button"
+            class="btn login-btn"
             @click="handleRegister"
             :disabled="isRegistering"
           >
             <i v-if="isRegistering" class="fas fa-spinner fa-spin"></i>
             {{ isRegistering ? '注册中...' : '注 册' }}
           </button>
+
+          <div class="register-link">
+            已有账号？<a @click="switchTab('login')">立即登录</a>
+          </div>
         </form>
-        </div>
       </div>
     </div>
-  </div>
   </div>
 </template>
 
@@ -191,17 +193,15 @@ import defaultAvatar from '@/static/images/user-avatar.jpg'
 const router = useRouter()
 const authStore = useAuthStore()
 
-// ========== 响应式数据 ==========
-const activeTab = ref('login') // 当前激活的选项卡
-const checkingLogin = ref(true) // 正在检查登录状态
+const activeTab = ref('login')
+const checkingLogin = ref(true)
 const existingUser = ref<{ avatar: string; nickname: string; account: string } | null>(null)
-const showLoginPassword = ref(false) // 登录密码是否可见
-const showRegisterPassword = ref(false) // 注册密码是否可见
-const showRegisterConfirm = ref(false) // 确认密码是否可见
-const isLoggingIn = ref(false) // 登录加载状态
-const isRegistering = ref(false) // 注册加载状态
+const showLoginPassword = ref(false)
+const showRegisterPassword = ref(false)
+const showRegisterConfirm = ref(false)
+const isLoggingIn = ref(false)
+const isRegistering = ref(false)
 
-// 表单数据
 const loginData = ref({
     account: '',
     password: ''
@@ -213,18 +213,10 @@ const registerData = ref({
     confirmPassword: ''
 })
 
-// ========== 方法函数 ==========
-
-/**
- * 切换登录/注册选项卡
- */
 const switchTab = (tab: string) => {
     activeTab.value = tab
 }
 
-/**
- * 切换密码显示/隐藏
- */
 const togglePassword = (type: string) => {
     switch(type) {
         case 'login':
@@ -239,13 +231,9 @@ const togglePassword = (type: string) => {
     }
 }
 
-/**
- * 登录处理
- */
 const handleLogin = async () => {
     const { account, password } = loginData.value
 
-    // 表单验证
     if (!account || !password) {
         Message.error('用户名和密码不能为空')
         return
@@ -259,11 +247,9 @@ const handleLogin = async () => {
         return
     }
 
-    // 设置加载状态
     isLoggingIn.value = true
 
     try {
-        // 调用登录接口
         const response = await authAPI.login({
             account,
             password
@@ -273,13 +259,22 @@ const handleLogin = async () => {
             Message.success('登录成功！正在跳转...')
 
             setTimeout(async () => {
-                const profileResponse = await authAPI.getAccountProfile()
-                let userId: number | null = null
-                if (profileResponse.success && profileResponse.data?.accountProfile?.id) {
-                    userId = profileResponse.data.accountProfile.id
+                const role = response.data?.role
+                const userId = response.data?.id
+                const roles = response.data?.roles || []
+
+                if (role && ['ROLE_USER', 'ROLE_SELLER', 'ROLE_ADMIN'].includes(role)) {
+                    authStore.isLoggedIn = true
+                    authStore.role = role
+                    authStore.activeRole = role
+                    authStore.roles = roles
+                    authStore.userId = userId
+                    authStore.status = 1
+                } else {
+                    await authStore.checkAndUpdate()
                 }
 
-                switch(response.data?.role) {
+                switch(authStore.activeRole) {
                     case "ROLE_USER":
                         router.replace({ name: "UserDashboard" })
                         break
@@ -297,7 +292,6 @@ const handleLogin = async () => {
             Message.error(response.message || '登录失败')
         }
     } catch (error: any) {
-        // 错误处理
         let errorMsg = '登录失败'
         if (error.response?.status === 401) {
             errorMsg = '账号或密码错误'
@@ -313,13 +307,9 @@ const handleLogin = async () => {
     }
 }
 
-/**
- * 注册处理
- */
 const handleRegister = async () => {
     const { account, password, confirmPassword } = registerData.value
 
-    // 表单验证
     if (!account || !password) {
         Message.error('用户名和密码不能为空')
         return
@@ -337,11 +327,9 @@ const handleRegister = async () => {
         return
     }
 
-    // 设置加载状态
     isRegistering.value = true
 
     try {
-        // 调用注册接口
         const response = await authAPI.register({
             account,
             password,
@@ -351,7 +339,6 @@ const handleRegister = async () => {
         if (response.success) {
             Message.success('注册成功！正在跳转登录...')
 
-            // 自动切换到登录界面
             setTimeout(() => {
                 activeTab.value = 'login'
                 loginData.value.account = account
@@ -361,7 +348,6 @@ const handleRegister = async () => {
             Message.error(response.message || '注册失败')
         }
     } catch (error: any) {
-        // 错误处理
         let errorMsg = '注册失败'
         if (error.response?.data?.message) {
             errorMsg = error.response.data.message
@@ -377,23 +363,19 @@ const handleRegister = async () => {
     }
 }
 
-/**
- * 检查登录状态
- */
 const checkLoginStatus = async () => {
   checkingLogin.value = true
   await new Promise(resolve => setTimeout(resolve, 500))
 
   if (authStore.isLoggedIn) {
     try {
-      const response = await authAPI.getAccountProfile() 
+      const response = await authAPI.getAccountProfile()
       if (response.success && response.data?.accountProfile) {
         const profile = response.data.accountProfile
         const role = profile.role
 
         let nickname = profile.nickname || profile.username || '用户'
 
-        // 根据角色加后缀
         if (role === 'ROLE_SELLER') {
           nickname = `${nickname}（商家账号）`
         } else if (role === 'ROLE_ADMIN') {
@@ -415,9 +397,6 @@ const checkLoginStatus = async () => {
   checkingLogin.value = false
 }
 
-/**
- * 继续使用当前账号
- */
 const continueWithAccount = async () => {
   try {
     const response = await authAPI.getAccountProfile()
@@ -435,9 +414,6 @@ const continueWithAccount = async () => {
   }
 }
 
-/**
- * 切换账号
- */
 const switchAccount = async () => {
   try {
     await authAPI.logout()
@@ -448,20 +424,16 @@ const switchAccount = async () => {
   activeTab.value = 'login'
 }
 
-/**
- * 输入框焦点效果
- */
 const handleFocus = (event: FocusEvent) => {
     const target = event.target as HTMLInputElement
-    target.style.borderColor = "#64ffda"
+    target.style.borderColor = "#4a6491"
 }
 
 const handleBlur = (event: FocusEvent) => {
     const target = event.target as HTMLInputElement
-    target.style.borderColor = "#ddd"
+    target.style.borderColor = "#e2e8f0"
 }
 
-// ========== 生命周期钩子 ==========
 onMounted(() => {
   checkLoginStatus()
 })

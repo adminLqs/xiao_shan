@@ -28,6 +28,9 @@ public class OrderDTO {
     // 支付方式
     private String paymentMethod;        // 支付方式：ALIPAY / WECHAT
 
+    // 用户选择的优惠券ID
+    private Long userCouponId;
+
     // 商品列表
     @NotNull(message = "订单项不能为空")
     @Size(min = 1, message = "至少有一个商品")

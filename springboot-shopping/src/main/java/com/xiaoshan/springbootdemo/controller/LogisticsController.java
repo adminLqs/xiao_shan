@@ -71,27 +71,22 @@ public class LogisticsController {
                 ));
             }
 
-            // 订单未发货时返回错误
-            if (order.getTrackingNumber() == null) {
-                return ResponseEntity.ok(Map.of(
-                        "success", false,
-                        "message", "该订单尚未发货"
-                ));
+            // 调用物流服务生成物流轨迹（合并订单节点和真实轨迹）
+            LogisticsVO logistics = logisticsService.generateDefaultTraces(order);
+
+            // 查询收件人地址信息
+            Address address = null;
+            if (order.getAddressId() != null) {
+                address = orderMapper.findAddressByOrderId(orderId).orElse(null);
             }
 
-            // 调用物流服务查询物流轨迹
-            LogisticsVO logistics = logisticsService.queryLogistics(
-                    order.getTrackingNumber(),
-                    order.getLogisticsCode(),
-                    order.getId()
-            );
-
-            // 返回物流信息
+            // 返回物流信息（包含地址）
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "data", Map.of(
                             "logistics", logistics,
-                            "order", order
+                            "order", order,
+                            "address", address != null ? address : Map.of()
                     )
             ));
 
@@ -129,20 +124,8 @@ public class LogisticsController {
                 ));
             }
 
-            // 订单未发货时返回错误
-            if (order.getTrackingNumber() == null) {
-                return ResponseEntity.ok(Map.of(
-                        "success", false,
-                        "message", "该订单尚未发货"
-                ));
-            }
-
-            // 刷新物流信息（调用物流服务）
-            LogisticsVO logistics = logisticsService.queryLogistics(
-                    order.getTrackingNumber(),
-                    order.getLogisticsCode(),
-                    orderId
-            );
+            // 刷新物流信息（合并订单节点和真实轨迹）
+            LogisticsVO logistics = logisticsService.generateDefaultTraces(order);
 
             // 返回物流信息
             return ResponseEntity.ok(Map.of(
@@ -191,21 +174,8 @@ public class LogisticsController {
                 ));
             }
 
-            // 订单未发货时返回错误
-            if (order.getTrackingNumber() == null) {
-                return ResponseEntity.ok(Map.of(
-                        "success", false,
-                        "message", "该订单尚未发货",
-                        "data", Map.of("order", order)
-                ));
-            }
-
-            // 调用物流服务查询物流轨迹
-            LogisticsVO logistics = logisticsService.queryLogistics(
-                    order.getTrackingNumber(),
-                    order.getLogisticsCode(),
-                    orderId
-            );
+            // 调用物流服务生成物流轨迹（合并订单节点和真实轨迹）
+            LogisticsVO logistics = logisticsService.generateDefaultTraces(order);
 
             // 查询地址信息获取收件人信息
             final Map<String, Object> orderData = new HashMap<>();
@@ -291,20 +261,8 @@ public class LogisticsController {
                 ));
             }
 
-            // 订单未发货时返回错误
-            if (order.getTrackingNumber() == null) {
-                return ResponseEntity.ok(Map.of(
-                        "success", false,
-                        "message", "该订单尚未发货"
-                ));
-            }
-
-            // 刷新物流信息（调用快递鸟API）
-            LogisticsVO logistics = logisticsService.queryLogistics(
-                    order.getTrackingNumber(),
-                    order.getLogisticsCode(),
-                    orderId
-            );
+            // 刷新物流信息（合并订单节点和真实轨迹）
+            LogisticsVO logistics = logisticsService.generateDefaultTraces(order);
 
             // 返回物流信息
             return ResponseEntity.ok(Map.of(
@@ -380,14 +338,10 @@ public class LogisticsController {
                                 // 获取轨迹描述
                                 String acceptStation = trace.get("AcceptStation").asText();
 
-                                // 轨迹描述包含"签收"或"已签收"时，说明包裹已送达
+                                // 轨迹描述包含"签收"或"已签收"时，说明包裹已送达，自动确认收货
                                 if (acceptStation.contains("签收") || acceptStation.contains("已签收")) {
-                                    // 获取签收时间
                                     String acceptTime = trace.get("AcceptTime").asText();
                                     log.info("订单已签收: 单号={}, 签收时间={}", logisticCode, acceptTime);
-
-                                    // 调用服务层更新订单送达时间
-                                    orderService.updateDeliveredTime(logisticCode, acceptTime);
                                     break;
                                 }
                             }

@@ -117,7 +117,7 @@ public class SecurityConfig {
         // 配置授权请求网站
         http.authorizeHttpRequests(auth -> auth.requestMatchers(
                 // 静态资源放行(无需认证)
-                "/uploads/**",    // 放行上传的文件
+                "/ws/**",
 
                 // API接口放行
                 "/api/v1/auth/login", // 游客登录

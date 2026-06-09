@@ -37,14 +37,18 @@ public interface CartItemMapper {
      */
     @Select("SELECT " +
             "ci.id, ci.user_id, ci.product_id, ci.sku_id, ci.quantity, ci.added_at, " +
-            "p.name as product_name, p.brand, " +
+            "p.name as product_name, p.brand, p.status as product_status, " +
             "COALESCE(s.sku_name, '') as sku_name, " +
             "COALESCE(s.price, (SELECT MIN(ps.price) FROM product_skus ps WHERE ps.product_id = p.id), 0) as price, " +
             "COALESCE(s.original_price, (SELECT MIN(ps.original_price) FROM product_skus ps WHERE ps.product_id = p.id), 0) as original_price, " +
             "COALESCE(s.stock, (SELECT COALESCE(SUM(ps.stock), 0) FROM product_skus ps WHERE ps.product_id = p.id), 0) as stock, " +
-            "COALESCE(s.sku_image, (SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1)) as product_image " +
+            "COALESCE(s.sku_image, (SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1)) as product_image, " +
+            "COALESCE(sp.store_name, up.nickname) as seller_name, " +
+            "COALESCE(sp.store_avatar, up.avatar) as seller_avatar " +
             "FROM cart_items ci " +
             "LEFT JOIN products p ON ci.product_id = p.id " +
+            "LEFT JOIN seller_profiles sp ON p.seller_id = sp.user_id " +
+            "LEFT JOIN user_profiles up ON p.seller_id = up.user_id " +
             "LEFT JOIN product_skus s ON ci.sku_id = s.id " +
             "WHERE ci.user_id = #{userId} " +
             "ORDER BY ci.added_at DESC")
@@ -107,14 +111,21 @@ public interface CartItemMapper {
             "ci.sku_id as skuId, " +
             "ci.quantity, " +
             "p.name as productName, " +
+            "p.status as productStatus, " +
+            "p.seller_id as sellerId, " +
+            "COALESCE(sp.store_name, up.nickname) as sellerName, " +
+            "COALESCE(sp.store_avatar, up.avatar) as sellerAvatar, " +
             "s.sku_name as skuName, " +
             "p.brand, " +
             "COALESCE(s.price, (SELECT MIN(ps.price) FROM product_skus ps WHERE ps.product_id = p.id), 0) as price, " +
             "COALESCE(s.original_price, (SELECT MIN(ps.original_price) FROM product_skus ps WHERE ps.product_id = p.id), 0) as originalPrice, " +
             "COALESCE(s.stock, (SELECT COALESCE(SUM(ps.stock), 0) FROM product_skus ps WHERE ps.product_id = p.id), 0) as stock, " +
-            "COALESCE(s.sku_image, (SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1)) as productImage " +
+            "COALESCE(s.sku_image, (SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1)) as productImage, " +
+            "p.is_free_shipping as isFreeShipping " +
             "FROM cart_items ci " +
             "LEFT JOIN products p ON ci.product_id = p.id " +
+            "LEFT JOIN seller_profiles sp ON p.seller_id = sp.user_id " +
+            "LEFT JOIN user_profiles up ON p.seller_id = up.user_id " +
             "LEFT JOIN product_skus s ON ci.sku_id = s.id " +
             "WHERE ci.id IN (${cartItemIds}) AND ci.user_id = #{userId}")
     List<CheckoutItemVO> getCheckoutItems(@Param("userId") Long userId,

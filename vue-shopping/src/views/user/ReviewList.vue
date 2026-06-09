@@ -6,7 +6,6 @@
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-star"></i>
         <span>我的评价</span>
       </div>
       <div class="page-nav-right"></div>
@@ -63,7 +62,7 @@
             <div class="item-spec" v-if="item.skuName">{{ item.skuName }}</div>
           </div>
           <button class="review-btn" @click="goToReview(item.orderItemId)">
-            去评价
+            <span>去评价</span>
           </button>
         </div>
       </div>
@@ -85,15 +84,15 @@
         >
           <img :src="item.productImage" class="item-image" :alt="item.productName" />
           <div class="item-info">
-            <div class="item-name">{{ item.productName }}</div>
-            <div class="item-spec" v-if="item.skuName">{{ item.skuName }}</div>
-            <div class="review-content-text">{{ item.comment || '暂无评价内容' }}</div>
-            <div class="review-footer">
+            <div class="name-rating-row">
+              <div class="item-name">{{ item.productName }}</div>
               <div class="review-rating">
                 <i v-for="i in 5" :key="i" class="fas fa-star" :class="{ active: i <= item.rating }"></i>
               </div>
-              <span class="review-time">{{ formatTime(item.createdAt) }}</span>
             </div>
+            <div class="item-spec" v-if="item.skuName">{{ item.skuName }}</div>
+            <div class="review-content-text">{{ item.comment || '暂无评价内容' }}</div>
+            <span class="review-time">{{ formatTime(item.createdAt) }}</span>
           </div>
         </div>
       </div>

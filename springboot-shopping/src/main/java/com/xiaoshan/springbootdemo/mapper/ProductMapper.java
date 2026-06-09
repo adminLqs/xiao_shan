@@ -31,13 +31,13 @@ public interface ProductMapper {
     // ========== 删（Delete） ==========
 
     /**
-     * 根据ID删除商品
+     * 根据ID删除商品（硬删除，谨慎使用）
      */
     @Delete("DELETE FROM products WHERE id = #{id}")
     int deleteById(Long id);
 
     /**
-     * 批量删除商品
+     * 批量删除商品（硬删除，谨慎使用）
      */
     @Delete("<script>" +
             "DELETE FROM products WHERE id IN " +
@@ -46,6 +46,18 @@ public interface ProductMapper {
             "</foreach>" +
             "</script>")
     int deleteByIds(@Param("ids") List<Long> ids);
+
+    /**
+     * 软删除商品（设置 status = 2）
+     */
+    @Update("UPDATE products SET status = 2, updated_at = NOW() WHERE id = #{id}")
+    int softDelete(Long id);
+
+    /**
+     * 恢复已删除商品（设置 status = 0，恢复到下架状态）
+     */
+    @Update("UPDATE products SET status = 0, updated_at = NOW() WHERE id = #{id} AND status = 2")
+    int restoreProduct(Long id);
 
     // ========== 改（Update） ==========
 
@@ -101,6 +113,33 @@ public interface ProductMapper {
     List<Long> findActiveProductIdsBySellerIdOrderByCreatedAtAsc(@Param("sellerId") Long sellerId, @Param("limit") Integer limit);
 
     /**
+     * 查询商家所有上架商品ID（按创建时间升序，不限数量）
+     */
+    @Select("SELECT id FROM products WHERE seller_id = #{sellerId} AND status = 1 ORDER BY created_at ASC")
+    List<Long> findAllActiveProductIdsBySellerIdOrderByCreatedAtAsc(Long sellerId);
+
+    /**
+     * 查询商家已下架商品ID（status=0，按创建时间升序，先下架的先恢复）
+     */
+    @Select("SELECT id FROM products WHERE seller_id = #{sellerId} AND status = 0 ORDER BY created_at ASC")
+    List<Long> findInactiveProductIdsBySellerIdOrderByCreatedAtAsc(Long sellerId);
+
+    /**
+     * 查询商家已下架商品ID（status=0，按创建时间降序，最新发布的优先上架）
+     */
+    @Select("SELECT id FROM products WHERE seller_id = #{sellerId} AND status = 0 ORDER BY created_at DESC")
+    List<Long> findInactiveProductIdsBySellerIdOrderByCreatedAtDesc(Long sellerId);
+
+    /**
+     * 根据ID列表查询商品
+     */
+    @Select("<script>" +
+            "SELECT * FROM products WHERE id IN " +
+            "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach>" +
+            "</script>")
+    List<Product> findByIds(@Param("ids") List<Long> ids);
+
+    /**
      * 增加销量（支付成功后调用）
      */
     @Update("UPDATE products SET sales_count = sales_count + #{quantity} WHERE id = #{productId}")
@@ -135,15 +174,27 @@ public interface ProductMapper {
             "p.category_id, p.seller_id, p.status, p.created_at, p.updated_at, " +
             "p.weight, p.is_free_shipping, p.service_guarantee, p.delivery_city, " +
             "(SELECT SUM(stock) FROM product_skus WHERE product_id = p.id) as stock, " +
+            "(SELECT MIN(price) FROM product_skus WHERE product_id = p.id) as price, " +
             "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as images " +
             "FROM products p WHERE p.id = #{id}")
     Optional<Product> findById(Long id);
+
+    /**
+     * 查询商品基本信息（用于浏览历史记录，不增加浏览量）
+     */
+    @Select("SELECT p.id, p.name, " +
+            "(SELECT MIN(price) FROM product_skus WHERE product_id = p.id) as price, " +
+            "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as image, " +
+            "p.status " +
+            "FROM products p WHERE p.id = #{id}")
+    Optional<Product> findBasicInfoForBrowse(Long id);
 
     // 查询所有商品的信息
     @Select("SELECT p.id, p.name, p.brand, p.description, p.sales_count, p.view_count, " +
             "p.category_id, p.seller_id, p.status, p.created_at, p.updated_at, " +
             "p.weight, p.is_free_shipping, p.service_guarantee, p.delivery_city, " +
             "(SELECT SUM(stock) FROM product_skus WHERE product_id = p.id) as stock, " +
+            "(SELECT MIN(price) FROM product_skus WHERE product_id = p.id) as price, " +
             "(SELECT image FROM product_images WHERE product_id = p.id ORDER BY sort_order ASC LIMIT 1) as images " +
             "FROM products p")
     List<Product> findAll();
@@ -151,7 +202,7 @@ public interface ProductMapper {
     // ========== 查（Select）- 商家管理 ==========
 
     /**
-     * 分页查询商家商品列表
+     * 分页查询商家商品列表（不含已删除商品，除非明确指定 status=2）
      */
     @Select("<script>" +
             "SELECT p.id, p.name, p.brand, p.description, " +
@@ -162,12 +213,15 @@ public interface ProductMapper {
             "(SELECT SUM(stock) FROM product_skus WHERE product_id = p.id) as stock " +
             "FROM products p " +
             "WHERE p.seller_id = #{sellerId} " +
+            "<if test='status != null'>" +
+            "AND p.status = #{status} " +
+            "</if>" +
+            "<if test='status == null'>" +
+            "AND p.status != 2 " +
+            "</if>" +
             "<if test='keyword != null and keyword != \"\"'>" +
             "AND (p.name LIKE CONCAT('%', #{keyword}, '%') " +
             "OR p.brand LIKE CONCAT('%', #{keyword}, '%')) " +
-            "</if>" +
-            "<if test='status != null'>" +
-            "AND p.status = #{status} " +
             "</if>" +
             "ORDER BY p.created_at DESC " +
             "LIMIT #{limit} OFFSET #{offset}" +
@@ -179,17 +233,20 @@ public interface ProductMapper {
                                      @Param("status") Integer status);
 
     /**
-     * 统计商家商品数量
+     * 统计商家商品数量（不含已删除商品，除非明确指定 status=2）
      */
     @Select("<script>" +
             "SELECT COUNT(*) FROM products p " +
             "WHERE p.seller_id = #{sellerId} " +
+            "<if test='status != null'>" +
+            "AND p.status = #{status} " +
+            "</if>" +
+            "<if test='status == null'>" +
+            "AND p.status != 2 " +
+            "</if>" +
             "<if test='keyword != null and keyword != \"\"'>" +
             "AND (p.name LIKE CONCAT('%', #{keyword}, '%') " +
             "OR p.brand LIKE CONCAT('%', #{keyword}, '%')) " +
-            "</if>" +
-            "<if test='status != null'>" +
-            "AND p.status = #{status} " +
             "</if>" +
             "</script>")
     long countSellerProducts(@Param("sellerId") Long sellerId,
@@ -281,9 +338,9 @@ public interface ProductMapper {
     Optional<ProductVO> findProductVOById(Long productId);
 
     /**
-     * 统计商家商品总数（用于套餐数量限制检查）
+     * 统计商家商品总数（用于套餐数量限制检查，不含已删除商品）
      */
-    @Select("SELECT COUNT(*) FROM products WHERE seller_id = #{sellerId}")
+    @Select("SELECT COUNT(*) FROM products WHERE seller_id = #{sellerId} AND status != 2")
     long countBySellerId(@Param("sellerId") Long sellerId);
 
     /**
@@ -366,5 +423,43 @@ public interface ProductMapper {
                              @Param("categoryId") Long categoryId,
                              @Param("minPrice") java.math.BigDecimal minPrice,
                              @Param("maxPrice") java.math.BigDecimal maxPrice);
+
+    /**
+     * 查询热销商品（按销量排序）
+     */
+    @Select("SELECT p.id, p.name, p.brand, p.description, p.sales_count, p.view_count, " +
+            "p.category_id, p.seller_id, p.status, p.created_at, p.updated_at, " +
+            "(SELECT MIN(price) FROM product_skus WHERE product_id = p.id) as price " +
+            "FROM products p WHERE p.status = 1 ORDER BY p.sales_count DESC LIMIT #{limit}")
+    List<Product> findHotProducts(@Param("limit") int limit);
+
+    /**
+     * 查询指定品类的热销商品
+     */
+    @Select("<script>" +
+            "SELECT p.id, p.name, p.brand, p.description, p.sales_count, p.view_count, " +
+            "p.category_id, p.seller_id, p.status, p.created_at, p.updated_at, " +
+            "(SELECT MIN(price) FROM product_skus WHERE product_id = p.id) as price " +
+            "FROM products p WHERE p.status = 1 AND p.category_id IN " +
+            "<foreach collection='categoryIds' item='id' open='(' separator=',' close=')'>#{id}</foreach> " +
+            "ORDER BY p.sales_count DESC LIMIT #{limit}" +
+            "</script>")
+    List<Product> findHotProductsByCategories(@Param("categoryIds") List<Long> categoryIds, @Param("limit") int limit);
+
+    /**
+     * 查询用户浏览过的商品品类ID列表
+     */
+    @Select("SELECT DISTINCT p.category_id FROM user_browse_history bh " +
+            "JOIN products p ON bh.product_id = p.id " +
+            "WHERE bh.user_id = #{userId} AND p.category_id IS NOT NULL " +
+            "ORDER BY bh.browse_time DESC LIMIT 5")
+    List<Long> findBrowsedCategoryIds(@Param("userId") Long userId);
+
+    @Select("SELECT name FROM products \n" +
+            "WHERE status != 2 AND name LIKE CONCAT('%', #{keyword}, '%') \n" +
+            "GROUP BY name \n" +
+            "ORDER BY MAX(sales_count) DESC \n" +
+            "LIMIT #{limit}")
+    List<String> suggest(@Param("keyword") String keyword, @Param("limit") int limit);
 
 }

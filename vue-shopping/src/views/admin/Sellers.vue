@@ -1,9 +1,12 @@
 <template>
-  <div class="sellers-page">
-    <div class="page-header">
-      <h2>商家管理</h2>
+  <div v-if="loading" class="starlight-loader">
+    <div class="loader-ring">
+      <i class="fas fa-sparkles brand-icon"></i>
     </div>
+    <p class="loader-text">加载中...</p>
+  </div>
 
+  <div v-else class="sellers-page">
     <!-- 搜索筛选栏 -->
     <div class="filter-bar">
       <div class="filter-row">
@@ -31,12 +34,7 @@
     <!-- 商家列表 -->
     <div class="card">
       <div class="card-body">
-        <div v-if="loading" class="loading-state">
-          <i class="fas fa-spinner fa-spin"></i>
-          <span>加载中...</span>
-        </div>
-
-        <div v-else-if="sellers.length === 0" class="empty-state">
+        <div v-if="sellers.length === 0" class="empty-state">
           <i class="fas fa-inbox"></i>
           <span>暂无商家记录</span>
         </div>
@@ -428,4 +426,5 @@ onMounted(() => {
 
 <style scoped>
 @import url('@/static/css/admin/商家管理.css');
+@import '@/static/css/common/星环加载器.css';
 </style>

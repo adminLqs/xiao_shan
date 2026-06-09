@@ -17,13 +17,14 @@ public class ProductFreezeLog {
     private Long sellerId;            // 商家ID
     private LocalDateTime freezeTime; // 冻结时间
     private LocalDateTime unfreezeTime; // 解冻时间
-    private String reason;            // 冻结原因
+    private String freezeReason;      // 冻结原因
+    private String unfreezeReason;    // 解冻原因
 
-    public ProductFreezeLog(Long id, Long productId, Long sellerId, String reason) {
+    public ProductFreezeLog(Long id, Long productId, Long sellerId, String freezeReason) {
         this.id = id;
         this.productId = productId;
         this.sellerId = sellerId;
         this.freezeTime = LocalDateTime.now();
-        this.reason = reason;
+        this.freezeReason = freezeReason;
     }
 }

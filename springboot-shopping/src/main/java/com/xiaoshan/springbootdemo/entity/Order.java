@@ -26,6 +26,9 @@ public class Order {
     // 订单总金额
     private BigDecimal totalAmount;
 
+    // 优惠金额
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+
     // 订单状态
     private OrderStatus status = OrderStatus.PENDING;
 
@@ -65,9 +68,6 @@ public class Order {
     // 发货时间
     private LocalDateTime shippedAt;
 
-    // 送达时间
-    private LocalDateTime deliveredAt;
-
     // 完成时间
     private LocalDateTime completedAt;
 
@@ -88,10 +88,8 @@ public class Order {
         PAID,       // 已付款
         PROCESSING, // 处理中
         SHIPPED,    // 已发货
-        DELIVERED,  // 已送达
         COMPLETED,  // 已完成
-        CANCELLED,  // 已取消
-        REFUNDED    // 已退款
+        CANCELLED   // 已取消
     }
 
     // ========== 支付方式枚举 ==========

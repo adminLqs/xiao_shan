@@ -1,65 +1,50 @@
 <template>
   <div class="product-management-container">
-    <div class="action-bar">
-      <div class="action-left">
-        <RouterLink to="/seller/products/create" class="btn btn-primary">
-          <i class="fas fa-plus-circle"></i> 发布商品
-        </RouterLink>
-        <button
-          class="btn btn-outline"
-          :class="{ 'btn-danger': isBatchMode }"
-          @click="toggleBatchMode"
-        >
-          <i class="fas fa-trash-alt"></i> 批量删除
-          <span v-if="selectedIds.length > 0" class="badge">{{ selectedIds.length }}</span>
+    <div class="top-bar">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" v-model="searchKeyword" placeholder="搜索商品名称、品牌..." @keyup.enter="handleSearch" />
+        <button v-if="searchKeyword" class="clear-search" @click="clearSearch">
+          <i class="fas fa-times"></i>
         </button>
       </div>
+      <RouterLink to="/seller/products/create" class="btn btn-primary">
+        <i class="fas fa-plus-circle"></i> 发布商品
+      </RouterLink>
+    </div>
 
-      <div class="action-right">
-        <div class="search-box">
-          <i class="fas fa-search"></i>
-          <input
-            type="text"
-            v-model="searchKeyword"
-            placeholder="搜索商品名称、品牌..."
-            @keyup.enter="handleSearch"
-          />
-          <button v-if="searchKeyword" class="clear-search" @click="clearSearch">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <select v-model="filterStatus" class="filter-select" @change="handleSearch">
-          <option value="">全部商品</option>
-          <option value="1">上架中</option>
-          <option value="0">已下架</option>
-        </select>
-      </div>
+    <div class="filter-bar">
+      <select v-model="filterStatus" class="filter-select" @change="handleSearch">
+        <option value="">全部状态</option>
+        <option value="1">上架</option>
+        <option value="0">下架</option>
+        <option value="2">回收站</option>
+      </select>
+      <button class="btn btn-outline btn-sm" @click="toggleBatchMode" v-if="!isBatchMode && filterStatus !== '2'">
+        <i class="fas fa-trash-alt"></i> 批量删除
+      </button>
     </div>
 
     <div class="batch-mode-bar" v-if="isBatchMode">
       <span class="batch-tip">已选择 {{ selectedIds.length }} 个商品</span>
-      <button class="btn btn-sm btn-outline" @click="cancelBatchMode">
-        <i class="fas fa-times"></i> 取消
-      </button>
-      <button
-        class="btn btn-sm btn-danger"
-        @click="handleBatchDelete"
-        :disabled="selectedIds.length === 0"
-      >
-        <i class="fas fa-trash"></i> 确认删除
-      </button>
+      <div class="batch-actions">
+        <button class="btn btn-sm btn-outline" @click="cancelBatchMode">
+          <i class="fas fa-times"></i> 取消
+        </button>
+        <button
+          class="btn btn-sm btn-danger"
+          @click="handleBatchDelete"
+          :disabled="selectedIds.length === 0"
+        >
+          <i class="fas fa-trash"></i> 确认删除
+        </button>
+      </div>
     </div>
 
     <div class="product-grid-container">
-      <div v-if="isLoading" class="skeleton-product-grid">
-        <div v-for="i in 8" :key="i" class="skeleton-product-card">
-          <div class="skeleton-image"></div>
-          <div class="skeleton-content">
-            <div class="skeleton-line long"></div>
-            <div class="skeleton-line medium"></div>
-            <div class="skeleton-line short"></div>
-          </div>
-        </div>
+      <div v-if="isLoading" class="loading-state">
+        <i class="fas fa-spinner fa-spin"></i>
+        <span>加载中...</span>
       </div>
 
       <div v-else-if="products.length === 0" class="empty-state">
@@ -75,9 +60,9 @@
           v-for="product in products"
           :key="product.id"
           class="product-card"
-          :class="{ selected: selectedIds.includes(product.id) }"
+          :class="{ selected: selectedIds.includes(product.id), deleted: product.status === 2 }"
         >
-          <div class="card-checkbox" v-if="isBatchMode" @click.stop>
+          <div class="card-checkbox" v-if="isBatchMode && product.status !== 2" @click.stop>
             <input
               type="checkbox"
               v-model="selectedIds"
@@ -86,13 +71,16 @@
             />
           </div>
 
-          <div class="card-image-wrapper">
+          <div class="card-image-wrapper" @click="goToEdit(product.id)">
             <img
               :src="product.productImages?.[0]?.image || product.images || '/placeholder.png'"
               :alt="product.name"
               class="card-image"
             />
-            <div class="card-overlay">
+            <div v-if="product.status === 2" class="deleted-overlay">
+              <span class="recycle-bin-tag">回收站</span>
+            </div>
+            <div class="card-overlay" v-if="product.status !== 2">
               <button class="overlay-btn" @click="goToEdit(product.id)">
                 <i class="fas fa-edit"></i> 编辑
               </button>
@@ -107,7 +95,7 @@
               <span class="current-price">¥{{ formatPrice(product.price) }}</span>
             </div>
 
-            <div class="card-footer">
+            <div class="card-footer" v-if="product.status !== 2">
               <div class="card-stock">
                 <span :class="['stock-badge', getStockClass(product.stock)]">
                   <i :class="getStockIcon(product.stock)"></i>
@@ -117,7 +105,8 @@
 
               <div
                 class="status-switch"
-                @click="toggleStatus(product, product.status === 1 ? 0 : 1)"
+                :class="{ disabled: statusLoading }"
+                @click="!statusLoading && toggleStatus(product, product.status === 1 ? 0 : 1)"
               >
                 <div class="switch-slider" :class="{ active: product.status === 1 }">
                   <i v-if="product.status === 1" class="fas fa-eye"></i>
@@ -129,7 +118,7 @@
               </div>
             </div>
 
-            <div class="card-actions">
+            <div class="card-actions" v-if="product.status !== 2">
               <button class="action-btn edit-btn" @click="goToEdit(product.id)" title="编辑">
                 <i class="fas fa-edit"></i>
               </button>
@@ -137,19 +126,85 @@
                 <i class="fas fa-trash-alt"></i>
               </button>
             </div>
+
+            <div class="card-actions" v-else>
+              <button class="action-btn restore-btn" @click="restoreProduct(product)" title="恢复">
+                <i class="fas fa-undo"></i> 恢复
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="pagination" v-if="total > 0">
-        <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
-          <i class="fas fa-chevron-left"></i>
-        </button>
-        <span class="page-info">第 {{ currentPage }} / {{ totalPages }} 页</span>
-        <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
-          <i class="fas fa-chevron-right"></i>
-        </button>
-        <span class="total-info">共 {{ total }} 条商品</span>
+        <div class="pagination-left">
+          <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+
+          <!-- 页码按钮 -->
+          <div class="page-numbers">
+            <!-- 首页 -->
+            <button
+              v-if="currentPage > 3"
+              class="page-number-btn"
+              @click="changePage(1)"
+            >1</button>
+
+            <!-- 省略号 -->
+            <span v-if="currentPage > 4" class="page-ellipsis">...</span>
+
+            <!-- 当前页前后各2页 -->
+            <button
+              v-for="page in visiblePages"
+              :key="page"
+              class="page-number-btn"
+              :class="{ active: page === currentPage }"
+              @click="changePage(page)"
+            >{{ page }}</button>
+
+            <!-- 省略号 -->
+            <span v-if="currentPage < totalPages - 3" class="page-ellipsis">...</span>
+
+            <!-- 尾页 -->
+            <button
+              v-if="currentPage < totalPages - 2"
+              class="page-number-btn"
+              @click="changePage(totalPages)"
+            >{{ totalPages }}</button>
+          </div>
+
+          <button class="page-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+
+        <div class="pagination-right">
+          <!-- 跳转输入框 -->
+          <div class="page-jump">
+            <span>跳转到</span>
+            <input
+              type="number"
+              v-model="jumpPage"
+              class="jump-input"
+              min="1"
+              :max="totalPages"
+              @keyup.enter="handleJump"
+              placeholder="页码"
+            />
+            <span>页</span>
+            <button class="jump-btn" @click="handleJump">确定</button>
+          </div>
+
+          <!-- 每页条数选择 -->
+          <select v-model="pageSize" class="page-size-select" @change="handleSearch">
+            <option :value="20">20条/页</option>
+            <option :value="50">50条/页</option>
+            <option :value="100">100条/页</option>
+          </select>
+
+          <span class="total-info">共 {{ total }} 条商品</span>
+        </div>
       </div>
     </div>
   </div>
@@ -188,8 +243,31 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const isBatchMode = ref(false)
+const jumpPage = ref('')
+const statusLoading = ref(false)
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
+const visiblePages = computed(() => {
+  const pages: number[] = []
+  const start = Math.max(1, currentPage.value - 2)
+  const end = Math.min(totalPages.value, currentPage.value + 2)
+
+  for (let i = start; i <= end; i++) {
+    if (!pages.includes(i)) pages.push(i)
+  }
+  return pages
+})
+
+const handleJump = () => {
+  const page = parseInt(jumpPage.value)
+  if (!isNaN(page) && page >= 1 && page <= totalPages.value) {
+    changePage(page)
+  } else {
+    Message.error('请输入有效的页码')
+  }
+  jumpPage.value = ''
+}
 
 const loadProducts = async () => {
   isLoading.value = true
@@ -290,27 +368,33 @@ const goToEdit = (productId: number) => {
 }
 
 const toggleStatus = async (product: Product, status: number) => {
+  if (statusLoading.value) return
   const action = status === 1 ? '上架' : '下架'
 
   try {
     await Message.confirm(`确定要${action}「${product.name}」吗？`, `${action}确认`)
 
+    statusLoading.value = true
     const response = await authAPI.updateProductStatus(product.id, status)
 
     if (response.success) {
       Message.success(`${action}成功`)
       loadProducts()
+    } else {
+      Message.warning(response.message || `${action}失败`)
     }
   } catch (error: any) {
     if (error !== 'cancel') {
       Message.error(error.message || `${action}失败`)
     }
+  } finally {
+    statusLoading.value = false
   }
 }
 
 const deleteProduct = async (product: Product) => {
   try {
-    await Message.confirm(`确定要删除商品「${product.name}」吗？删除后不可恢复。`, '删除确认')
+    await Message.confirm(`确定要删除商品「${product.name}」吗？删除后可在回收站恢复。`, '删除确认')
 
     const response = await authAPI.deleteProduct(product.id)
 
@@ -323,6 +407,25 @@ const deleteProduct = async (product: Product) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       Message.error(error.message || '删除失败')
+    }
+  }
+}
+
+const restoreProduct = async (product: Product) => {
+  try {
+    await Message.confirm(`确定要恢复商品「${product.name}」吗？恢复后商品将变为下架状态。`, '恢复确认')
+
+    const response = await authAPI.restoreProduct(product.id)
+
+    if (response.success) {
+      Message.success(response.message || '恢复成功')
+      loadProducts()
+    } else {
+      throw new Error(response.message || '恢复失败')
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      Message.error(error.message || '恢复失败')
     }
   }
 }
@@ -352,18 +455,7 @@ const getStockText = (stock: number | null): string => {
 
 onMounted(() => {
   if (!authStore.validateSellerPermission()) return
-
-  authAPI.checkActivePackage().then(res => {
-    if (!res.data?.active) {
-      Message.warning('套餐已过期，请续费')
-      router.push({ name: 'SellerPackage' })
-      return
-    }
-    loadProducts()
-  }).catch(() => {
-    Message.error('检查套餐状态失败')
-    router.push({ name: 'SellerPackage' })
-  })
+  loadProducts()
 })
 </script>
 

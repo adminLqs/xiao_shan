@@ -74,7 +74,9 @@
             </select>
           </div>
         </div>
-        <button class="btn-next" @click="nextStep" :disabled="!canNextStep1">下一步</button>
+        <div class="step-actions">
+          <button class="btn-next" @click="nextStep" :disabled="!canNextStep1">下一步</button>
+        </div>
       </div>
 
       <div v-if="currentStep === 2" class="step-panel">
@@ -217,6 +219,9 @@
               @dragover.prevent="onDragOver(index)"
               @dragleave="onDragLeave"
               @drop="onDrop(index)"
+              @touchstart.passive="onTouchStart($event, index)"
+              @touchmove="onTouchMove($event, index)"
+              @touchend="onTouchEnd($event, index)"
             >
               <img :src="image.url" />
               <button class="remove-btn" @click="removeImage(index)"><i class="fas fa-times"></i></button>
@@ -432,6 +437,11 @@ const isSubmitting = ref(false)
 const dragIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 
+const touchDragIndex = ref<number | null>(null)
+const touchStartY = ref(0)
+const touchStartX = ref(0)
+const placeholderIndex = ref<number | null>(null)
+
 const onDragStart = (index: number) => {
   dragIndex.value = index
 }
@@ -456,6 +466,47 @@ const onDrop = (index: number) => {
 
   dragIndex.value = null
   dragOverIndex.value = null
+}
+
+const onTouchStart = (e: TouchEvent, index: number) => {
+  touchDragIndex.value = index
+  const touch = e.touches[0]
+  if (!touch) return
+  touchStartX.value = touch.clientX
+  touchStartY.value = touch.clientY
+}
+
+const onTouchMove = (e: TouchEvent, index: number) => {
+  if (touchDragIndex.value === null) return
+  e.preventDefault()
+
+  const touch = e.touches[0]
+  if (!touch) return
+  const diffY = touch.clientY - touchStartY.value
+
+  const elements = document.querySelectorAll('.image-preview-item')
+  elements.forEach((el, i) => {
+    const rect = el.getBoundingClientRect()
+    const midY = rect.top + rect.height / 2
+    if (touch.clientY > rect.top && touch.clientY < rect.bottom) {
+      if (i !== touchDragIndex.value) {
+        placeholderIndex.value = i
+      }
+    }
+  })
+}
+
+const onTouchEnd = (e: TouchEvent, index: number) => {
+  if (touchDragIndex.value !== null && placeholderIndex.value !== null && touchDragIndex.value !== placeholderIndex.value) {
+    const list = [...productImages.value]
+    const [movedItem] = list.splice(touchDragIndex.value, 1)
+    if (movedItem) {
+      list.splice(placeholderIndex.value, 0, movedItem)
+    }
+    productImages.value = list
+  }
+  touchDragIndex.value = null
+  placeholderIndex.value = null
 }
 
 // 富文本编辑器
@@ -504,7 +555,7 @@ const loadCategories = async () => {
     const response = await authAPI.getAllCategories()
     if (response.success && response.data?.categories) {
       allCategories.value = response.data.categories
-      level1Categories.value = allCategories.value.filter(cat => cat.parentId === null && cat.isActive)
+      level1Categories.value = allCategories.value.filter(cat => !cat.parentId && cat.isActive)
     }
   } catch {
     Message.error('加载分类失败')
@@ -517,13 +568,13 @@ const onLevel1Change = () => {
   selectedLevel2.value = ''
   level2Categories.value = []
   productForm.categoryId = ''
-  
+
   if (selectedLevel1.value) {
     level2Categories.value = allCategories.value.filter(
       cat => cat.parentId === Number(selectedLevel1.value) && cat.isActive
     )
   }
-  
+
   const validValues = serviceOptions.value.map(s => s.value)
   productForm.serviceGuarantee = productForm.serviceGuarantee.filter(v => validValues.includes(v))
 }
@@ -956,21 +1007,7 @@ const submitProduct = async () => {
 }
 
 onMounted(async () => {
-  // 先检查套餐权限
-  try {
-    const packageStatus = await authAPI.checkActivePackage()
-
-    if (!packageStatus.data?.active) {
-      Message.warning('套餐已过期，请续费后发布商品')
-      router.push({ name: 'SellerPackage' })
-      return
-    }
-  } catch (error) {
-    Message.error('检查套餐状态失败')
-    router.push({ name: 'SellerPackage' })
-    return
-  }
-
+  // 登录即可进入发布页，不检查套餐
   loadCategories()
   generateSkus() // 生成初始SKU
 
@@ -982,6 +1019,5 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-@import url('@/static/css/common/骨架屏.css');
 @import url('@/static/css/seller/商品发布页.css');
 </style>

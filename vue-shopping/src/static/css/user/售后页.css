@@ -51,16 +51,7 @@
 
 .product-spec {
   font-size: 12px;
-  color: #64748b;
-  background: #f0f2f5;
-  padding: 2px 8px;
-  border-radius: 12px;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
-  width: fit-content;
+  color: #1e293b;
 }
 
 .product-price-row {

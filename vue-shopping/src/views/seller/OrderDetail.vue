@@ -1,16 +1,14 @@
 <template>
   <div class="order-detail-page">
     <!-- ========== 页面头部区域 ========== -->
-    <div class="page-header">
-      <button class="back-btn" @click="goBack">
-        <i class="fas fa-arrow-left"></i>
-        <span>返回</span>
+    <div class="page-navbar">
+      <button class="page-nav-back" @click="goBack">
+        <i class="fas fa-chevron-left"></i>
       </button>
-      <h1 class="page-title">
-        <i class="fas fa-file-alt"></i>
+      <div class="page-nav-title">
         <span>订单详情</span>
-      </h1>
-      <div class="header-placeholder"></div>
+      </div>
+      <div class="page-nav-right"></div>
     </div>
 
     <!-- ========== 加载状态 ========== -->
@@ -48,116 +46,50 @@
     <!-- ========== 订单详情内容 ========== -->
     <div v-else-if="orderData" class="detail-content content-wrapper">
 
-      <!-- ========== 订单状态栏 ========== -->
-      <div class="status-bar" :class="[getStatusClass(orderData.status)]">
-        <div class="status-icon">
-          <i :class="getStatusIcon(orderData.status)"></i>
+      <!-- ========== 物流轨迹栏 ========== -->
+      <div class="logistics-bar" @click="viewLogistics" v-if="latestTrace">
+        <div class="logistics-icon">
+          <i class="fas fa-truck"></i>
         </div>
-        <div class="status-info">
-          <div class="status-text">
-            {{ getStatusText(orderData.status) }}
-            <span v-if="getOrderRefundStatus()" class="refund-status-badge" :class="getRefundBadgeClass()">
-              {{ getOrderRefundStatus() }}
-            </span>
-          </div>
-          <div class="status-desc">{{ getStatusDesc(orderData.status) }}</div>
+        <div class="logistics-content">
+          <span class="trace-text">{{ latestTrace.status || latestTrace.description }}</span>
+          <span class="trace-time">{{ formatDateTime(latestTrace.time) }}</span>
         </div>
-        <div class="status-time">
-          <span v-if="orderData.paidAt">支付时间：{{ formatDateTime(orderData.paidAt) }}</span>
-          <span v-if="orderData.shippedAt">发货时间：{{ formatDateTime(orderData.shippedAt) }}</span>
-        </div>
-      </div>
-
-      <!-- ========== 订单信息卡片 ========== -->
-      <div class="detail-card">
-        <div class="card-header">
-          <i class="fas fa-receipt"></i>
-          <span class="card-title">订单信息</span>
-        </div>
-        <div class="card-body">
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">订单号：</span>
-              <span class="info-value">{{ orderData.orderNumber }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">创建时间：</span>
-              <span class="info-value">{{ formatDateTime(orderData.createdAt) }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">支付方式：</span>
-              <span class="info-value">{{ getPaymentMethodText(orderData.paymentMethod) }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">交易单号：</span>
-              <span class="info-value">{{ orderData.transactionId || '-' }}</span>
-            </div>
-            </div>
+        <div class="logistics-arrow">
+          <i class="fas fa-chevron-right"></i>
         </div>
       </div>
 
       <!-- ========== 收货信息卡片 ========== -->
-      <div class="detail-card">
-        <div class="card-header">
+      <div class="address-card" v-if="addressData">
+        <div class="address-icon">
           <i class="fas fa-map-marker-alt"></i>
-          <span class="card-title">收货信息</span>
         </div>
-        <div class="card-body">
-          <div class="address-info" v-if="addressData">
-            <div class="address-line">
-              <span class="address-label">收件人：</span>
-              <span>{{ addressData.recipientName }}</span>
-            </div>
-            <div class="address-line">
-              <span class="address-label">联系电话：</span>
-              <span>{{ addressData.recipientPhone }}</span>
-            </div>
-            <div class="address-line">
-              <span class="address-label">收货地址：</span>
-              <span>{{ formatAddress(addressData) }}</span>
-            </div>
-            <div class="address-line" v-if="addressData.label">
-              <span class="address-label">地址标签：</span>
-              <span class="address-tag">{{ addressData.label }}</span>
-            </div>
+        <div class="address-content">
+          <div class="address-detail" @click="copyAddress">
+            {{ formatAddress(addressData) }}
+            <i class="fas fa-copy copy-icon"></i>
           </div>
-          <div v-else class="no-address">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>暂无收货地址信息</span>
+          <div class="phone-row">
+            <span>{{ addressData.recipientName }}</span>
+            <span class="phone">{{ showFullPhone ? addressData.recipientPhone : formatPhone(addressData.recipientPhone) }}</span>
+            <button class="eye-btn" @click="showFullPhone = !showFullPhone">
+              <i :class="showFullPhone ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
+            </button>
+            <span class="privacy-tip">保护手机号码</span>
           </div>
         </div>
       </div>
-
-      <!-- ========== 物流信息卡片 ========== -->
-      <div class="detail-card" v-if="orderData.status === 'SHIPPED' || orderData.status === 'DELIVERED' || orderData.status === 'COMPLETED'">
-        <div class="card-header">
-          <i class="fas fa-truck"></i>
-          <span class="card-title">物流信息</span>
-          <button class="btn-link" @click="viewLogistics">查看物流详情</button>
+      <div v-else class="address-card empty">
+        <div class="address-icon">
+          <i class="fas fa-map-marker-alt"></i>
         </div>
-        <div class="card-body">
-          <div class="logistics-info">
-            <div class="logistics-item">
-              <span class="logistics-label">物流公司：</span>
-              <span class="logistics-value">{{ orderData.logisticsName || '-' }}</span>
-            </div>
-            <div class="logistics-item">
-              <span class="logistics-label">物流单号：</span>
-              <span class="logistics-value">{{ orderData.trackingNumber || '-' }}</span>
-            </div>
-            <div class="logistics-item">
-              <span class="logistics-label">发货时间：</span>
-              <span class="logistics-value">{{ formatDateTime(orderData.shippedAt) }}</span>
-            </div>
-            <div class="logistics-item" v-if="orderData.deliveredAt">
-              <span class="logistics-label">签收时间：</span>
-              <span class="logistics-value">{{ formatDateTime(orderData.deliveredAt) }}</span>
-            </div>
-          </div>
+        <div class="address-content">
+          <div class="address-detail">暂无收货地址</div>
         </div>
       </div>
 
-      <!-- ========== 商品列表卡片 ========== -->
+      <!-- ========== 商品清单卡片 ========== -->
       <div class="detail-card">
         <div class="card-header">
           <i class="fas fa-boxes"></i>
@@ -166,8 +98,7 @@
         <div class="card-body no-padding">
           <div class="product-list">
             <div v-for="item in orderItems" :key="item.id" class="product-item">
-              <img :src="item.productImage || '/images/default-product.png'" class="product-image"
-                @click="viewProduct(item.productId)">
+              <img :src="item.productImage || defaultProductImage" class="product-image" @click="previewProductImage(orderItems, item.productImage)">
               <div class="product-info">
                 <div class="product-name">{{ item.productName }}</div>
                 <div class="tags-group">
@@ -176,49 +107,74 @@
                 </div>
               </div>
               <div class="product-right">
+                <button
+                  v-if="item.refundStatus"
+                  class="action-btn outline refund-btn"
+                  @click="viewAfterSale(item)"
+                >
+                  查看售后
+                </button>
                 <div class="product-price">¥{{ formatPrice(item.price) }}</div>
-                <div v-if="item.refundStatus" class="refund-status-container">
-                  <span
-                    v-if="isAfterSaleApproved(item)"
-                    class="refund-status-tag tag-waiting-return"
-                  >等待买家退货</span>
-                  <span
-                    v-else-if="item.returnStatus === 'RETURNING'"
-                    class="refund-status-tag tag-returning"
-                  >退货中</span>
-                  <span
-                    v-else-if="item.returnStatus === 'RECEIVED'"
-                    class="refund-status-tag tag-completed"
-                  >已完成</span>
-                  <button
-                    v-else
-                    class="btn-refund-status"
-                    :class="getRefundBtnClass(item.refundStatus)"
-                    @click="viewRefundProgress(item)"
-                  >
-                    {{ getRefundBtnText(item.refundStatus) }}
-                  </button>
-                  <button
-                    v-if="item.returnStatus === 'RETURNING'"
-                    class="btn-refund-status btn-view-logistics"
-                    @click="viewReturnLogistics(item)"
-                  >
-                    <i class="fas fa-truck"></i>
-                    查看退货物流
-                  </button>
-                </div>
               </div>
             </div>
-            <div class="product-list-footer">
-              <div class="amount-row">
-                <span class="amount-label">商品总额：</span>
-                <span class="amount-value">¥{{ formatPrice(orderData.totalAmount) }}</span>
-              </div>
-              <div class="amount-row total-row">
-                <span class="amount-label">实付款：</span>
-                <span class="amount-value total-price">¥{{ formatPrice(orderData.totalAmount) }}</span>
-              </div>
-            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== 金额汇总卡片 ========== -->
+      <div class="amount-card">
+        <div class="amount-row">
+          <span class="amount-label">商品总额</span>
+          <span class="amount-value">¥{{ formatPrice(orderData.totalAmount) }}</span>
+        </div>
+        <div class="amount-row total">
+          <span class="amount-label">实付款</span>
+          <span class="amount-value total-price">¥{{ formatPrice(orderData.totalAmount) }}</span>
+        </div>
+      </div>
+
+      <!-- ========== 订单信息卡片（折叠） ========== -->
+      <div class="detail-card collapse-card">
+        <div class="collapse-header" @click="orderInfoCollapsed = !orderInfoCollapsed">
+          <div class="card-header">
+            <i class="fas fa-file-alt"></i>
+            <span class="card-title">订单信息</span>
+          </div>
+          <i class="fas" :class="orderInfoCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+        </div>
+        <div class="collapse-content" v-show="!orderInfoCollapsed">
+          <div class="info-row">
+            <span class="info-label">订单号：</span>
+            <span class="info-value copy-value">
+              {{ orderData.orderNumber }}
+              <button class="copy-btn" @click="copyOrderInfo">
+                <i class="fas fa-copy"></i>
+              </button>
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">支付方式：</span>
+            <span class="info-value">{{ getPaymentMethodText(orderData.paymentMethod) }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">下单时间：</span>
+            <span class="info-value">{{ formatDateTime(orderData.createdAt) }}</span>
+          </div>
+          <div v-if="orderData.paidAt" class="info-row">
+            <span class="info-label">支付时间：</span>
+            <span class="info-value">{{ formatDateTime(orderData.paidAt) }}</span>
+          </div>
+          <div v-if="orderData.processingAt" class="info-row">
+            <span class="info-label">处理时间：</span>
+            <span class="info-value">{{ formatDateTime(orderData.processingAt) }}</span>
+          </div>
+          <div v-if="orderData.shippedAt" class="info-row">
+            <span class="info-label">发货时间：</span>
+            <span class="info-value">{{ formatDateTime(orderData.shippedAt) }}</span>
+          </div>
+          <div v-if="orderData.completedAt" class="info-row">
+            <span class="info-label">完成时间：</span>
+            <span class="info-value">{{ formatDateTime(orderData.completedAt) }}</span>
           </div>
         </div>
       </div>
@@ -228,11 +184,27 @@
     </div>
 
     <!-- ========== 底部固定操作栏 ========== -->
-    <div v-if="showBottomBar" class="bottom-action-bar">
-      <button v-if="orderData?.status === 'PENDING'" class="btn-danger" @click="cancelOrder">取消订单</button>
-      <button v-if="orderData?.status === 'PAID'" class="btn-primary" @click="processOrder">处理订单</button>
-      <button v-if="orderData?.status === 'PROCESSING'" class="btn-primary" @click="openShipDialog">发货</button>
-      <button v-if="orderData?.status === 'SHIPPED'" class="btn-outline" @click="viewLogistics">查看物流</button>
+    <div v-if="showBottomBar" class="order-footer">
+      <div class="order-actions">
+        <!-- 联系买家 -->
+        <button class="btn-outline" @click="contactBuyer">
+          <i class="fas fa-headset"></i>
+          <span>联系买家</span>
+        </button>
+
+        <!-- PAID：处理订单 -->
+        <template v-if="orderData?.status === 'PAID'">
+          <button class="btn-outline" @click="processOrder">处理订单</button>
+        </template>
+        <!-- PROCESSING：发货 -->
+        <template v-if="orderData?.status === 'PROCESSING'">
+          <button class="btn-outline" @click="openShipDialog">发货</button>
+        </template>
+        <!-- SHIPPED：查看物流 -->
+        <template v-if="orderData?.status === 'SHIPPED'">
+          <button class="btn-outline" @click="viewLogistics">查看物流</button>
+        </template>
+      </div>
     </div>
 
     <!-- ========== 发货弹窗 ========== -->
@@ -240,19 +212,12 @@
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3>发货</h3>
-          <button class="modal-close" @click="closeShipDialog">
-            <i class="fas fa-times"></i>
-          </button>
+          <button class="modal-close" @click="closeShipDialog"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label required">物流单号</label>
-            <input
-              type="text"
-              v-model="shipForm.trackingNumber"
-              class="form-control"
-              placeholder="请输入物流单号"
-            >
+            <input type="text" v-model="shipForm.trackingNumber" class="form-control" placeholder="请输入物流单号" />
           </div>
           <div class="form-group">
             <label class="form-label required">物流公司</label>
@@ -270,618 +235,732 @@
         </div>
         <div class="modal-footer">
           <button class="btn-cancel" @click="closeShipDialog">取消</button>
-          <button class="btn-confirm" @click="confirmShip" :disabled="submitting">
-            {{ submitting ? '发货中...' : '确认发货' }}
+          <button class="btn-confirm" @click="confirmShip" :disabled="submitting">{{ submitting ? '发货中...' : '确认发货' }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 退款记录选择弹窗 -->
+    <div v-if="showRefundSelectDialog" class="modal-overlay" @click="closeRefundSelectDialog">
+      <div class="modal-content refund-selector-dialog" @click.stop>
+        <div class="dialog-header">
+          <span>选择退款项</span>
+          <button class="dialog-close" @click="closeRefundSelectDialog">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="dialog-body">
+          <div v-if="refundRecords.length === 0" class="empty-records">
+            暂无退款记录
+          </div>
+          <div v-else class="record-list">
+            <div
+              v-for="(record, index) in refundRecords"
+              :key="record.id"
+              class="record-item refund-record-item"
+              :class="{ selected: selectedRefundId === record.id }"
+              @click="selectedRefundId = record.id"
+            >
+              <div class="record-left">
+                <div class="record-title">
+                  第{{ refundRecords.length - index }}次申请
+                </div>
+                <div class="record-meta">
+                  <span>{{ record.refundType === 'REFUND' ? '仅退款' : '退货退款' }}</span>
+                  <span class="meta-divider">·</span>
+                  <span>{{ getRefundStatusText(record.refundStatus, record.returnStatus) }}</span>
+                </div>
+                <div class="record-time">{{ formatDateTime(record.applyTime) }}</div>
+              </div>
+              <div class="record-right">
+                <div class="record-amount">¥{{ formatPrice(record.refundAmount) }}</div>
+                <div class="record-radio">
+                  <i v-if="selectedRefundId === record.id" class="fas fa-check-circle"></i>
+                  <i v-else class="far fa-circle"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn-cancel" @click="closeRefundSelectDialog">取消</button>
+          <button class="btn-confirm" @click="confirmSelectRefund" :disabled="!selectedRefundId">
+            确认查看
           </button>
         </div>
       </div>
     </div>
+
+    <!-- 图片预览组件 -->
+    <ImagePreview
+      v-if="showImagePreview"
+      :mediaList="previewMediaList"
+      :currentIndex="previewCurrentIndex"
+      @close="showImagePreview = false"
+      @update:index="previewCurrentIndex = $event"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
-  import { authAPI } from '@/api/authAPI'
-  import Message from '@/utils/message'
-  import { useAuthStore } from '@/stores/auth'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { authAPI } from '@/api/authAPI'
+import Message from '@/utils/message'
+import { useAuthStore } from '@/stores/auth'
+import ImagePreview from '@/components/ImagePreview.vue'
+import sellerDefaultAvatar from '@/static/images/seller-avatar.jpg'
+import defaultProductImage from '@/static/images/云杉购图标.jpg'
 
-  const route = useRoute()
-  const router = useRouter()
-  const authStore = useAuthStore()
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
 
-  // ==================== 类型定义 ====================
+// ==================== 类型定义 ====================
 
-  type OrderStatus = 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED'
-  type PaymentMethod = 'ALIPAY' | 'WECHAT'
-  type OrderSource = 'cart' | 'product'
+type OrderStatus = 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'COMPLETED' | 'CANCELLED'
+type PaymentMethod = 'ALIPAY' | 'WECHAT'
+type OrderSource = 'cart' | 'product'
 
-  interface Address {
-    id: number
-    userId: number
-    recipientName: string
-    recipientPhone: string
-    province: string
-    city: string
-    district: string
-    detailAddress: string
-    label: string
-    isDefault: boolean
-    createdAt: string
-    updatedAt: string
+interface Address {
+  id: number
+  userId: number
+  recipientName: string
+  recipientPhone: string
+  province: string
+  city: string
+  district: string
+  detailAddress: string
+  label: string
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+interface OrderItem {
+  id: number
+  orderId: number
+  productId: number
+  sellerId: number
+  productName: string
+  productImage: string
+  quantity: number
+  price: number
+  totalPrice: number
+  isReviewed: boolean
+  reviewedAt: string | null
+  createdAt: string
+  refundStatus?: string
+  skuName?: string
+  refundType?: string
+  returnStatus?: string
+}
+
+interface RefundRecord {
+  id: number
+  refundStatus: string
+  refundAmount: number
+  applyTime: string
+  refundType: string
+  returnStatus?: string
+  isActive?: boolean
+}
+
+interface Order {
+  id: number
+  orderNumber: string
+  userId: number
+  totalAmount: number
+  status: OrderStatus
+  source: OrderSource
+  addressId: number
+  paymentMethod: PaymentMethod | null
+  transactionId: string | null
+  paidAt: string | null
+  processingAt: string | null
+  trackingNumber: string | null
+  logisticsCode: string | null
+  logisticsName: string | null
+  shippedAt: string | null
+  completedAt: string | null
+  createdAt: string
+  updatedAt: string
+  isDeleted: boolean
+  sellerName?: string
+  sellerAvatar?: string
+}
+
+interface OrderDetailData {
+  order: Order
+  orderItems: OrderItem[]
+  address: Address
+  sellerName?: string
+  sellerAvatar?: string
+}
+
+/** 物流轨迹 */
+interface LogisticsTrace {
+  time: string
+  description: string
+  status: string
+  location: string
+}
+
+/** 物流信息响应 */
+interface LogisticsInfo {
+  traces: LogisticsTrace[]
+  tracesCopy?: LogisticsTrace[]
+}
+
+interface ShipForm {
+  trackingNumber: string
+  logisticsCode: string
+}
+
+interface StatusConfig {
+  text: string
+  desc: string
+  icon: string
+  class: string
+}
+
+// ==================== 响应式数据 ====================
+
+const loading = ref(true)
+const submitting = ref(false)
+const showShipDialog = ref(false)
+
+const orderData = ref<Order | null>(null)
+const orderItems = ref<OrderItem[]>([])
+const addressData = ref<Address | null>(null)
+
+const shipForm = ref<ShipForm>({
+  trackingNumber: '',
+  logisticsCode: ''
+})
+
+const showImagePreview = ref(false)
+const previewCurrentIndex = ref(0)
+const previewMediaList = ref<{ type: 'image' | 'video'; url: string; cover?: string }[]>([])
+
+// 物流信息
+const latestTrace = ref<LogisticsTrace | null>(null)
+
+// 折叠状态
+const orderInfoCollapsed = ref(true)
+const logisticsCollapsed = ref(true)
+
+// 手机号显示状态（默认隐匿）
+const showFullPhone = ref(false)
+
+// 退款记录选择弹窗
+const showRefundSelectDialog = ref(false)
+const refundRecords = ref<RefundRecord[]>([])
+const currentOrderItemId = ref<number | null>(null)
+const selectedRefundId = ref<number | null>(null)
+
+// ==================== 计算属性 ====================
+
+/**
+ * 判断是否显示底部操作栏
+ * PENDING - 取消订单
+ * PAID - 处理订单
+ * PROCESSING - 发货
+ * SHIPPED - 查看物流
+ * 其他状态 - 不显示
+ */
+const showBottomBar = computed(() => {
+  if (!orderData.value) return false
+  return true
+})
+
+// ==================== 静态配置 ====================
+
+const logisticsMap: Record<string, string> = {
+  SF: '顺丰速运',
+  YTO: '圆通速递',
+  ZTO: '中通快递',
+  EMS: '邮政EMS',
+  YD: '韵达快递',
+  STO: '申通快递',
+  JT: '极兔速递'
+}
+
+const statusConfig: Record<OrderStatus, StatusConfig> = {
+  PENDING: {
+    text: '待付款',
+    desc: '等待买家付款',
+    icon: 'fas fa-clock',
+    class: 'status-pending'
+  },
+  PAID: {
+    text: '待发货',
+    desc: '买家已付款，请及时处理',
+    icon: 'fas fa-check-circle',
+    class: 'status-paid'
+  },
+  PROCESSING: {
+    text: '待发货',
+    desc: '订单已确认，正在备货中',
+    icon: 'fas fa-spinner',
+    class: 'status-processing'
+  },
+  SHIPPED: {
+    text: '待收货',
+    desc: '商品已发出，等待买家收货',
+    icon: 'fas fa-truck',
+    class: 'status-shipped'
+  },
+  COMPLETED: {
+    text: '已完成',
+    desc: '订单已完成，感谢您的支持',
+    icon: 'fas fa-check-double',
+    class: 'status-completed'
+  },
+  CANCELLED: {
+    text: '已取消',
+    desc: '订单已取消',
+    icon: 'fas fa-times-circle',
+    class: 'status-cancelled'
   }
+}
 
-  interface OrderItem {
-    id: number
-    orderId: number
-    productId: number
-    sellerId: number
-    productName: string
-    productImage: string
-    quantity: number
-    price: number
-    totalPrice: number
-    isReviewed: boolean
-    reviewedAt: string | null
-    createdAt: string
-    refundStatus?: string
-    refundId?: number
-    skuName?: string
-    refundType?: string
-    returnStatus?: string
-  }
+const paymentMethodMap: Record<PaymentMethod, string> = {
+  ALIPAY: '支付宝',
+  WECHAT: '微信支付'
+}
 
-  interface Order {
-    id: number
-    orderNumber: string
-    userId: number
-    totalAmount: number
-    status: OrderStatus
-    source: OrderSource
-    addressId: number
-    paymentMethod: PaymentMethod | null
-    transactionId: string | null
-    paidAt: string | null
-    trackingNumber: string | null
-    logisticsCode: string | null
-    logisticsName: string | null
-    shippedAt: string | null
-    deliveredAt: string | null
-    completedAt: string | null
-    createdAt: string
-    updatedAt: string
-    isDeleted: boolean
-  }
+// ==================== 数据加载 ====================
 
-  interface OrderDetailData {
-    order: Order
-    orderItems: OrderItem[]
-    address: Address
-  }
+/**
+ * 加载订单详情
+ * @returns {Promise<void>}
+ */
+const loadOrderDetail = async (): Promise<void> => {
+  loading.value = true
 
-  interface ShipForm {
-    trackingNumber: string
-    logisticsCode: string
-  }
+  try {
+    const orderId = route.params.id
 
-  interface StatusConfig {
-    text: string
-    desc: string
-    icon: string
-    class: string
-  }
-
-  // ==================== 响应式数据 ====================
-
-  const loading = ref(true)
-  const submitting = ref(false)
-  const showShipDialog = ref(false)
-
-  const orderData = ref<Order | null>(null)
-  const orderItems = ref<OrderItem[]>([])
-  const addressData = ref<Address | null>(null)
-
-  const shipForm = ref<ShipForm>({
-    trackingNumber: '',
-    logisticsCode: ''
-  })
-
-  // ==================== 计算属性 ====================
-
-  /**
-   * 判断是否显示底部操作栏
-   * PENDING - 取消订单
-   * PAID - 处理订单
-   * PROCESSING - 发货
-   * SHIPPED - 查看物流
-   * 其他状态 - 不显示
-   */
-  const showBottomBar = computed(() => {
-    if (!orderData.value) return false
-    const status = orderData.value.status
-    return status === 'PENDING' || status === 'PAID' || status === 'PROCESSING' || status === 'SHIPPED'
-  })
-
-  // ==================== 静态配置 ====================
-
-  const logisticsMap: Record<string, string> = {
-    SF: '顺丰速运',
-    YTO: '圆通速递',
-    ZTO: '中通快递',
-    EMS: '邮政EMS',
-    YD: '韵达快递',
-    STO: '申通快递',
-    JT: '极兔速递'
-  }
-
-  const statusConfig: Record<OrderStatus, StatusConfig> = {
-    PENDING: {
-      text: '待付款',
-      desc: '等待买家付款',
-      icon: 'fas fa-clock',
-      class: 'status-pending'
-    },
-    PAID: {
-      text: '已付款',
-      desc: '买家已付款，请及时处理',
-      icon: 'fas fa-check-circle',
-      class: 'status-paid'
-    },
-    PROCESSING: {
-      text: '处理中',
-      desc: '订单已确认，正在备货中',
-      icon: 'fas fa-spinner',
-      class: 'status-processing'
-    },
-    SHIPPED: {
-      text: '已发货',
-      desc: '商品已发出，等待买家收货',
-      icon: 'fas fa-truck',
-      class: 'status-shipped'
-    },
-    DELIVERED: {
-      text: '已送达',
-      desc: '商品已送达，请等待买家确认',
-      icon: 'fas fa-home',
-      class: 'status-delivered'
-    },
-    COMPLETED: {
-      text: '已完成',
-      desc: '订单已完成，感谢您的支持',
-      icon: 'fas fa-check-double',
-      class: 'status-completed'
-    },
-    CANCELLED: {
-      text: '已取消',
-      desc: '订单已取消',
-      icon: 'fas fa-times-circle',
-      class: 'status-cancelled'
-    },
-    REFUNDED: {
-      text: '已退款',
-      desc: '订单已退款',
-      icon: 'fas fa-undo-alt',
-      class: 'status-refunded'
+    if (!orderId) {
+      Message.error('订单ID不存在')
+      router.push({ name: 'SellerOrders' })
+      return
     }
-  }
 
-  const paymentMethodMap: Record<PaymentMethod, string> = {
-    ALIPAY: '支付宝',
-    WECHAT: '微信支付'
-  }
+    const response = await authAPI.getSellerOrderDetail(Number(orderId))
 
-  // ==================== 数据加载 ====================
+    if (response.success && response.data?.orderDetail) {
+      const data = response.data.orderDetail as OrderDetailData
 
-  /**
-   * 加载订单详情
-   * @returns {Promise<void>}
-   */
-  const loadOrderDetail = async (): Promise<void> => {
-    loading.value = true
-
-    try {
-      const orderId = route.params.id
-
-      if (!orderId) {
-        Message.error('订单ID不存在')
-        router.push({ name: 'SellerOrders' })
-        return
+      orderData.value = {
+        ...data.order,
+        sellerName: data.sellerName,
+        sellerAvatar: data.sellerAvatar
       }
+      orderItems.value = data.orderItems.map(item => ({
+        ...item,
+        totalPrice: item.price * item.quantity
+      }))
+      addressData.value = data.address
 
-      const response = await authAPI.getSellerOrderDetail(Number(orderId))
+      // 加载物流信息
+      await loadLogisticsInfo()
+    } else {
+      Message.error(response.message || '获取订单详情失败')
+    }
+  } catch (error: any) {
+    Message.error(error.message || '加载失败')
+  } finally {
+    loading.value = false
+  }
+}
 
-      if (response.success && response.data?.orderDetail) {
-        const data = response.data.orderDetail as OrderDetailData
+/**
+ * 加载物流信息
+ * @returns {Promise<void>}
+ */
+const loadLogisticsInfo = async (): Promise<void> => {
+  if (!orderData.value?.id) return
 
-        orderData.value = data.order
-        orderItems.value = data.orderItems.map(item => ({
-          ...item,
-          totalPrice: item.price * item.quantity
-        }))
-        addressData.value = data.address
+  const status = orderData.value.status
+
+  if (status === 'PENDING') {
+    latestTrace.value = {
+      status: '订单已创建，等待付款',
+      time: orderData.value.createdAt || '',
+      description: '',
+      location: ''
+    }
+  } else {
+    try {
+      const response = await authAPI.getLogisticsInfo(orderData.value.id)
+      if (response.success) {
+        const traces = response.data?.traces
+                    || response.data?.logistics?.traces
+                    || response.data?.result?.traces
+                    || response.data?.result?.logistics?.traces
+        if (traces && traces.length > 0) {
+          latestTrace.value = traces[0]
+        } else {
+          latestTrace.value = {
+            status: getDefaultTraceStatus(status),
+            time: orderData.value.shippedAt || orderData.value.paidAt || orderData.value.createdAt || '',
+            description: '',
+            location: ''
+          }
+        }
       } else {
-        Message.error(response.message || '获取订单详情失败')
-      }
-    } catch (error: any) {
-      Message.error(error.message || '加载失败')
-    } finally {
-      loading.value = false
-    }
-  }
-
-
-
-  // ==================== 订单操作 ====================
-
-  /**
-   * 处理订单（PAID → PROCESSING）
-   * @returns {Promise<void>}
-   */
-  const processOrder = async (): Promise<void> => {
-    try {
-      await Message.confirm('确定要处理该订单吗？处理后将进入备货状态。', '处理订单')
-
-      const response = await authAPI.processOrder(orderData.value!.id)
-
-      if (response.success) {
-        Message.success('订单已处理')
-        await loadOrderDetail()
-      }
-    } catch (error: any) {
-      if (error !== 'cancel') {
-        Message.error(error.message || '操作失败')
-      }
-    }
-  }
-
-  /**
-   * 取消订单
-   * @returns {Promise<void>}
-   */
-  const cancelOrder = async (): Promise<void> => {
-    try {
-      await Message.confirm('确定要取消该订单吗？', '取消订单')
-
-      const response = await authAPI.cancelOrder(orderData.value!.id)
-
-      if (response.success) {
-        Message.success('取消成功')
-        await loadOrderDetail()
-      }
-    } catch (error: any) {
-      if (error !== 'cancel') {
-        Message.error(error.message || '操作失败')
-      }
-    }
-  }
-
-  // ==================== 发货相关 ====================
-
-  const openShipDialog = (): void => {
-    shipForm.value = { trackingNumber: '', logisticsCode: '' }
-    showShipDialog.value = true
-  }
-
-  const closeShipDialog = (): void => {
-    showShipDialog.value = false
-    shipForm.value = { trackingNumber: '', logisticsCode: '' }
-  }
-
-  /**
-   * 确认发货
-   * @returns {Promise<void>}
-   */
-  const confirmShip = async (): Promise<void> => {
-    if (!shipForm.value.trackingNumber.trim()) {
-      Message.error('请输入物流单号')
-      return
-    }
-
-    if (!shipForm.value.logisticsCode) {
-      Message.error('请选择物流公司')
-      return
-    }
-
-    submitting.value = true
-
-    try {
-      const data = {
-        trackingNumber: shipForm.value.trackingNumber,
-        logisticsCode: shipForm.value.logisticsCode,
-        logisticsName: logisticsMap[shipForm.value.logisticsCode] || ''
-      }
-
-      const orderId = orderData.value?.id
-      if (!orderId) {
-        Message.error('订单信息不存在')
-        return
-      }
-      const response = await authAPI.shipOrder(orderId, data)
-
-      if (response.success) {
-        Message.success('发货成功')
-        closeShipDialog()
-        await loadOrderDetail()
-      }
-    } catch (error: any) {
-      Message.error(error.message || '发货失败')
-    } finally {
-      submitting.value = false
-    }
-  }
-
-  // ==================== 页面跳转 ====================
-
-  const viewLogistics = (): void => {
-    router.push({
-      name: 'SellerLogistics',
-      query: { orderId: orderData.value?.id }
-    })
-  }
-
-  /**
-   * 查看退款进度
-   * @param item - 订单商品项
-   */
-  const viewRefundProgress = async (item: OrderItem): Promise<void> => {
-    if (!item.refundId) {
-      Message.error('退款记录不存在')
-      return
-    }
-
-    try {
-      const response = await authAPI.getRefundDetail(item.refundId)
-
-      if (response.success && response.data) {
-        const refundData = response.data
-
-        if (refundData.refundType === 'AFTER_SALE' &&
-            refundData.refundStatus === 'APPROVED' &&
-            (!refundData.returnStatus || refundData.returnStatus === 'NULL' || refundData.returnStatus === null)) {
-          router.push({
-            name: 'ReturnGoods',
-            query: {
-              refundId: String(item.refundId),
-              orderItemId: String(item.id)
-            }
-          })
-          return
-        }
-
-        if (refundData.returnStatus === 'RETURNING' && refundData.returnTrackingNumber) {
-          router.push({
-            name: 'SellerLogistics',
-            query: {
-              trackingNumber: refundData.returnTrackingNumber,
-              logisticsName: refundData.returnLogisticsName,
-              refundId: String(item.refundId)
-            }
-          })
-          return
-        }
+        latestTrace.value = null
       }
     } catch (error) {
-      console.error('获取退款详情失败', error)
+      console.error('加载物流信息失败', error)
+      latestTrace.value = null
+    }
+  }
+}
+
+/**
+ * 获取默认物流节点文案
+ * @param {string} status - 订单状态
+ * @returns {string}
+ */
+const getDefaultTraceStatus = (status: string): string => {
+  switch (status) {
+    case 'PENDING':
+      return '等待买家付款'
+    case 'PAID':
+      return '订单已支付，等待商家处理'
+    case 'PROCESSING':
+      return '商家正在备货中'
+    case 'SHIPPED':
+      return '订单待收货'
+    case 'COMPLETED':
+      return '订单已完成'
+    case 'CANCELLED':
+      return '订单已取消'
+    default:
+      return '订单已提交'
+  }
+}
+
+
+// ==================== 订单操作 ====================
+
+/**
+ * 处理订单（PAID → PROCESSING）
+ * @returns {Promise<void>}
+ */
+const processOrder = async (): Promise<void> => {
+  try {
+    await Message.confirm('确定要处理该订单吗？处理后将进入备货状态。', '处理订单')
+
+    const response = await authAPI.processOrder(orderData.value!.id)
+
+    if (response.success) {
+      Message.success('订单已处理')
+      await loadOrderDetail()
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      Message.error(error.message || '操作失败')
+    }
+  }
+}
+
+/**
+ * 取消订单
+ * @returns {Promise<void>}
+ */
+const cancelOrder = async (): Promise<void> => {
+  try {
+    await Message.confirm('确定要取消该订单吗？', '取消订单')
+
+    const response = await authAPI.cancelOrder(orderData.value!.id)
+
+    if (response.success) {
+      Message.success('取消成功')
+      await loadOrderDetail()
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      Message.error(error.message || '操作失败')
+    }
+  }
+}
+
+// ==================== 发货相关 ====================
+
+const openShipDialog = (): void => {
+  shipForm.value = { trackingNumber: '', logisticsCode: '' }
+  showShipDialog.value = true
+}
+
+const closeShipDialog = (): void => {
+  showShipDialog.value = false
+  shipForm.value = { trackingNumber: '', logisticsCode: '' }
+}
+
+/**
+ * 确认发货
+ * @returns {Promise<void>}
+ */
+const confirmShip = async (): Promise<void> => {
+  const trackingNumber = shipForm.value.trackingNumber.trim()
+
+  if (!trackingNumber) {
+    Message.error('请输入物流单号')
+    return
+  }
+
+  if (!/^[a-zA-Z0-9-]{8,30}$/.test(trackingNumber)) {
+    Message.error('物流单号格式不正确（8-30位字母数字或-）')
+    return
+  }
+
+  if (!shipForm.value.logisticsCode) {
+    Message.error('请选择物流公司')
+    return
+  }
+
+  submitting.value = true
+
+  try {
+    const data = {
+      trackingNumber: shipForm.value.trackingNumber,
+      logisticsCode: shipForm.value.logisticsCode,
+      logisticsName: logisticsMap[shipForm.value.logisticsCode] || ''
     }
 
-    router.push({ name: 'RefundChat', params: { refundId: String(item.refundId) } })
-  }
-
-  const viewProduct = (productId: number): void => {
-    router.push({ name: 'ProductDetail', params: { productId } })
-  }
-
-  const goBack = (): void => {
-    router.back()
-  }
-
-  // ==================== 工具函数 ====================
-
-  const getStatusConfig = (status: OrderStatus): StatusConfig => {
-    return statusConfig[status] || statusConfig.PENDING
-  }
-
-  const getStatusClass = (status: OrderStatus): string => {
-    return getStatusConfig(status).class
-  }
-
-  /**
-   * 判断是否为售后已同意状态
-   */
-  const isAfterSaleApproved = (item: OrderItem): boolean => {
-    return item.refundType === 'AFTER_SALE' &&
-           (item.refundStatus === 'APPROVED' || item.refundStatus === 'WAITING_RETURN') &&
-           (!item.returnStatus || item.returnStatus === 'NULL' || item.returnStatus === 'NONE')
-  }
-
-  /**
-   * 查看退货物流
-   */
-  const viewReturnLogistics = (item: OrderItem): void => {
-    if (!item.refundId) {
-      Message.error('退款记录不存在')
+    const orderId = orderData.value?.id
+    if (!orderId) {
+      Message.error('订单信息不存在')
       return
     }
-    router.push({
-      name: 'SellerLogistics',
-      query: {
-        refundId: String(item.refundId),
-        type: 'return'
+    const response = await authAPI.shipOrder(orderId, data)
+
+    if (response.success) {
+      Message.success('发货成功')
+      closeShipDialog()
+      await loadOrderDetail()
+    }
+  } catch (error: any) {
+    Message.error(error.message || '发货失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+// ==================== 页面跳转 ====================
+
+const viewLogistics = (): void => {
+  const orderId = orderData.value?.id
+  const userId = orderData.value?.userId
+  router.push({
+    name: 'SellerLogistics',
+    query: {
+      orderId: String(orderId),
+      userId: String(userId)
+    }
+  })
+}
+
+/**
+ * 查看退款进度
+ * @param item - 订单商品项
+ */
+const viewProduct = (productId: number): void => {
+  router.push({ name: 'ProductDetail', params: { productId } })
+}
+
+/**
+ * 查看售后 - 获取退款记录列表，支持多记录选择
+ */
+const viewAfterSale = async (item: OrderItem): Promise<void> => {
+  try {
+    const response = await authAPI.getSellerRefundsByOrderItem(item.id)
+    if (response.success && response.data) {
+      const records = response.data as RefundRecord[]
+      if (records.length === 0) {
+        Message.error('暂无退款记录')
+        return
       }
-    })
-  }
-
-  /**
-   * 获取订单整体退款状态
-   * @returns {string | null} 退款状态文本或null
-   */
-  const getOrderRefundStatus = (): string | null => {
-    const items = orderItems.value || []
-    if (items.length === 0) return null
-
-    const hasAfterSaleApproved = items.some(item => isAfterSaleApproved(item))
-    const hasReturning = items.some(item => item.returnStatus === 'RETURNING')
-    const hasReceived = items.some(item => item.returnStatus === 'RECEIVED')
-
-    const refundingCount = items.filter(item =>
-      (item.refundStatus as string) === 'REFUNDING' || (item.refundStatus as string) === 'AFTER_SALE' ||
-      (item.refundStatus as string) === 'WAITING_RETURN' || (item.refundStatus as string) === 'RETURNING' ||
-      (item.refundStatus as string) === 'APPROVED'
-    ).length
-    const refundedCount = items.filter(item => (item.refundStatus as string) === 'COMPLETED').length
-
-    if (hasAfterSaleApproved) return '等待买家退货'
-    if (hasReturning) return '退货中'
-    if (hasReceived) return '已完成'
-    if (refundingCount === items.length) return '退款中'
-    if (refundedCount === items.length) return '已退款'
-    if (refundingCount > 0 || refundedCount > 0) return '部分退款'
-    return null
-  }
-
-  /**
-   * 获取退款状态徽章样式类
-   * @returns {string} CSS类名
-   */
-  const getRefundBadgeClass = (): string => {
-    const items = orderItems.value || []
-    if (items.length === 0) return ''
-
-    const refundingCount = items.filter(item =>
-      (item.refundStatus as string) === 'REFUNDING' || (item.refundStatus as string) === 'AFTER_SALE' ||
-      (item.refundStatus as string) === 'WAITING_RETURN' || (item.refundStatus as string) === 'RETURNING' ||
-      (item.refundStatus as string) === 'APPROVED'
-    ).length
-    const refundedCount = items.filter(item => (item.refundStatus as string) === 'COMPLETED').length
-
-    if (refundingCount === items.length) return 'badge-refunding'
-    if (refundedCount === items.length) return 'badge-refunded'
-    return 'badge-partial-refund'
-  }
-
-  /**
-   * 获取退款状态样式类
-   */
-  const getRefundStatusClass = (refundStatus: string): string => {
-    const map: Record<string, string> = {
-      REFUNDING: 'refund-pending',
-      AFTER_SALE: 'refund-processing',
-      WAITING_RETURN: 'refund-waiting',
-      RETURNING: 'refund-waiting',
-      APPROVED: 'refund-approved',
-      COMPLETED: 'refund-completed',
-      FAILED: 'refund-failed'
+      // 无论几条记录，都弹窗让商家选择
+      refundRecords.value = records
+      selectedRefundId.value = records[0]?.id || null
+      showRefundSelectDialog.value = true
+    } else {
+      Message.error('暂无退款记录')
     }
-    return map[refundStatus] || ''
+  } catch (error) {
+    Message.error('获取退款记录失败')
   }
+}
 
-  /**
-   * 获取退款状态文本（商家端）
-   */
-  const getRefundStatusText = (refundStatus: string, refundType?: string, returnStatus?: string): string => {
-    if (refundType === 'AFTER_SALE' && refundStatus === 'PROCESSING') {
-      return '售后处理中'
-    }
-    if (refundType === 'AFTER_SALE' && refundStatus === 'APPROVED') {
-      return '等待买家退货'
-    }
-    if (returnStatus === 'RETURNING') {
-      return '退货中'
-    }
-    if (returnStatus === 'RECEIVED') {
-      return '已收货，退款中'
-    }
+/**
+ * 关闭退款记录选择弹窗
+ */
+const closeRefundSelectDialog = (): void => {
+  showRefundSelectDialog.value = false
+  refundRecords.value = []
+  selectedRefundId.value = null
+}
 
-    const map: Record<string, string> = {
-      REFUNDING: '退款中',
-      AFTER_SALE: '售后处理中',
-      WAITING_RETURN: '待退货',
-      RETURNING: '退货中',
-      RECEIVED: '已完成',
-      APPROVED: '已同意',
-      COMPLETED: '已完成',
-      FAILED: '已拒绝',
-      SUCCESS: '已完成'
-    }
-    return map[refundStatus] || refundStatus
+/**
+ * 确认选择退款记录并跳转
+ */
+const confirmSelectRefund = (): void => {
+  if (!selectedRefundId.value) return
+  showRefundSelectDialog.value = false
+  router.push({
+    name: 'RefundChatStep',
+    params: { refundId: String(selectedRefundId.value) }
+  })
+}
+
+/**
+ * 获取退款状态显示文字
+ */
+const getRefundStatusText = (status: string, returnStatus?: string): string => {
+  if (status === 'FAILED') return '已拒绝'
+  if (status === 'SUCCESS') return '已退款'
+  if (status === 'COMPLETED') return '已退款'
+  if (returnStatus === 'RETURNING') return '退货中'
+  if (returnStatus === 'RECEIVED') return '已收货'
+  const statusMap: Record<string, string> = {
+    'PROCESSING': '处理中',
+    'WAITING_RETURN': '待退货',
+    'RETURNING': '退货中',
+    'APPROVED': '已同意'
   }
+  return statusMap[status] || status
+}
 
-  const getRefundBtnClass = (status: string): string => {
-    const map: Record<string, string> = {
-      REFUNDING: 'btn-refunding',
-      AFTER_SALE: 'btn-after-sale',
-      WAITING_RETURN: 'btn-after-sale',
-      RETURNING: 'btn-receive-goods',
-      RECEIVED: 'btn-refund-done',
-      APPROVED: 'btn-after-sale',
-      COMPLETED: 'btn-refund-done',
-      FAILED: 'btn-refund-done'
-    }
-    return map[status] || ''
+const previewProductImage = (items: OrderItem[], clickedImage: string): void => {
+  previewMediaList.value = items.map(item => ({
+    type: 'image' as const,
+    url: item.productImage || defaultProductImage
+  }))
+  const index = previewMediaList.value.findIndex(item => item.url === clickedImage)
+  previewCurrentIndex.value = index >= 0 ? index : 0
+  showImagePreview.value = true
+}
+
+const goBack = (): void => {
+  router.back()
+}
+
+const contactBuyer = () => {
+  const userId = orderData.value?.userId
+  if (!userId) {
+    Message.error('无法获取买家信息')
+    return
   }
+  router.push({ name: 'Chat', params: { targetId: userId } })
+}
 
-  const getRefundBtnText = (status: string): string => {
-    const map: Record<string, string> = {
-      REFUNDING: '处理退款',
-      AFTER_SALE: '处理售后',
-      WAITING_RETURN: '等待买家退货',
-      RETURNING: '查看退货物流',
-      RECEIVED: '确认收货并退款',
-      APPROVED: '等待买家退货',
-      COMPLETED: '已退款',
-      FAILED: '查看退款'
-    }
-    return map[status] || ''
+// ==================== 工具函数 ====================
+
+const getStatusConfig = (status: OrderStatus): StatusConfig => {
+  return statusConfig[status] || statusConfig.PENDING
+}
+
+const getStatusClass = (status: OrderStatus): string => {
+  return getStatusConfig(status).class
+}
+
+const getStatusText = (status: OrderStatus): string => {
+  return getStatusConfig(status).text
+}
+
+const getStatusDesc = (status: OrderStatus): string => {
+  return getStatusConfig(status).desc
+}
+
+const getStatusIcon = (status: OrderStatus): string => {
+  return getStatusConfig(status).icon
+}
+
+const getPaymentMethodText = (method: PaymentMethod | null): string => {
+  if (!method) return '-'
+  return paymentMethodMap[method] || method
+}
+
+const formatPrice = (price: number): string => {
+  if (price == null) return '0.00'
+  return price.toFixed(2)
+}
+
+const formatDateTime = (dateStr: string | null): string => {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${d} ${h}:${min}`
+}
+
+const formatAddress = (address: Address | null): string => {
+  if (!address) return '-'
+  const parts = [address.province, address.city, address.district, address.detailAddress]
+  return parts.filter(p => p?.trim()).join(' ')
+}
+
+/**
+ * 格式化手机号（中间四位隐藏）
+ * @param {string} phone - 手机号
+ * @returns {string}
+ */
+const formatPhone = (phone: string): string => {
+  if (!phone) return ''
+  if (phone.length === 11) {
+    return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
   }
+  return phone
+}
 
-  const getStatusText = (status: OrderStatus): string => {
-    return getStatusConfig(status).text
-  }
+/**
+ * 复制收货地址
+ */
+const copyAddress = (): void => {
+  if (!addressData.value) return
+  const address = `${addressData.value.recipientName} ${addressData.value.recipientPhone}\n${formatAddress(addressData.value)}`
+  navigator.clipboard.writeText(address).then(() => {
+    Message.success('已复制')
+  }).catch(() => {
+    Message.error('复制失败')
+  })
+}
 
-  const getStatusDesc = (status: OrderStatus): string => {
-    return getStatusConfig(status).desc
-  }
+/**
+ * 复制订单信息
+ */
+const copyOrderInfo = (): void => {
+  if (!orderData.value) return
+  const info = `订单号：${orderData.value.orderNumber}\n下单时间：${formatDateTime(orderData.value.createdAt)}\n支付方式：${getPaymentMethodText(orderData.value.paymentMethod)}`
+  navigator.clipboard.writeText(info).then(() => {
+    Message.success('已复制')
+  }).catch(() => {
+    Message.error('复制失败')
+  })
+}
 
-  const getStatusIcon = (status: OrderStatus): string => {
-    return getStatusConfig(status).icon
-  }
+// ==================== 生命周期 ====================
 
-  const getPaymentMethodText = (method: PaymentMethod | null): string => {
-    if (!method) return '-'
-    return paymentMethodMap[method] || method
-  }
+const handleReturnSubmitted = () => {
+  loadOrderDetail()
+}
 
-  const formatPrice = (price: number): string => {
-    if (price == null) return '0.00'
-    return price.toFixed(2)
-  }
-
-  const formatDateTime = (dateStr: string | null): string => {
-    if (!dateStr) return '-'
-    try {
-      const date = new Date(dateStr)
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
-      return `${year}-${month}-${day} ${hours}:${minutes}`
-    } catch {
-      return '-'
-    }
-  }
-
-  const formatAddress = (address: Address | null): string => {
-    if (!address) return '-'
-    const parts = [address.province, address.city, address.district, address.detailAddress]
-    return parts.filter(p => p?.trim()).join(' ')
-  }
-
-  // ==================== 生命周期 ====================
-
-  onMounted(() => {
+onMounted(() => {
   if (!authStore.validateSellerPermission()) return
   loadOrderDetail()
+  window.addEventListener('return-submitted', handleReturnSubmitted)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('return-submitted', handleReturnSubmitted)
 })
 </script>
 

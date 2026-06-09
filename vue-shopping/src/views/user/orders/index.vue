@@ -5,7 +5,6 @@
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-clipboard-list"></i>
         <span>我的订单</span>
       </div>
       <div class="page-nav-right"></div>
@@ -45,13 +44,13 @@ const AllOrders = markRaw(defineAsyncComponent(() => import('./components/AllOrd
 const PendingOrders = markRaw(defineAsyncComponent(() => import('./components/PendingOrders.vue')))
 const PaidOrders = markRaw(defineAsyncComponent(() => import('./components/PaidOrders.vue')))
 const ShippedOrders = markRaw(defineAsyncComponent(() => import('./components/ShippedOrders.vue')))
-const CompletedOrders = markRaw(defineAsyncComponent(() => import('./components/CompletedOrders.vue')))
+const CancelledOrders = markRaw(defineAsyncComponent(() => import('./components/CancelledOrders.vue')))
 
 const router = useRouter()
 const route = useRoute()
 
 /** 有效的订单状态列表 */
-const VALID_STATUSES = ['PENDING', 'PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED', 'CANCELLED', 'REFUNDED']
+const VALID_STATUSES = ['PENDING', 'PAID', 'PROCESSING', 'SHIPPED', 'COMPLETED', 'CANCELLED']
 
 /** 标签页配置 */
 interface TabConfig {
@@ -63,9 +62,9 @@ interface TabConfig {
 const tabs = ref<TabConfig[]>([
   { label: '全部', value: 'all', component: AllOrders },
   { label: '待付款', value: 'PENDING', component: PendingOrders },
-  { label: '已付款', value: 'PAID', component: PaidOrders },
-  { label: '已发货', value: 'SHIPPED', component: ShippedOrders },
-  { label: '已完成', value: 'COMPLETED', component: CompletedOrders }
+  { label: '待发货', value: 'PAID', component: PaidOrders },
+  { label: '待收货', value: 'SHIPPED', component: ShippedOrders },
+  { label: '已取消', value: 'CANCELLED', component: CancelledOrders }
 ])
 
 const activeTab = ref('all')

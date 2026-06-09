@@ -42,4 +42,13 @@ public class FavoriteVO {
 
     // 规格名称（最低价格规格）
     private String skuName;
+
+    // 商品状态（0-下架，1-上架，2-已删除）
+    private Integer productStatus;
+
+    // 商家名称
+    private String sellerName;
+
+    // 商家头像
+    private String sellerAvatar;
 }

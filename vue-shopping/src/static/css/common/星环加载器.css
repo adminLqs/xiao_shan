@@ -1,11 +1,10 @@
-/* ===== 星环流光加载器 ===== */
+/* ===== 星环加载器 ===== */
 .starlight-loader {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 30%, #e0e7ff 60%, #eef2ff 100%);
+  min-height: 200px;
 }
 
 .loader-ring {
@@ -47,65 +46,4 @@
 
 .brand-icon {
   font-size: 28px;
-  background: linear-gradient(135deg, #4a6491, #6b8ab5);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: breathe 2s ease-in-out infinite;
-}
-
-@keyframes breathe {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(74, 100, 145, 0.4)); }
-  50% { transform: scale(1.1); filter: drop-shadow(0 0 20px rgba(74, 100, 145, 0.7)); }
-}
-
-.loader-text {
-  margin-top: 24px;
-  font-size: 14px;
-  font-weight: 500;
-  background: linear-gradient(90deg, #4a6491, #6b8ab5, #4a6491);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: textShine 2s linear infinite;
-}
-
-@keyframes textShine {
-  0% { background-position: 0% 0; }
-  100% { background-position: 200% 0; }
-}
-
-/* ===== 小型星环加载器（用于下拉刷新）===== */
-.loader-ring-sm {
-  width: 32px;
-  height: 32px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.loader-ring-sm::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid rgba(74, 100, 145, 0.2);
-  border-top-color: #4a6491;
-  animation: ringSpin 0.8s linear infinite;
-}
-
-.brand-icon-sm {
-  font-size: 14px;
-  background: linear-gradient(135deg, #4a6491, #6b8ab5);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.loader-text-sm {
-  font-size: 12px;
-  margin-top: 6px;
-  color: #4a6491;
-}
+  background: linear

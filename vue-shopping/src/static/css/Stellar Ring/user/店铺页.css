@@ -166,13 +166,6 @@
   color: transparent;
 }
 
-.page-nav-title i {
-  background: linear-gradient(135deg, #4a6491, #6b8ab5);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 .page-nav-right {
   width: 38px;
 }
@@ -334,10 +327,10 @@
 }
 
 .follow-btn.followed {
-  background: linear-gradient(135deg, #4a6491, #6b8ab5);
-  color: white;
-  border-color: transparent;
-  box-shadow: 0 4px 15px rgba(74, 100, 145, 0.3);
+  background: #f5f7fa;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+  box-shadow: none;
 }
 
 .follow-btn.followed i {

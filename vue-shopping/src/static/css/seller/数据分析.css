@@ -14,6 +14,13 @@
   content: none;
 }
 
+/* ========== 时间选择器 ========== */
+.time-filter-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
 /* ========== 页面头部 ========== */
 .page-header {
   display: flex;
@@ -80,16 +87,17 @@
 
 /* ========== 统计卡片行 ========== */
 .stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
   margin-bottom: 28px;
   position: relative;
   z-index: 5;
 }
 
 .stat-col {
-  width: 100%;
+  flex-shrink: 0;
+  width: 220px;
 }
 
 .stat-card {
@@ -237,94 +245,16 @@
   border-radius: 12px;
 }
 
-/* ========== 响应式 ========== */
-@media (max-width: 1024px) {
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
-}
-
-@media (max-width: 768px) {
-  .analytics-container {
-    padding: 12px;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-
-  .chart-row {
-    grid-template-columns: 1fr;
-  }
-
-  .radio-group {
-    width: 100%;
-  }
-
-  .radio-label {
-    flex: 1;
-    text-align: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-row {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-}
-
-@media (max-width: 360px) {
-  .chart-container {
-    height: 180px;
-  }
-}
-
-/* 横屏模式适配 */
-@media (max-width: 896px) and (orientation: landscape) {
-  .stats-row {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-  }
-
-  .chart-row {
-    flex-direction: row;
-    gap: 12px;
-  }
-}
-
-/* 触摸优化 */
-@media (max-width: 768px) {
-  .stat-card,
-  .radio-label,
-  .todo-item {
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .stat-card:hover,
-  .chart-card:hover {
-    transform: none;
-  }
-}
-
 /* 安全区域适配 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .analytics-container {
-    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
 @supports (padding-top: env(safe-area-inset-top)) {
   .analytics-container {
-    padding-top: calc(20px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
   }
 }
 
@@ -345,4 +275,88 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* ========== 移动端响应式布局 ========== */
+@media (max-width: 768px) {
+  /* 页面头部 */
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  /* 时间选择器 */
+  .radio-group {
+    width: 100%;
+    display: flex;
+  }
+
+  .radio-label {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    padding: 6px 12px;
+  }
+
+  .radio-label span {
+    font-size: 13px;
+  }
+
+  /* 统计卡片行 */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    overflow-x: visible;
+  }
+
+  .stat-col {
+    width: 100%;
+  }
+
+  .stat-card {
+    padding: 14px;
+  }
+
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  /* 图表行 */
+  .chart-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .chart-card {
+    margin-bottom: 12px;
+  }
+
+  .card-header {
+    padding: 12px 16px;
+  }
+
+  .chart-title {
+    font-size: 15px;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .chart-container {
+    height: 250px;
+    min-height: 200px;
+  }
 }

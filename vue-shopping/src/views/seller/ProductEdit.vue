@@ -1,11 +1,5 @@
 <template>
   <div class="edit-product-container">
-    <div class="page-header">
-      <h1 class="page-title">
-        <i class="fas fa-edit"></i>
-        编辑商品
-      </h1>
-    </div>
 
     <div v-if="isLoading" class="skeleton-form">
       <div class="section-card">
@@ -206,7 +200,7 @@
                 <button type="button" class="btn btn-outline btn-sm" @click="addCustomService">添加</button>
               </div>
               <div class="selected-capsules" v-if="formData.serviceGuarantee.length > 0">
-                <span v-for="(item, idx) in formData.serviceGuarantee" :key="idx" class="selected-capsule">
+                <span v-for="(item, idx) in formData.serviceGuarantee" :key="idx" class="service-tag">
                   {{ item }}
                   <i class="fas fa-times" @click="removeService(idx)"></i>
                 </span>
@@ -217,9 +211,10 @@
               <label class="form-label">商品参数</label>
               <div class="param-list">
                 <div v-for="(param, index) in formData.params" :key="index" class="param-row">
-                  <input type="text" v-model="param.name" placeholder="参数名" maxlength="20" />
-                  <input type="text" v-model="param.value" placeholder="参数值" maxlength="100" />
-                  <button type="button" class="btn-remove" @click="removeParam(index)">
+                  <input type="text" class="param-name-input" v-model="param.name" placeholder="参数名（如屏幕尺寸）" maxlength="20" />
+                  <span class="param-separator">：</span>
+                  <input type="text" class="param-value-input" v-model="param.value" placeholder="参数值（如6.7英寸）" maxlength="100" />
+                  <button type="button" class="btn-remove-param" @click="removeParam(index)">
                     <i class="fas fa-times"></i>
                   </button>
                 </div>
@@ -263,6 +258,9 @@
                   @dragover.prevent="onDragOver(index)"
                   @dragleave="onDragLeave"
                   @drop="onDrop(index)"
+                  @touchstart.passive="onTouchStart($event, index)"
+                  @touchmove="onTouchMove($event, index)"
+                  @touchend="onTouchEnd($event, index)"
                 >
                   <img :src="image.url" :alt="`商品图片${index + 1}`" />
                   <button type="button" class="remove-image-btn" @click="removeImage(index)">
@@ -620,6 +618,11 @@ const isDragOver = ref(false)
 const dragIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 
+const touchDragIndex = ref<number | null>(null)
+const touchStartY = ref(0)
+const touchStartX = ref(0)
+const placeholderIndex = ref<number | null>(null)
+
 const onDragStart = (index: number) => {
   dragIndex.value = index
 }
@@ -644,6 +647,47 @@ const onDrop = (index: number) => {
 
   dragIndex.value = null
   dragOverIndex.value = null
+}
+
+const onTouchStart = (e: TouchEvent, index: number) => {
+  touchDragIndex.value = index
+  const touch = e.touches[0]
+  if (!touch) return
+  touchStartX.value = touch.clientX
+  touchStartY.value = touch.clientY
+}
+
+const onTouchMove = (e: TouchEvent, index: number) => {
+  if (touchDragIndex.value === null) return
+  e.preventDefault()
+
+  const touch = e.touches[0]
+  if (!touch) return
+  const diffY = touch.clientY - touchStartY.value
+
+  const elements = document.querySelectorAll('.image-preview-item')
+  elements.forEach((el, i) => {
+    const rect = el.getBoundingClientRect()
+    const midY = rect.top + rect.height / 2
+    if (touch.clientY > rect.top && touch.clientY < rect.bottom) {
+      if (i !== touchDragIndex.value) {
+        placeholderIndex.value = i
+      }
+    }
+  })
+}
+
+const onTouchEnd = (e: TouchEvent, index: number) => {
+  if (touchDragIndex.value !== null && placeholderIndex.value !== null && touchDragIndex.value !== placeholderIndex.value) {
+    const list = [...imageList.value]
+    const [movedItem] = list.splice(touchDragIndex.value, 1)
+    if (movedItem) {
+      list.splice(placeholderIndex.value, 0, movedItem)
+    }
+    imageList.value = list
+  }
+  touchDragIndex.value = null
+  placeholderIndex.value = null
 }
 
 const skuList = ref<SkuItem[]>([])
@@ -1041,7 +1085,7 @@ const loadAllCategories = async () => {
     if (response.success && response.data?.categories) {
       allCategories.value = response.data.categories
       level1Categories.value = allCategories.value.filter(
-        cat => cat.parentId === null && cat.isActive
+        cat => !cat.parentId && cat.isActive
       )
     }
   } catch (error) {
@@ -1084,7 +1128,7 @@ const loadProductDetail = async () => {
 
     await loadAllCategories()
 
-    const productResponse = await authAPI.getProduct(productId.value)
+    const productResponse = await authAPI.getSellerProduct(productId.value)
     if (productResponse.success && productResponse.data?.product) {
       const product = productResponse.data.product
 
@@ -1362,18 +1406,8 @@ const goBack = () => {
 onMounted(() => {
   if (!authStore.validateSellerPermission()) return
 
-  // 检查套餐
-  authAPI.checkActivePackage().then(res => {
-    if (!res.data?.active) {
-      Message.warning('套餐已过期，请续费')
-      router.push({ name: 'SellerPackage' })
-      return
-    }
-    loadProductDetail()
-  }).catch(() => {
-    Message.error('检查套餐状态失败')
-    router.push({ name: 'SellerPackage' })
-  })
+  // 不检查套餐，直接加载商品详情
+  loadProductDetail()
 })
 </script>
 

@@ -1,11 +1,10 @@
-<template>
+﻿<template>
   <div class="address-container page-container">
     <div class="page-navbar">
       <button class="page-nav-back" @click="router.back()">
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-map-marker-alt"></i>
         <span>收货地址</span>
       </div>
       <div class="page-nav-right"></div>

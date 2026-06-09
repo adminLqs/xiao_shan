@@ -10,7 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.http.ResponseCookie;
+import jakarta.servlet.http.Cookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -69,16 +70,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
 
-                /**
-                 * 这个构造函数的三个参数：
-                 * principal：用户标识（这里用 userId）
-                 * credentials：凭证（密码等，这里为 null 因为 JWT 已经验证过了）
-                 * authorities：用户权限列表
-                 * */
-                // 创建用户权限列表
-                List<GrantedAuthority> authorities = List.of(
-                        new SimpleGrantedAuthority(user.getRole().name())
-                );
+                List<String> roles = jwtUtil.getRolesFromToken(token);
+                List<GrantedAuthority> authorities = new ArrayList<>();
+                if (roles != null) {
+                    for (String role : roles) {
+                        authorities.add(new SimpleGrantedAuthority(role));
+                    }
+                } else if (user.getRole() != null) {
+                    authorities.add(new SimpleGrantedAuthority(user.getRole()));
+                }
 
                 // 创建认证对象并设置到安全上下文
                 UsernamePasswordAuthenticationToken authentication =
@@ -103,11 +103,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * 清除认证Cookie
      */
     private void clearAuthCookie(HttpServletResponse response) {
-        ResponseCookie cookie = ResponseCookie.from("AUTH_TOKEN", "")
-                .path("/")
-                .maxAge(0)
-                .build();
-        response.addHeader("Set-Cookie", cookie.toString());
+        Cookie cookie = new Cookie("AUTH_TOKEN", "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
     }
 
     /**

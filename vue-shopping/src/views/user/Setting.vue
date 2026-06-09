@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="setting-container">
     <!-- 退出时的星环加载器（优先级最高） -->
     <div v-if="isExiting" class="starlight-loader">
@@ -15,7 +15,6 @@
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-cog"></i>
         <span>账户设置</span>
       </div>
       <div class="page-nav-right"></div>

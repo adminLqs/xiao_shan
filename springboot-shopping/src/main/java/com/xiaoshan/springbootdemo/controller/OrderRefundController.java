@@ -779,4 +779,171 @@ public class OrderRefundController {
             ));
         }
     }
+
+    /**
+     * 商家根据订单项ID获取所有退款记录
+     * GET /api/v1/seller/refunds/by-order-item/{orderItemId}
+     */
+    @GetMapping("/seller/refunds/by-order-item/{orderItemId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_SELLER', 'ROLE_ADMIN')")
+    public ResponseEntity<?> getRefundsByOrderItem(
+            @PathVariable Long orderItemId) {
+        try {
+            List<OrderRefund> refunds = orderRefundService.getByOrderItemId(orderItemId);
+
+            List<Map<String, Object>> resultList = new ArrayList<>();
+            for (OrderRefund refund : refunds) {
+                Map<String, Object> refundMap = new HashMap<>();
+                refundMap.put("id", refund.getId());
+                refundMap.put("refundType", refund.getRefundType());
+                refundMap.put("refundStatus", refund.getRefundStatus());
+                refundMap.put("returnStatus", refund.getReturnStatus());
+                refundMap.put("refundAmount", refund.getRefundAmount());
+                refundMap.put("refundReason", refund.getRefundReason());
+                refundMap.put("applyTime", refund.getApplyTime() != null ?
+                        refund.getApplyTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+                resultList.add(refundMap);
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", resultList
+            ));
+
+        } catch (Exception e) {
+            log.error("获取退款记录失败", e);
+            return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", "获取退款记录失败"
+            ));
+        }
+    }
+
+    /**
+     * 用户申请平台介入（投诉仲裁）
+     * POST /api/v1/refunds/{refundId}/intervene
+     */
+    @PostMapping("/refunds/{refundId}/intervene")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER')")
+    public ResponseEntity<?> applyIntervene(
+            Authentication authentication,
+            @PathVariable Long refundId,
+            @RequestBody(required = false) Map<String, String> requestBody) {
+        try {
+            Long userId = userService.getCurrentUserId(authentication);
+            String reason = requestBody != null ? requestBody.get("reason") : null;
+
+            OrderRefund refund = orderRefundService.getById(refundId);
+            if (refund == null) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "退款记录不存在"));
+            }
+
+            if (!refund.getUserId().equals(userId)) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "您无权操作此退款"));
+            }
+
+            if (!refund.getRefundStatus().equals(OrderRefund.RefundStatus.PROCESSING)) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "当前状态不支持申请平台介入"));
+            }
+
+            orderRefundService.applyIntervene(refundId, reason);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "已申请平台介入，平台将在24小时内处理"
+            ));
+
+        } catch (RuntimeException e) {
+            log.warn("申请平台介入失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("申请平台介入系统异常", e);
+            return ResponseEntity.ok(Map.of("success", false, "message", "系统错误，请稍后重试"));
+        }
+    }
+
+    /**
+     * 管理员仲裁处理（强制退款）
+     * PUT /api/v1/admin/refunds/{refundId}/arbitrate/refund
+     */
+    @PutMapping("/admin/refunds/{refundId}/arbitrate/refund")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
+    public ResponseEntity<?> arbitrateRefund(
+            Authentication authentication,
+            @PathVariable Long refundId,
+            @RequestBody(required = false) Map<String, String> requestBody) {
+        try {
+            Long adminId = userService.getCurrentUserId(authentication);
+            String notes = requestBody != null ? requestBody.get("notes") : null;
+
+            Map<String, Object> result = orderRefundService.arbitrateRefund(refundId, adminId, notes);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "仲裁成功，已强制退款",
+                    "data", result
+            ));
+
+        } catch (RuntimeException e) {
+            log.warn("仲裁退款失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("仲裁退款系统异常", e);
+            return ResponseEntity.ok(Map.of("success", false, "message", "系统错误，请稍后重试"));
+        }
+    }
+
+    /**
+     * 管理员仲裁处理（驳回申请）
+     * PUT /api/v1/admin/refunds/{refundId}/arbitrate/reject
+     */
+    @PutMapping("/admin/refunds/{refundId}/arbitrate/reject")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
+    public ResponseEntity<?> arbitrateReject(
+            Authentication authentication,
+            @PathVariable Long refundId,
+            @RequestBody(required = false) Map<String, String> requestBody) {
+        try {
+            Long adminId = userService.getCurrentUserId(authentication);
+            String notes = requestBody != null ? requestBody.get("notes") : null;
+
+            Map<String, Object> result = orderRefundService.arbitrateReject(refundId, adminId, notes);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "仲裁成功，已驳回申请",
+                    "data", result
+            ));
+
+        } catch (RuntimeException e) {
+            log.warn("仲裁驳回失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("仲裁驳回系统异常", e);
+            return ResponseEntity.ok(Map.of("success", false, "message", "系统错误，请稍后重试"));
+        }
+    }
+
+    /**
+     * 获取需要仲裁的纠纷列表（管理员）
+     * GET /api/v1/admin/disputes
+     */
+    @GetMapping("/admin/disputes")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
+    public ResponseEntity<?> getDisputeList(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        try {
+            Map<String, Object> result = orderRefundService.getDisputeList(page, size);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", result
+            ));
+
+        } catch (Exception e) {
+            log.error("获取纠纷列表失败", e);
+            return ResponseEntity.ok(Map.of("success", false, "message", "系统错误，请稍后重试"));
+        }
+    }
 }

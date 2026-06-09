@@ -52,11 +52,6 @@
 .product-spec {
   font-size: 13px;
   color: #64748b;
-  background: #f1f5f9;
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-bottom: 6px;
 }
 
 .product-price-row {

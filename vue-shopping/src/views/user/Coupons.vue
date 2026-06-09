@@ -1,238 +1,154 @@
 <template>
-  <div class="coupons-page page-container">
-    <!-- 顶部导航栏 -->
+  <div class="coupon-center-page">
     <div class="page-navbar">
       <button class="page-nav-back" @click="router.back()">
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-ticket-alt"></i>
-        <span>优惠券</span>
+        <span>领券中心</span>
       </div>
       <div class="page-nav-right"></div>
     </div>
 
-    <!-- 骨架屏加载 -->
-    <div v-if="loading" class="skeleton-order-list">
-      <div v-for="i in 3" :key="i" class="skeleton-card">
-        <div class="skeleton-order-header">
+    <div v-if="loading" class="skeleton-coupon-list">
+      <div v-for="i in 4" :key="i" class="skeleton-card">
+        <div class="skeleton skeleton-left"></div>
+        <div class="skeleton-right">
+          <div class="skeleton skeleton-line short"></div>
+          <div class="skeleton skeleton-line medium"></div>
           <div class="skeleton skeleton-line short"></div>
         </div>
-        <div class="skeleton-order-goods">
-          <div class="skeleton" style="width: 60px; height: 60px; border-radius: 8px;"></div>
-          <div style="flex: 1;">
-            <div class="skeleton skeleton-line long"></div>
-            <div class="skeleton skeleton-line medium" style="margin-top: 8px;"></div>
-          </div>
-        </div>
       </div>
     </div>
 
-    <div v-else>
-      <!-- 可用优惠券 -->
-      <div class="coupon-section">
-        <div class="section-header">
-          <div class="section-title">
-            <i class="fas fa-gift"></i>
-            <span>可使用</span>
-          </div>
-          <span class="section-count">{{ availableCoupons.length }}</span>
-        </div>
-        <div class="coupon-list">
-          <div
-            v-for="coupon in availableCoupons"
-            :key="coupon.id"
-            class="coupon-card available"
-            @click="showCouponDetail(coupon)"
-          >
-            <div class="coupon-left">
-              <div class="coupon-amount">¥{{ coupon.amount }}</div>
-              <div class="coupon-condition">满{{ coupon.minAmount }}可用</div>
+    <div v-else class="coupon-list">
+      <div
+        v-for="coupon in coupons"
+        :key="coupon.id"
+        class="coupon-card"
+        :class="{ received: coupon.received }"
+      >
+        <div class="coupon-circle-left"></div>
+        <div class="coupon-left">
+          <template v-if="coupon.type === 'DISCOUNT'">
+            <div class="coupon-discount">{{ coupon.discount }}折</div>
+          </template>
+          <template v-else>
+            <div class="coupon-amount">
+              <span class="symbol">¥</span>{{ coupon.amount }}
             </div>
-            <div class="coupon-right">
-              <div class="coupon-name">{{ coupon.name }}</div>
-              <div class="coupon-time">{{ coupon.validPeriod }}</div>
-              <div class="coupon-shop" v-if="coupon.shopName">{{ coupon.shopName }}</div>
-            </div>
-            <div class="coupon-corner"></div>
-          </div>
-          <div v-if="availableCoupons.length === 0" class="empty-section">
-            <i class="fas fa-ticket-alt"></i>
-            <p>暂无可用优惠券</p>
+          </template>
+          <div class="coupon-condition">
+            {{ coupon.minAmount > 0 ? `满${coupon.minAmount}可用` : '无门槛' }}
           </div>
         </div>
+        <div class="coupon-right">
+          <div class="coupon-info">
+            <div class="coupon-name">{{ coupon.name }}</div>
+            <div class="coupon-desc">{{ coupon.description || '全场通用' }}</div>
+            <div class="coupon-validity">
+              <i class="far fa-clock"></i>
+              {{ formatValidity(coupon.startTime, coupon.endTime) }}
+            </div>
+          </div>
+          <div class="coupon-bottom">
+            <template v-if="coupon.received">
+              <span class="received-tag">已领取</span>
+            </template>
+            <template v-else>
+              <button
+                class="receive-btn"
+                :disabled="receivingId === coupon.id"
+                @click="handleReceive(coupon.id)"
+              >
+                {{ receivingId === coupon.id ? '领取中...' : '立即领取' }}
+              </button>
+            </template>
+          </div>
+        </div>
+        <div class="coupon-circle-right"></div>
       </div>
 
-      <!-- 已使用/已过期 -->
-      <div class="coupon-section">
-        <div class="section-header">
-          <div class="section-title">
-            <i class="fas fa-history"></i>
-            <span>已使用/已过期</span>
-          </div>
-          <span class="section-count">{{ usedExpiredCoupons.length }}</span>
-        </div>
-        <div class="coupon-list">
-          <div
-            v-for="coupon in usedExpiredCoupons"
-            :key="coupon.id"
-            class="coupon-card disabled"
-          >
-            <div class="coupon-left">
-              <div class="coupon-amount">¥{{ coupon.amount }}</div>
-              <div class="coupon-condition">满{{ coupon.minAmount }}可用</div>
-            </div>
-            <div class="coupon-right">
-              <div class="coupon-name">{{ coupon.name }}</div>
-              <div class="coupon-time">{{ coupon.validPeriod }}</div>
-              <div class="coupon-status">{{ coupon.status === 'USED' ? '已使用' : '已过期' }}</div>
-            </div>
-            <div class="coupon-corner"></div>
-          </div>
-          <div v-if="usedExpiredCoupons.length === 0" class="empty-section">
-            <i class="fas fa-history"></i>
-            <p>暂无历史记录</p>
-          </div>
-        </div>
+      <div v-if="coupons.length === 0" class="empty-section">
+        <i class="fas fa-ticket-alt"></i>
+        <p>暂无可用优惠券</p>
       </div>
     </div>
-
-    <!-- 领取优惠券入口 -->
-    <div class="get-coupons-entry">
-      <div class="entry-card">
-        <div class="entry-icon">
-          <i class="fas fa-plus-circle"></i>
-        </div>
-        <div class="entry-content">
-          <div class="entry-title">领取更多优惠券</div>
-          <div class="entry-desc">领取店铺专属优惠券，享受更多优惠</div>
-        </div>
-        <button class="entry-btn" @click="goToCouponCenter">
-          <span>去领取</span>
-          <i class="fas fa-arrow-right"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- 优惠券详情弹窗 -->
-    <div class="coupon-detail-overlay" v-if="showDetail" @click="closeDetail">
-      <div class="coupon-detail-card" @click.stop>
-        <button class="detail-close" @click="closeDetail">
-          <i class="fas fa-times"></i>
-        </button>
-        <div class="detail-header">
-          <div class="detail-amount">¥{{ selectedCoupon?.amount }}</div>
-          <div class="detail-condition">满{{ selectedCoupon?.minAmount }}元可用</div>
-        </div>
-        <div class="detail-body">
-          <div class="detail-item">
-            <i class="fas fa-ticket-alt"></i>
-            <span>{{ selectedCoupon?.name }}</span>
-          </div>
-          <div class="detail-item">
-            <i class="fas fa-store"></i>
-            <span>{{ selectedCoupon?.shopName || '全店通用' }}</span>
-          </div>
-          <div class="detail-item">
-            <i class="fas fa-calendar"></i>
-            <span>{{ selectedCoupon?.validPeriod }}</span>
-          </div>
-          <div class="detail-item">
-            <i class="fas fa-info-circle"></i>
-            <span>{{ selectedCoupon?.description || '无使用说明' }}</span>
-          </div>
-        </div>
-        <button class="detail-use-btn" @click="useCoupon">立即使用</button>
-      </div>
-    </div>
-
-    <!-- 底部留空 -->
-    <div class="bottom-space"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
-import Message from '@/utils/message'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 
 const loading = ref(true)
 const coupons = ref<any[]>([])
+const receivingId = ref<number | null>(null)
 
-const availableCoupons = computed(() => {
-  return coupons.value.filter(c => c.status === 'AVAILABLE')
-})
-
-const usedExpiredCoupons = computed(() => {
-  return coupons.value.filter(c => c.status === 'USED' || c.status === 'EXPIRED')
-})
-
-const showDetail = ref(false)
-const selectedCoupon = ref<any>(null)
+const formatValidity = (start: string, end: string) => {
+  if (!start || !end) return '长期有效'
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  return `${startDate.getFullYear()}.${String(startDate.getMonth() + 1).padStart(2, '0')}.${String(startDate.getDate()).padStart(2, '0')} - ${endDate.getFullYear()}.${String(endDate.getMonth() + 1).padStart(2, '0')}.${String(endDate.getDate()).padStart(2, '0')}`
+}
 
 const loadCoupons = async () => {
   loading.value = true
   try {
-    const response = await authAPI.getUserCoupons()
+    const response = await authAPI.getAvailableCoupons()
     if (response.success && response.data) {
-      coupons.value = response.data.map((item: any) => ({
+      const data = response.data
+      const list = Array.isArray(data) ? data : (data.records || data.list || [])
+      coupons.value = list.map((item: any) => ({
         id: item.id,
-        name: item.couponName,
-        amount: item.amount,
-        minAmount: item.minAmount,
-        validPeriod: formatPeriod(item.startTime, item.endTime),
-        shopName: item.shopName,
-        status: item.status,
-        description: item.description
+        name: item.name || item.couponName,
+        type: item.type || 'CASH',
+        amount: item.amount || 0,
+        discount: item.discount || 0,
+        minAmount: item.minAmount || 0,
+        description: item.description,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        received: item.received || false
       }))
-    } else {
-      throw new Error(response.message || '加载失败')
     }
   } catch (error: any) {
-    Message.error(error.message || '加载失败')
+    ElMessage.error(error.message || '加载失败')
   } finally {
     loading.value = false
   }
 }
 
-const formatPeriod = (start: string, end: string) => {
-  if (!start || !end) return ''
-  const startDate = new Date(start)
-  const endDate = new Date(end)
-  return `${startDate.getMonth() + 1}/${startDate.getDate()} - ${endDate.getMonth() + 1}/${endDate.getDate()}`
-}
-
-const showCouponDetail = (coupon: any) => {
-  selectedCoupon.value = coupon
-  showDetail.value = true
-}
-
-const closeDetail = () => {
-  showDetail.value = false
-  selectedCoupon.value = null
-}
-
-const useCoupon = () => {
-  if (selectedCoupon.value?.shopId) {
-    router.push({ name: 'Shop', params: { shopId: selectedCoupon.value.shopId } })
-  } else {
-    router.push({ name: 'Categories' })
+const handleReceive = async (couponId: number) => {
+  if (receivingId.value) return
+  receivingId.value = couponId
+  try {
+    const response = await authAPI.receiveCoupon(couponId)
+    if (response.success) {
+      ElMessage.success('领取成功')
+      const coupon = coupons.value.find(c => c.id === couponId)
+      if (coupon) {
+        coupon.received = true
+      }
+    } else {
+      ElMessage.error(response.message || '领取失败')
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '领取失败')
+  } finally {
+    receivingId.value = null
   }
-  closeDetail()
 }
 
-const goToCouponCenter = () => {
-  Message.info('优惠券中心开发中')
-}
-
-onMounted(async () => {
-  await loadCoupons()
+onMounted(() => {
+  loadCoupons()
 })
 </script>
 
 <style scoped>
-@import url('@/static/css/user/优惠券.css');
+@import url('@/static/css/user/领券中心.css');
 </style>

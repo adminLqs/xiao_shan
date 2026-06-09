@@ -57,21 +57,19 @@ public class OrderItem {
     private LocalDateTime reviewedAt;
 
     // ========== 售后状态 ==========
-    // 售后状态: REFUNDING-退款中, AFTER_SALE-售后退款中, COMPLETED-已退款
+    // 售后状态: PROCESSING-处理中, WAITING_RETURN-待退货, RETURNING-退货中, SUCCESS-已退款, FAILED-已拒绝
     private String refundStatus;
-
-    // 退款记录ID（关联OrderRefund表）
-    private Long refundId;
 
     // 订单状态（非数据库字段，用于前端显示）
     private String orderStatus;
 
     // 售后状态枚举
     public static class RefundStatus {
-        public static final String REFUNDING = "REFUNDING";       // 退款中
-        public static final String AFTER_SALE = "AFTER_SALE";     // 售后退款中
+        public static final String PROCESSING = "PROCESSING";     // 处理中
         public static final String WAITING_RETURN = "WAITING_RETURN"; // 待退货
-        public static final String COMPLETED = "COMPLETED";       // 已退款
+        public static final String RETURNING = "RETURNING";       // 退货中
+        public static final String SUCCESS = "SUCCESS";           // 已退款
+        public static final String FAILED = "FAILED";             // 已拒绝
     }
 
     // ========== 时间戳 ==========

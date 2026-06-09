@@ -14,6 +14,7 @@ html, body {
   height: 100vh;
   width: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 /* ===== 侧边栏样式 ===== */
@@ -211,7 +212,7 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
-  overflow-y: hidden;
+  overflow-y: auto;
   background: #f5f7fa;
 }
 
@@ -433,7 +434,8 @@ html, body {
 /* ===== 内容区域 ===== */
 .content {
   flex: 1;
-  padding: 20px;
+  padding: 5px;
+  margin: 0;
   overflow-x: auto;
   overflow-y: auto;
   min-height: auto;
@@ -672,6 +674,23 @@ html, body {
     width: 240px;
     right: -5px;
   }
+
+  /* 移动端子组件不需要内边距，Layout 已有 padding */
+  .seller-orders-container,
+  .product-management-container,
+  .analytics-container,
+  .package-container,
+  .package-record-container,
+  .content-wrapper,
+  .seller-info-container,
+  .message-center-container,
+  .console-container,
+  .product-edit-container,
+  .product-publish-container,
+  .logistics-container,
+  .order-detail-container {
+    padding: 0 !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -761,4 +780,164 @@ html, body {
   .sidebar.mobile-open {
     padding-bottom: env(safe-area-inset-bottom);
   }
+}
+
+/* ===== 消息通知入口样式 ===== */
+.header-notify {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 18px;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.header-notify:hover {
+  background: #f5f7fa;
+}
+
+.notify-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.menu-badge {
+  margin-left: auto;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  min-width: 18px !important;
+  width: auto !important;
+  height: 18px !important;
+  background: #ef4444 !important;
+  color: white !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 5px !important;
+  line-height: 1 !important;
+  overflow: visible !important;
+}
+
+/* ===== 子路由切换动画 ===== */
+.slide-child-enter-active,
+.slide-child-leave-active {
+  transition: all 0.25s ease;
+}
+
+.slide-child-enter-from {
+  transform: translateX(30px);
+  opacity: 0;
+}
+
+.slide-child-leave-to {
+  transform: translateX(-30px);
+  opacity: 0;
+}
+
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}
+
+.layout-skeleton {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 16px;
+}
+
+.skeleton-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-line {
+  height: 14px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.skeleton-line.short { width: 120px; }
+.skeleton-line.shorter { width: 80px; }
+.skeleton-line.medium { width: 160px; }
+
+.skeleton-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+}
+
+.skeleton-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-card {
+  height: 100px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-card.short { height: 60px; }
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

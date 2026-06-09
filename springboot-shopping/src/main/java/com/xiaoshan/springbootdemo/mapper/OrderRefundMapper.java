@@ -29,6 +29,10 @@ public interface OrderRefundMapper {
     @Select("SELECT * FROM order_refunds WHERE order_item_id = #{orderItemId} ORDER BY apply_time DESC")
     List<OrderRefund> findByOrderItemId(Long orderItemId);
 
+    // 根据订单项ID和状态查询退款记录数量
+    @Select("SELECT COUNT(*) FROM order_refunds WHERE order_item_id = #{orderItemId}")
+    int countActiveByOrderItemId(Long orderItemId);
+
     // 鏍规嵁鐢ㄦ埛ID鏌ヨ閫€娆捐褰?
     @Select("SELECT * FROM order_refunds WHERE user_id = #{userId} ORDER BY apply_time DESC")
     List<OrderRefund> findByUserId(Long userId);
@@ -43,18 +47,42 @@ public interface OrderRefundMapper {
     @Select("SELECT COUNT(*) FROM order_refunds WHERE user_id = #{userId}")
     int countByUserId(Long userId);
 
-    // 缁熻鐢ㄦ埛杩涜涓殑閫€娆捐褰曟€绘暟
-    @Select("SELECT COUNT(*) FROM order_refunds WHERE user_id = #{userId} AND refund_status IN ('PROCESSING', 'APPROVED') OR (refund_status = 'PROCESSING' AND return_status = 'RETURNING')")
+    // 缁熻€佹偍璁剧疆閫€娆捐祫鏂欐绘暟
+    @Select("SELECT COUNT(*) FROM order_refunds WHERE user_id = #{userId} AND refund_status IN ('PROCESSING', 'WAITING_RETURN', 'RETURNING')")
     int countPendingByUserId(Long userId);
+
+    // 根据订单项ID和状态列表查询退款记录数量
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM order_refunds WHERE order_item_id = #{orderItemId} " +
+            "<if test='statuses != null and statuses.size() > 0'>" +
+            "   AND refund_status IN " +
+            "<foreach item='status' collection='statuses' open='(' separator=',' close=')'>" +
+            "       #{status}" +
+            "</foreach>" +
+            "</if>" +
+            "</script>")
+    int countByStatuses(@Param("orderItemId") Long orderItemId, @Param("statuses") List<String> statuses);
+
+    // 根据订单项ID查询最新的退款记录
+    @Select("SELECT * FROM order_refunds WHERE order_item_id = #{orderItemId} ORDER BY apply_time DESC LIMIT 1")
+    Optional<OrderRefund> findLatestByOrderItemId(Long orderItemId);
+
+    // 更新退款记录（用于重新申请）
+    @Update("UPDATE order_refunds SET " +
+            "refund_status = #{refundStatus}, " +
+            "refund_reason = #{refundReason}, " +
+            "refund_amount = #{refundAmount}, " +
+            "description = #{description}, " +
+            "apply_time = #{applyTime} " +
+            "WHERE id = #{id}")
+    int update(OrderRefund refund);
 
     // 更新退款状态
     @Update("UPDATE order_refunds SET " +
             "refund_status = #{refundStatus}, " +
             "review_time = #{reviewTime}, " +
             "reviewed_by = #{reviewedBy}, " +
-            "review_notes = #{reviewNotes}, " +
-            "refund_transaction_id = #{refundTransactionId}, " +
-            "communication_round = #{communicationRound} " +
+            "review_notes = #{reviewNotes} " +
             "WHERE id = #{id}")
     int updateStatus(OrderRefund refund);
 
@@ -73,7 +101,8 @@ public interface OrderRefundMapper {
             "return_status = #{returnStatus}, " +
             "return_receive_time = NOW(), " +
             "refund_status = #{refundStatus}, " +
-            "complete_time = NOW() " +
+            "complete_time = NOW(), " +
+            "refund_transaction_id = #{refundTransactionId} " +
             "WHERE id = #{id}")
     int confirmReceive(OrderRefund refund);
 
@@ -125,4 +154,12 @@ public interface OrderRefundMapper {
     int countWithFilters(
             @Param("status") String status,
             @Param("keyword") String keyword);
+
+    // 分页查询需要仲裁的纠纷（退款中且有争议的退款）
+    @Select("SELECT * FROM order_refunds WHERE refund_status = 'PROCESSING' ORDER BY apply_time DESC LIMIT #{limit} OFFSET #{offset}")
+    List<OrderRefund> findDisputesWithPage(@Param("offset") int offset, @Param("limit") int limit);
+
+    // 统计需要仲裁的纠纷数量
+    @Select("SELECT COUNT(*) FROM order_refunds WHERE refund_status = 'PROCESSING'")
+    int countDisputes();
 }

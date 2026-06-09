@@ -1,0 +1,14 @@
+/* ===== 普通加载器 ===== */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: #94a3b8;
+  gap: 12px;
+}
+
+.loading-state i {
+  font-size: 32px;
+}

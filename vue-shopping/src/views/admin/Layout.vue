@@ -29,9 +29,21 @@
           <i class="fas fa-box"></i>
           <span v-if="!sidebarCollapsed">商品管理</span>
         </router-link>
+        <router-link :to="{name: 'AdminCategories'}" class="nav-item" active-class="active">
+          <i class="fas fa-tags"></i>
+          <span v-if="!sidebarCollapsed">分类管理</span>
+        </router-link>
+        <router-link :to="{name: 'AdminBanners'}" class="nav-item" active-class="active">
+          <i class="fas fa-images"></i>
+          <span v-if="!sidebarCollapsed">Banner管理</span>
+        </router-link>
         <router-link :to="{name: 'AdminUsers'}" class="nav-item" active-class="active">
           <i class="fas fa-users"></i>
           <span v-if="!sidebarCollapsed">用户管理</span>
+        </router-link>
+        <router-link :to="{name: 'AdminAdminUsers'}" class="nav-item" active-class="active">
+          <i class="fas fa-user-shield"></i>
+          <span v-if="!sidebarCollapsed">管理员管理</span>
         </router-link>
       </nav>
     </aside>
@@ -45,7 +57,7 @@
         </div>
         <div class="topbar-right">
           <div class="admin-info">
-            <span class="admin-name">{{ adminName }}</span>
+            <span class="admin-name">{{ adminName || '管理员' }}</span>
           </div>
           <button class="logout-btn" @click="handleLogout">
             <i class="fas fa-sign-out-alt"></i>
@@ -85,7 +97,10 @@ const pageTitle = computed(() => {
     'AdminApplications': '商家入驻审核',
     'AdminSellers': '商家管理',
     'AdminProducts': '商品管理',
+    'AdminCategories': '分类管理',
+    'AdminBanners': 'Banner管理',
     'AdminUsers': '用户管理',
+    'AdminAdminUsers': '管理员管理',
   }
   return routeMap[route.name as string] || '管理后台'
 })

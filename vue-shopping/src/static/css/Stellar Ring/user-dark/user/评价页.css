@@ -109,13 +109,6 @@
   color: transparent;
 }
 
-.page-nav-title i {
-  background: linear-gradient(135deg, #6b8ab5, #4a6491);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 .page-nav-right {
   width: 36px;
 }

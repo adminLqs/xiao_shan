@@ -1,11 +1,15 @@
 package com.xiaoshan.springbootdemo.service;
 
 import com.xiaoshan.springbootdemo.entity.MerchantApply;
+import com.xiaoshan.springbootdemo.entity.Role;
 import com.xiaoshan.springbootdemo.entity.SellerProfile;
+import com.xiaoshan.springbootdemo.entity.UserRole;
 import com.xiaoshan.springbootdemo.entity.dto.MerchantApplyDTO;
 import com.xiaoshan.springbootdemo.mapper.MerchantApplyMapper;
+import com.xiaoshan.springbootdemo.mapper.RoleMapper;
 import com.xiaoshan.springbootdemo.mapper.SellerProfileMapper;
 import com.xiaoshan.springbootdemo.mapper.UserMapper;
+import com.xiaoshan.springbootdemo.mapper.UserRoleMapper;
 import com.xiaoshan.springbootdemo.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +33,8 @@ public class MerchantApplyService {
     private final MerchantApplyMapper merchantApplyMapper;
     private final UserMapper userMapper;
     private final SellerProfileMapper sellerProfileMapper;
+    private final RoleMapper roleMapper;
+    private final UserRoleMapper userRoleMapper;
     private final SnowflakeIdGenerator snowflakeIdGenerator;
 
     /// 配置文件获取上传目录
@@ -632,12 +638,18 @@ public class MerchantApplyService {
      */
     @Transactional
     public void updateUserRoleToSeller(Long userId) {
+        userMapper.updateRole(userId, "ROLE_SELLER");
 
-        int result = userMapper.updateRole(userId, "ROLE_SELLER");
-        if (result <= 0) {
-            throw new RuntimeException("更新用户角色失败");
+        Role sellerRole = roleMapper.findByName("ROLE_SELLER");
+        if (sellerRole != null) {
+            UserRole existing = userRoleMapper.findByUserIdAndRoleName(userId, "ROLE_SELLER");
+            if (existing == null) {
+                UserRole userRole = new UserRole();
+                userRole.setUserId(userId);
+                userRole.setRoleId(sellerRole.getId());
+                userRoleMapper.insert(userRole);
+            }
         }
-
     }
 
     /**

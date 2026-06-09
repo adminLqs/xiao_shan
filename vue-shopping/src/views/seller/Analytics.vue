@@ -1,25 +1,5 @@
 <template>
   <div class="analytics-container">
-    <!-- ========== 页面标题 ========== -->
-    <div class="page-header">
-      <h2 class="page-title">
-        <i class="fas fa-chart-line"></i>
-        数据分析
-      </h2>
-      <div class="header-actions">
-        <div class="radio-group">
-          <label class="radio-label" :class="{ active: timeRange === '7d' }">
-            <input type="radio" name="timeRange" value="7d" v-model="timeRange" @change="handleTimeRangeChange" />
-            <span>近7天</span>
-          </label>
-          <label class="radio-label" :class="{ active: timeRange === '30d' }">
-            <input type="radio" name="timeRange" value="30d" v-model="timeRange" @change="handleTimeRangeChange" />
-            <span>近30天</span>
-          </label>
-        </div>
-      </div>
-    </div>
-
     <!-- ========== 加载状态 ========== -->
     <div v-if="loading" class="skeleton-form" style="padding: 24px;">
       <div class="skeleton" style="height: 48px; margin-bottom: 24px; border-radius: 8px;"></div>
@@ -44,6 +24,19 @@
 
     <!-- ========== 统计内容 ========== -->
     <div v-else class="analytics-content content-wrapper">
+      <!-- 时间选择器 -->
+      <div class="time-filter-bar">
+        <div class="radio-group">
+          <label class="radio-label" :class="{ active: timeRange === '7d' }">
+            <input type="radio" name="timeRange" value="7d" v-model="timeRange" @change="handleTimeRangeChange" />
+            <span>近7天</span>
+          </label>
+          <label class="radio-label" :class="{ active: timeRange === '30d' }">
+            <input type="radio" name="timeRange" value="30d" v-model="timeRange" @change="handleTimeRangeChange" />
+            <span>近30天</span>
+          </label>
+        </div>
+      </div>
       <!-- 统计卡片行 -->
       <div class="stats-row">
         <div class="stat-col" v-for="stat in statsCards" :key="stat.label">
@@ -160,7 +153,6 @@ interface OrderCounts {
   PAID: number
   PROCESSING: number
   SHIPPED: number
-  DELIVERED: number
   COMPLETED: number
   CANCELLED: number
   [key: string]: number
@@ -207,7 +199,6 @@ const orderCounts = ref<OrderCounts>({
   PAID: 0,
   PROCESSING: 0,
   SHIPPED: 0,
-  DELIVERED: 0,
   COMPLETED: 0,
   CANCELLED: 0
 })
@@ -293,7 +284,6 @@ const loadAnalyticsData = async () => {
           PAID: data.counts.PAID || 0,
           PROCESSING: data.counts.PROCESSING || 0,
           SHIPPED: data.counts.SHIPPED || 0,
-          DELIVERED: data.counts.DELIVERED || 0,
           COMPLETED: data.counts.COMPLETED || 0,
           CANCELLED: data.counts.CANCELLED || 0
         }
@@ -312,7 +302,7 @@ const loadAnalyticsData = async () => {
 
       // 计算总销售额（统计有效订单）
       const validOrdersForSales = filteredOrders.filter((order: Order) =>
-        order.status !== 'CANCELLED' && order.status !== 'REFUNDED'
+        order.status !== 'CANCELLED'
       )
       const totalSales = validOrdersForSales.reduce((sum: number, order: Order) =>
         sum + (order.totalAmount || 0), 0
@@ -321,9 +311,9 @@ const loadAnalyticsData = async () => {
       // 计算总订单数
       const totalOrders = filteredOrders.length
 
-      // 计算有效订单数（排除取消和退款）
+      // 计算有效订单数（排除取消）
       const validOrders = filteredOrders.filter((order: Order) =>
-        order.status !== 'CANCELLED' && order.status !== 'REFUNDED'
+        order.status !== 'CANCELLED'
       )
 
       // 计算趋势（对比上期）
@@ -442,9 +432,9 @@ const calculateTrendData = (allOrders: Order[], days: number) => {
       return orderDate >= dayStart && orderDate <= dayEnd
     })
 
-    // 统计有效订单（排除取消和退款）
+    // 统计有效订单（排除取消）
     const dayValidOrders = dayOrders.filter(order =>
-      order.status !== 'CANCELLED' && order.status !== 'REFUNDED'
+      order.status !== 'CANCELLED'
     )
 
     const daySales = dayValidOrders.reduce((sum, order) => sum + order.totalAmount, 0)
@@ -517,9 +507,10 @@ const initSalesChart = () => {
       }
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
+      left: '12%',
+      right: '8%',
+      bottom: '20%',
+      top: '15%',
       containLabel: true
     },
     xAxis: {
@@ -527,14 +518,15 @@ const initSalesChart = () => {
       data: salesTrend.value.dates,
       boundaryGap: false,
       axisLine: { lineStyle: { color: '#e0e6f1' } },
-      axisLabel: { color: '#606266', fontSize: 11 }
+      axisLabel: { color: '#606266', fontSize: 11, margin: 12 }
     },
     yAxis: {
       type: 'value',
       axisLabel: {
         formatter: (value: number) => `¥${formatNumber(value)}`,
         color: '#606266',
-        fontSize: 11
+        fontSize: 11,
+        margin: 12
       },
       splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }
     },
@@ -585,31 +577,32 @@ const initOrdersChart = () => {
       }
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
+      left: '12%',
+      right: '8%',
+      bottom: '20%',
+      top: '15%',
       containLabel: true
     },
     xAxis: {
-      type: 'category',
-      data: ordersTrend.value.dates,
-      boundaryGap: false,
-      axisLine: { lineStyle: { color: '#e0e6f1' } },
-      axisLabel: { color: '#606266', fontSize: 11 }
-    },
-    yAxis: {
       type: 'value',
       axisLabel: { color: '#606266', fontSize: 11 },
       splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }
+    },
+    yAxis: {
+      type: 'category',
+      data: ordersTrend.value.dates,
+      inverse: true,
+      axisLine: { lineStyle: { color: '#e0e6f1' } },
+      axisLabel: { color: '#606266', fontSize: 11 }
     },
     series: [{
       name: '订单量',
       type: 'bar',
       data: ordersTrend.value.values,
-      barWidth: '40%',
+      barWidth: '50%',
       itemStyle: {
-        borderRadius: [6, 6, 0, 0],
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        borderRadius: [0, 6, 6, 0],
+        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
           { offset: 0, color: '#f093fb' },
           { offset: 1, color: '#f5576c' }
         ])
@@ -641,10 +634,10 @@ const initProductSalesChart = () => {
       }
     },
     grid: {
-      left: '15%',
+      left: '12%',
       right: '8%',
-      bottom: '3%',
-      top: '3%',
+      bottom: '20%',
+      top: '15%',
       containLabel: true
     },
     xAxis: {
@@ -697,9 +690,9 @@ const initOrderStatusChart = () => {
 
   const statusData = [
     { name: '待付款', value: orderCounts.value.PENDING || 0 },
-    { name: '已付款', value: orderCounts.value.PAID || 0 },
+    { name: '待发货', value: orderCounts.value.PAID || 0 },
     { name: '处理中', value: orderCounts.value.PROCESSING || 0 },
-    { name: '已发货', value: orderCounts.value.SHIPPED || 0 },
+    { name: '待收货', value: orderCounts.value.SHIPPED || 0 },
     { name: '已完成', value: orderCounts.value.COMPLETED || 0 },
     { name: '已取消', value: orderCounts.value.CANCELLED || 0 }
   ].filter(item => item.value > 0)

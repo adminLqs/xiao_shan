@@ -1,5 +1,12 @@
 <template>
-  <div class="applications-page">
+  <div v-if="loading" class="starlight-loader">
+    <div class="loader-ring">
+      <i class="fas fa-sparkles brand-icon"></i>
+    </div>
+    <p class="loader-text">加载中...</p>
+  </div>
+
+  <div v-else class="applications-page">
     <!-- 统计卡片 -->
     <div class="stats-cards">
       <div class="stat-card">
@@ -49,12 +56,7 @@
 
     <!-- 申请列表 -->
     <div class="applications-list">
-      <div v-if="loading" class="loading-state">
-        <i class="fas fa-spinner fa-spin"></i>
-        <span>加载中...</span>
-      </div>
-
-      <div v-else-if="applications.length === 0" class="empty-state">
+      <div v-if="applications.length === 0" class="empty-state">
         <i class="fas fa-inbox"></i>
         <span>暂无申请记录</span>
       </div>
@@ -489,4 +491,5 @@ onMounted(() => {
 
 <style scoped>
 @import url('@/static/css/admin/商家审核.css');
+@import '@/static/css/common/星环加载器.css';
 </style>

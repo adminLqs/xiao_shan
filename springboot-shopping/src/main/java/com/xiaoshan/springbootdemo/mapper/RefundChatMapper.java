@@ -36,10 +36,12 @@ public interface RefundChatMapper {
             "  c.id, c.refund_id, c.sender_type, c.sender_id, " +
             "  c.content as message, c.round, c.created_at as send_time, " +
             "  CASE " +
+            "    WHEN c.sender_type = 'SYSTEM' THEN '📢' " +
             "    WHEN c.sender_type = 'BUYER' THEN up.avatar " +
             "    WHEN c.sender_type = 'SELLER' THEN sp.store_avatar " +
             "  END as sender_avatar, " +
             "  CASE " +
+            "    WHEN c.sender_type = 'SYSTEM' THEN '系统' " +
             "    WHEN c.sender_type = 'BUYER' THEN up.nickname " +
             "    WHEN c.sender_type = 'SELLER' THEN sp.store_name " +
             "  END as sender_name " +
@@ -74,10 +76,12 @@ public interface RefundChatMapper {
             "  c.id, c.refund_id, c.sender_type, c.sender_id, " +
             "  c.content as message, c.round, c.created_at as send_time, " +
             "  CASE " +
+            "    WHEN c.sender_type = 'SYSTEM' THEN '📢' " +
             "    WHEN c.sender_type = 'BUYER' THEN up.avatar " +
             "    WHEN c.sender_type = 'SELLER' THEN sp.store_avatar " +
             "  END as sender_avatar, " +
             "  CASE " +
+            "    WHEN c.sender_type = 'SYSTEM' THEN '系统' " +
             "    WHEN c.sender_type = 'BUYER' THEN up.nickname " +
             "    WHEN c.sender_type = 'SELLER' THEN sp.store_name " +
             "  END as sender_name " +

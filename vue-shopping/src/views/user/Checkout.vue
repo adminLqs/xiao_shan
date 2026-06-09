@@ -6,7 +6,6 @@
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-file-invoice-dollar"></i>
         <span>确认订单</span>
       </div>
       <div class="page-nav-right"></div>
@@ -58,23 +57,38 @@
       <!-- 灰色间隔 -->
       <div class="gray-divider"></div>
 
-      <!-- ========== 商品信息区域 ========== -->
+      <!-- ========== 商品信息区域（按卖家分组） ========== -->
       <div class="product-section">
         <div class="section-header">
           <h3><i class="fas fa-box"></i> 商品信息</h3>
         </div>
 
-        <div class="product-list">
-          <div v-for="item in orderItems" :key="`${item.productId}${item.skuId || ''}`" class="product-item">
-            <img :src="item.productImage" class="product-image" :alt="item.productName">
-            <div class="product-info">
-              <div class="product-name">{{ item.productName }}</div>
-              <div class="tags-group">
-                <span v-if="item.skuName" class="tag-spec">{{ item.skuName }}</span>
-                <span class="tag-quantity">x{{ item.quantity }}</span>
+        <div class="seller-order-cards">
+          <div v-for="(sellerGroup, sellerId) in groupedItemsBySeller" :key="sellerId" class="seller-order-card">
+            <div class="seller-header">
+              <div class="seller-header-left">
+                <img :src="sellerGroup.sellerAvatar || sellerDefaultAvatar" class="seller-avatar" />
+                <span class="seller-name">{{ sellerGroup.sellerName || '未知卖家' }}</span>
+              </div>
+              <span class="seller-item-count">共{{ sellerGroup.items.length }}件商品</span>
+            </div>
+            <div class="seller-product-list">
+              <div v-for="item in sellerGroup.items" :key="`${item.productId}${item.skuId || ''}`" class="product-item">
+                <img :src="item.productImage" class="product-image" :alt="item.productName">
+                <div class="product-info">
+                  <div class="product-name">{{ item.productName }}</div>
+                  <div class="tags-group">
+                    <span v-if="item.skuName" class="tag-spec">{{ item.skuName }}</span>
+                    <span class="tag-quantity">x{{ item.quantity }}</span>
+                  </div>
+                </div>
+                <div class="product-price">¥{{ formatPrice(item.price) }}</div>
               </div>
             </div>
-            <div class="product-price">¥{{ formatPrice(item.price) }}</div>
+            <div class="seller-total">
+              <span>小计</span>
+              <span class="seller-total-amount">¥{{ formatPrice(sellerGroup.totalAmount) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -131,6 +145,14 @@
           <div class="info-row">
             <span>运费</span>
             <span>¥{{ formatPrice(shippingFee) }}</span>
+          </div>
+          <div class="info-row coupon-row" @click="openCouponPanel">
+            <span>优惠券</span>
+            <div class="coupon-value">
+              <span v-if="selectedCoupon" class="coupon-discount">-¥{{ formatPrice(couponDiscountAmount) }}</span>
+              <span v-else class="coupon-placeholder">{{ availableCoupons.length > 0 ? availableCoupons.length + '张可用' : '暂无可用' }}</span>
+              <i class="fas fa-chevron-right"></i>
+            </div>
           </div>
           <div class="info-row total">
             <span>合计</span>
@@ -200,6 +222,44 @@
       </div>
     </div>
 
+    <!-- ========== 优惠券选择面板（底部弹出） ========== -->
+    <div class="coupon-panel" :class="{ show: showCouponPanel }">
+      <div class="panel-overlay" @click="showCouponPanel = false"></div>
+      <div class="panel-content coupon-panel-content">
+        <div class="panel-header">
+          <span>选择优惠券</span>
+          <i class="fas fa-times" @click="showCouponPanel = false"></i>
+        </div>
+        <div class="panel-body">
+          <div v-if="availableCoupons.length > 0">
+            <div v-for="coupon in availableCoupons" :key="coupon.id" class="coupon-item"
+              :class="{ active: selectedCouponId === coupon.id }">
+              <div class="coupon-left">
+                <div class="coupon-amount">
+                  <span class="currency">¥</span>
+                  <span class="amount">{{ formatPrice(getCouponDisplayAmount(coupon)) }}</span>
+                </div>
+                <div class="coupon-condition">{{ getCouponDisplayText(coupon) }}</div>
+              </div>
+              <div class="coupon-right">
+                <div class="coupon-name">{{ coupon.name }}</div>
+                <div class="coupon-desc">{{ coupon.description || '' }}</div>
+                <button class="use-coupon-btn" @click="selectCoupon(coupon)">
+                  {{ selectedCouponId === coupon.id ? '已选择' : '使用' }}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="empty-coupon">
+            <p>暂无可用优惠券</p>
+          </div>
+        </div>
+        <div v-if="selectedCouponId" class="cancel-coupon-row">
+          <button class="cancel-coupon-btn" @click="cancelCoupon">不使用优惠券</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ========== 新增/编辑地址弹窗 ========== -->
     <div v-if="showAddressModal" class="modal-overlay" @click="closeAddressModal">
       <div class="modal-content" @click.stop>
@@ -212,11 +272,11 @@
         <div class="modal-body">
           <div class="form-group">
             <label>收件人姓名</label>
-            <input type="text" v-model="addressForm.recipientName" placeholder="请输入收件人姓名">
+            <input type="text" name="recipientName" v-model="addressForm.recipientName" placeholder="请输入收件人姓名">
           </div>
           <div class="form-group">
             <label>联系电话</label>
-            <input type="tel" v-model="addressForm.recipientPhone" placeholder="请输入联系电话">
+            <input type="tel" name="recipientPhone" v-model="addressForm.recipientPhone" placeholder="请输入联系电话">
           </div>
           <div class="form-group">
             <label>所在地区</label>
@@ -228,7 +288,7 @@
           </div>
           <div class="form-group">
             <label>详细地址</label>
-            <input type="text" v-model="addressForm.detailAddress" placeholder="街道、小区、门牌号">
+            <input type="text" name="detailAddress" v-model="addressForm.detailAddress" placeholder="街道、小区、门牌号">
           </div>
           <div class="form-group">
             <label>地址标签</label>
@@ -258,7 +318,7 @@
           <div class="form-group switch-row">
             <span>设为默认地址</span>
             <label class="switch">
-              <input type="checkbox" v-model="addressForm.isDefault">
+              <input type="checkbox" name="isDefault" v-model="addressForm.isDefault">
               <span class="slider"></span>
             </label>
           </div>
@@ -269,32 +329,17 @@
         </div>
       </div>
     </div>
-
-    <!-- ========== 支付状态确认弹窗 ========== -->
-    <div v-if="showPayConfirm" class="pay-confirm-overlay">
-      <div class="pay-confirm-dialog">
-        <i class="fas fa-check-circle pay-icon"></i>
-        <h3>订单已创建</h3>
-        <p>订单号：{{ createdOrderNumber }}</p>
-        <p class="pay-tip">请在新窗口中完成支付</p>
-        <div class="pay-actions">
-          <button class="btn-pay-done" @click="checkPayStatus" :disabled="checkingPay">
-            {{ checkingPay ? '查询中...' : '已完成支付' }}
-          </button>
-          <button class="btn-pay-later" @click="handlePayLater">稍后支付</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
 import { useAuthStore } from '@/stores/auth'
 import AddressSelector from '@/components/user/AddressSelector.vue'
+import sellerDefaultAvatar from '@/static/images/seller-avatar.jpg'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -327,6 +372,9 @@ interface OrderItem {
   productImage: string
   stock: number
   isFreeShipping?: boolean
+  sellerId?: number
+  sellerName?: string
+  sellerAvatar?: string
 }
 
 interface AddressForm {
@@ -338,6 +386,37 @@ interface AddressForm {
   detailAddress: string
   label: string
   isDefault: boolean
+}
+
+interface Coupon {
+  id: number
+  userCouponId: number
+  name: string
+  discountAmount: number
+  minAmount: number
+  description?: string
+  couponType?: string
+  type?: string | number
+  discountRate?: number
+  startTime?: string
+  endTime?: string
+}
+
+interface UserCouponResponse {
+  id: number
+  couponId: number
+  userId: number
+  status: string
+  coupon: {
+    id: number
+    name: string
+    type: string
+    minAmount: number
+    discountAmount: number
+    discountRate: number
+    startTime: string
+    endTime: string
+  }
 }
 
 // ==================== 响应式数据 ====================
@@ -353,6 +432,10 @@ const showAddressPanel = ref(false)
 const isEditingAddress = ref(false)
 const editingAddressId = ref<number | null>(null)
 
+const showCouponPanel = ref(false)
+const availableCoupons = ref<Coupon[]>([])
+const selectedCouponId = ref<number | null>(null)
+
 const addressForm = ref<AddressForm>({
   recipientName: '',
   recipientPhone: '',
@@ -364,34 +447,144 @@ const addressForm = ref<AddressForm>({
   isDefault: false
 })
 
-// 支付相关状态
-const showPayConfirm = ref(false)
-const createdOrderId = ref<number | null>(null)
-const createdOrderNumber = ref('')
-const checkingPay = ref(false)
-
-
-
 // ==================== 计算属性 ====================
 const totalAmount = computed(() => {
   return orderItems.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
 })
 
 const shippingFee = computed(() => {
-  // 检查所有商品是否都包邮
   const allFreeShipping = orderItems.value.every(item => item.isFreeShipping !== false)
   if (allFreeShipping) return 0
 
-  // 满99包邮
   return totalAmount.value >= 99 ? 0 : 10
 })
 
-const payAmount = computed(() => {
-  return totalAmount.value + shippingFee.value
+const selectedCoupon = computed(() => {
+  return availableCoupons.value.find(coupon => coupon.id === selectedCouponId.value)
 })
+
+const calculateCouponDiscount = (coupon: Coupon, orderAmount: number): number => {
+  if (!coupon) return 0
+  const type = coupon.couponType || coupon.type
+  if (!type) return 0
+
+  switch (type) {
+    case 'FULL_REDUCTION':
+    case 1: {
+      const minAmount = Number(coupon.minAmount) || 0
+      const discountAmount = Number(coupon.discountAmount) || 0
+      return orderAmount >= minAmount ? discountAmount : 0
+    }
+    case 'DISCOUNT':
+    case 2: {
+      const discountRate = Number(coupon.discountRate) || 0
+      if (discountRate <= 0 || discountRate >= 10) return 0
+      return orderAmount * (1 - discountRate / 10)
+    }
+    case 'NO_THRESHOLD':
+    case 3: {
+      const discountAmount = Number(coupon.discountAmount) || 0
+      return orderAmount > discountAmount ? discountAmount : 0
+    }
+    default:
+      return 0
+  }
+}
+
+const couponDiscountAmount = computed(() => {
+  if (!selectedCoupon.value) return 0
+  const orderAmount = totalAmount.value + shippingFee.value
+  const discount = calculateCouponDiscount(selectedCoupon.value, orderAmount)
+  return Math.min(discount, orderAmount - 0.01)
+})
+
+const payAmount = computed(() => {
+  const amount = totalAmount.value + shippingFee.value - couponDiscountAmount.value
+  return Math.max(amount, 0.01)
+})
+
+const findBestCoupon = () => {
+  if (availableCoupons.value.length === 0) return null
+  
+  let best = null
+  let maxDiscount = 0
+  const orderAmount = totalAmount.value + shippingFee.value
+
+  availableCoupons.value.forEach(coupon => {
+    const discount = calculateCouponDiscount(coupon, orderAmount)
+    if (discount > maxDiscount) {
+      maxDiscount = discount
+      best = coupon
+    }
+  })
+
+  return best
+}
+
+const getCouponDisplayText = (coupon: Coupon): string => {
+  const type = coupon.couponType || coupon.type
+  if (!type) return ''
+
+  switch (type) {
+    case 'FULL_REDUCTION':
+    case 1:
+      return `满${coupon.minAmount}减${coupon.discountAmount}`
+    case 'DISCOUNT':
+    case 2:
+      return `${coupon.discountRate}折`
+    case 'NO_THRESHOLD':
+    case 3:
+      return `无门槛减${coupon.discountAmount}元`
+    default:
+      return ''
+  }
+}
+
+const getCouponDisplayAmount = (coupon: Coupon): number => {
+  const type = coupon.couponType || coupon.type
+  if (!type) return Number(coupon.discountAmount) || 0
+
+  switch (type) {
+    case 'FULL_REDUCTION':
+    case 1:
+    case 'NO_THRESHOLD':
+    case 3:
+      return Number(coupon.discountAmount) || 0
+    case 'DISCOUNT':
+    case 2: {
+      const orderAmount = totalAmount.value + shippingFee.value
+      const discountRate = Number(coupon.discountRate) || 0
+      if (discountRate <= 0 || discountRate >= 10) return 0
+      return orderAmount * (1 - discountRate / 10)
+    }
+    default:
+      return Number(coupon.discountAmount) || 0
+  }
+}
 
 const selectedAddress = computed(() => {
   return addresses.value.find(addr => addr.id === selectedAddressId.value)
+})
+
+const groupedItemsBySeller = computed(() => {
+  const groups: Record<number | string, { sellerId: number | string; sellerName: string; sellerAvatar?: string; items: OrderItem[]; totalAmount: number }> = {}
+
+  orderItems.value.forEach(item => {
+    const sellerId = item.sellerId || 'unknown'
+    if (!groups[sellerId]) {
+      groups[sellerId] = {
+        sellerId,
+        sellerName: item.sellerName || '未知卖家',
+        sellerAvatar: item.sellerAvatar,
+        items: [],
+        totalAmount: 0
+      }
+    }
+    groups[sellerId].items.push(item)
+    groups[sellerId].totalAmount += item.price * item.quantity
+  })
+
+  return groups
 })
 
 // ==================== 数据加载 ====================
@@ -486,6 +679,9 @@ const loadOrderData = async () => {
       return
     }
 
+    if (orderItems.value.length > 0) {
+      loadAvailableCoupons()
+    }
   } catch (error: any) {
     Message.error(error.message || '加载失败')
   } finally {
@@ -602,6 +798,55 @@ const saveAddress = async () => {
   }
 }
 
+// ==================== 优惠券管理 ====================
+const loadAvailableCoupons = async () => {
+  try {
+    const orderAmount = totalAmount.value
+    const response = await authAPI.getAvailableCouponsForCheckout(orderAmount)
+    if (response.success) {
+      const userCoupons = response.data?.coupons || []
+      availableCoupons.value = userCoupons.map((item: UserCouponResponse) => ({
+        id: item.id,
+        userCouponId: item.id,
+        name: item.coupon?.name || '',
+        discountAmount: Number(item.coupon?.discountAmount) || 0,
+        minAmount: Number(item.coupon?.minAmount) || 0,
+        description: '',
+        couponType: item.coupon?.type || '',
+        startTime: item.coupon?.startTime || '',
+        endTime: item.coupon?.endTime || ''
+      }))
+      if (selectedCouponId.value) {
+        const stillAvailable = availableCoupons.value.find(c => c.id === selectedCouponId.value)
+        if (!stillAvailable) {
+          selectedCouponId.value = null
+        }
+      }
+    }
+  } catch (error) {
+    console.error('加载优惠券失败', error)
+  }
+}
+
+const openCouponPanel = async () => {
+  await loadAvailableCoupons()
+  showCouponPanel.value = true
+}
+
+const selectCoupon = (coupon: Coupon) => {
+  if (selectedCouponId.value === coupon.id) {
+    selectedCouponId.value = null
+  } else {
+    selectedCouponId.value = coupon.id
+  }
+  showCouponPanel.value = false
+}
+
+const cancelCoupon = () => {
+  selectedCouponId.value = null
+  showCouponPanel.value = false
+}
+
 // ==================== 订单提交 ====================
 const submitOrder = async () => {
   if (!selectedAddressId.value) {
@@ -609,14 +854,12 @@ const submitOrder = async () => {
     return
   }
 
-  // 防重复提交
   if (submitting.value) return
 
-  // 二次确认
   try {
     await Message.confirm('确认提交订单？', '确认订单')
   } catch {
-    return  // 用户取消
+    return
   }
 
   submitting.value = true
@@ -624,33 +867,32 @@ const submitOrder = async () => {
   try {
     const source = route.query.source as string
 
-    const orderData = {
+    const orderData: any = {
       addressId: selectedAddressId.value,
       paymentMethod: paymentMethod.value,
       source: source || 'product',
       orderItems: orderItems.value.map(item => ({
         productId: item.productId,
         quantity: item.quantity,
-        skuId: item.skuId
+        skuId: item.skuId,
+        sellerId: item.sellerId
       }))
+    }
+
+    if (selectedCoupon.value) {
+      orderData.userCouponId = selectedCoupon.value.userCouponId
     }
 
     const response = await authAPI.createOrder(orderData)
 
     if (response.success) {
-      createdOrderId.value = response.data?.orderId
-      createdOrderNumber.value = response.data?.orderNumber || ''
-
-      // 使用 window.open 打开支付页面
       const paymentHtml = response.data.paymentHtml
       const payWindow = window.open('', '_blank')
       if (payWindow) {
         payWindow.document.write(paymentHtml)
         payWindow.document.close()
       }
-
-      // 显示支付确认弹窗
-      showPayConfirm.value = true
+      Message.info('请在新窗口中完成支付，支付成功后将自动跳转')
     } else {
       throw new Error(response.message || '创建订单失败')
     }
@@ -661,38 +903,28 @@ const submitOrder = async () => {
   }
 }
 
-// 查询支付状态
-const checkPayStatus = async () => {
-  if (!createdOrderId.value || checkingPay.value) return
-  checkingPay.value = true
-
-  try {
-    const response = await authAPI.getOrderDetail(createdOrderId.value)
-
-    // 兼容两种返回格式
-    const order = response.data?.order || response.data?.orderDetail?.order
-    const status = order?.status
-
-    if (status === 'PAID' || status === 'PROCESSING' || status === 'SHIPPED') {
-      showPayConfirm.value = false
-      Message.success('支付成功')
-      router.back()
-    } else if (status === 'PENDING') {
-      Message.warning('暂未收到支付通知，请确认是否已完成支付')
-    } else {
-      Message.error(`订单状态异常：${status || '未知'}`)
-    }
-  } catch (error: any) {
-    Message.error(error.message || '查询失败')
-  } finally {
-    checkingPay.value = false
-  }
+// ==================== WebSocket 支付成功自动处理 ====================
+const handlePaymentSuccess = () => {
+  router.back()
 }
 
-// 稍后支付
-const handlePayLater = () => {
-  showPayConfirm.value = false
+const onPaymentSuccessEvent = () => {
+  handlePaymentSuccess()
 }
+
+onMounted(() => {
+  if (!authStore.validateUserPermission()) return
+  loadOrderData()
+  loadAddresses()
+
+  // 监听 WebSocket 支付成功事件
+  window.addEventListener('user-payment-success', onPaymentSuccessEvent)
+})
+
+onUnmounted(() => {
+  // 移除监听
+  window.removeEventListener('user-payment-success', onPaymentSuccessEvent)
+})
 
 // ==================== 工具函数 ====================
 const formatPrice = (price: number): string => {
@@ -701,12 +933,6 @@ const formatPrice = (price: number): string => {
 }
 
 // ==================== 生命周期 ====================
-onMounted(() => {
-  if (!authStore.validateUserPermission()) return
-  loadOrderData()
-  loadAddresses()
-})
-
 // 离开页面时的拦截
 onBeforeRouteLeave((to, from, next) => {
   if (submitting.value) {

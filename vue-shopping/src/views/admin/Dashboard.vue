@@ -1,5 +1,12 @@
 <template>
-  <div class="dashboard-page">
+  <div v-if="loading" class="starlight-loader">
+    <div class="loader-ring">
+      <i class="fas fa-sparkles brand-icon"></i>
+    </div>
+    <p class="loader-text">加载中...</p>
+  </div>
+
+  <div v-else class="dashboard-page">
     <!-- 统计卡片 -->
     <div class="stats-grid">
       <div class="stat-card pending-card">
@@ -111,12 +118,7 @@
         </router-link>
       </div>
 
-      <div v-if="loading" class="loading-state">
-        <i class="fas fa-spinner fa-spin"></i>
-        <span>加载中...</span>
-      </div>
-
-      <div v-else-if="recentApplications.length === 0" class="empty-state">
+      <div v-if="recentApplications.length === 0" class="empty-state">
         <i class="fas fa-inbox"></i>
         <span>暂无待审核申请</span>
       </div>
@@ -188,7 +190,6 @@ const loadStats = async () => {
 }
 
 const loadRecentApplications = async () => {
-  loading.value = true
   try {
     const res = await adminAPI.getApplications({
       page: 1,
@@ -200,17 +201,24 @@ const loadRecentApplications = async () => {
     }
   } catch (error: any) {
     Message.error(error.message || '加载待审核申请失败')
+  }
+}
+
+const loadAll = async () => {
+  loading.value = true
+  try {
+    await Promise.all([loadStats(), loadRecentApplications()])
   } finally {
     loading.value = false
   }
 }
 
 onMounted(() => {
-  loadStats()
-  loadRecentApplications()
+  loadAll()
 })
 </script>
 
 <style scoped>
 @import url('@/static/css/admin/控制台.css');
+@import '@/static/css/common/星环加载器.css';
 </style>

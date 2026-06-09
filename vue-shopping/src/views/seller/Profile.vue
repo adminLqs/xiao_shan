@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="seller-info-container">
     <!-- 加载状态 -->
     <div v-if="loading" class="skeleton-profile">

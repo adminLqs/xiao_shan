@@ -5,7 +5,6 @@
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-exchange-alt"></i>
         <span>退款/售后</span>
       </div>
       <div class="page-nav-right"></div>
@@ -53,9 +52,12 @@
         class="refund-card"
         @click="handleRefundClick(refund)"
       >
-        <!-- 顶部：时间 -->
+        <!-- 顶部：时间 + 状态 -->
         <div class="card-header">
           <span class="apply-time">{{ formatDate(refund.applyTime) }}</span>
+          <span :class="['tag-refund', getStatusClass(refund.refundStatus, refund.returnStatus)]">
+            {{ getStatusText(refund.refundStatus, refund.returnStatus) }}
+          </span>
         </div>
 
         <!-- 中间：商品信息 + 价格 -->
@@ -67,9 +69,6 @@
               <span v-if="refund.skuName" class="tag-spec">{{ refund.skuName }}</span>
               <span class="tag-quantity">x{{ refund.quantity }}</span>
             </div>
-            <span :class="['tag-refund', getStatusClass(refund.refundStatus, refund.returnStatus)]">
-              {{ getStatusText(refund.refundStatus, refund.returnStatus) }}
-            </span>
           </div>
           <div class="product-price">
             <span class="refund-amount">¥{{ formatPrice(refund.refundAmount) }}</span>
@@ -79,28 +78,22 @@
         <!-- 底部：操作按钮 -->
         <div class="card-footer">
           <button class="action-btn" @click.stop="handleRefundClick(refund)">
-            {{ getActionText(refund.refundStatus, refund.returnStatus) }}
+            {{ getActionText() }}
           </button>
         </div>
       </div>
     </div>
 
     <!-- 加载更多提示 -->
-    <div v-if="!loading && refundList.length > 0" class="loading-more">
-      <div v-if="loadingMore" class="loading-text">
+    <div v-if="!loading && refundList.length > 0" class="load-more-wrapper">
+      <div v-if="loadingMore" class="loading-more-bar">
         <i class="fas fa-spinner fa-spin"></i>
         <span>加载中...</span>
       </div>
-      <div v-else-if="hasMore" class="loading-text">
-        <span>上拉加载更多</span>
-      </div>
-      <div v-else class="loading-text">
-        <span>已加载全部</span>
+      <div v-else-if="!hasMore" class="no-more-bar">
+        — 已经到底了 —
       </div>
     </div>
-
-    <!-- 底部留空 -->
-    <div class="bottom-space"></div>
   </div>
 </template>
 
@@ -196,64 +189,57 @@ const getRefundTypeText = (type: string): string => {
 }
 
 const getStatusText = (refundStatus: string, returnStatus: string): string => {
+  if (refundStatus === 'FAILED') return '已拒绝'
+  if (refundStatus === 'SUCCESS') return '已退款'
+
   if (returnStatus === 'RETURNING') return '退货中'
-  if (returnStatus === 'RECEIVED') return '已收货'
+  if (returnStatus === 'RECEIVED') return '已退款'
 
   const statusMap: Record<string, string> = {
     'PROCESSING': '处理中',
-    'APPROVED': '已同意',
     'WAITING_RETURN': '待退货',
-    'SUCCESS': '已完成',
+    'RETURNING': '退货中',
+    'SUCCESS': '已退款',
     'FAILED': '已拒绝'
   }
   return statusMap[refundStatus] || refundStatus
 }
 
 const getStatusClass = (refundStatus: string, returnStatus: string): string => {
+  if (refundStatus === 'FAILED') return 'status-failed'
+  if (refundStatus === 'SUCCESS') return 'status-success'
+
   if (returnStatus === 'RETURNING') return 'status-returning'
-  if (returnStatus === 'RECEIVED') return 'status-received'
+  if (returnStatus === 'RECEIVED') return 'status-success'
 
   const classMap: Record<string, string> = {
     'PROCESSING': 'status-processing',
-    'APPROVED': 'status-approved',
+    'WAITING_RETURN': 'status-waiting-return',
+    'RETURNING': 'status-returning',
     'SUCCESS': 'status-success',
     'FAILED': 'status-failed'
   }
   return classMap[refundStatus] || 'status-default'
 }
 
-const getActionText = (refundStatus: string, returnStatus: string): string => {
-  if (returnStatus === 'RETURNING') return '查看物流'
-  if ((refundStatus === 'APPROVED' || refundStatus === 'WAITING_RETURN') && returnStatus !== 'RECEIVED') return '去退货'
-  if (refundStatus === 'SUCCESS') return '查看详情'
-  return '查看详情'
+const getActionText = (): string => {
+  return '查看售后'
 }
 
 const handleRefundClick = (refund: RefundRecord) => {
-    if (refund.returnStatus === 'RETURNING') {
-      router.push({
-        name: 'UserLogistics',
-        query: {
-          trackingNumber: refund.returnTrackingNumber || '',
-          logisticsName: refund.returnLogisticsName || '',
-          refundId: String(refund.id)
-        }
-      })
-    } else if ((refund.refundStatus === 'APPROVED' || refund.refundStatus === 'WAITING_RETURN') && refund.returnStatus !== 'RECEIVED' && refund.refundType === 'AFTER_SALE') {
-      router.push({
-        name: 'ReturnGoods',
-        query: {
-          refundId: String(refund.id),
-          orderItemId: String(refund.orderItemId)
-        }
-      })
-    } else {
-      router.push({
-        name: 'RefundChat',
-        params: { refundId: String(refund.id) }
-      })
-    }
+  // 退货退款 + 待退货 → 直接跳转到退货页
+  if (refund.refundType === 'AFTER_SALE' && refund.refundStatus === 'WAITING_RETURN' && !refund.returnStatus) {
+    router.push({
+      name: 'ReturnGoods',
+      params: { refundId: String(refund.id), orderItemId: String(refund.orderItemId) }
+    })
+  } else {
+    router.push({
+      name: 'RefundChatStep',
+      params: { refundId: String(refund.id) }
+    })
   }
+}
 
 const loadRefundList = async (page: number = 1) => {
   const isFirstLoad = page === 1
@@ -316,11 +302,19 @@ const loadMore = async () => {
 onMounted(() => {
   loadRefundList()
   window.addEventListener('scroll', handleScroll)
+  window.addEventListener('refund-update', handleRefundUpdate)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('refund-update', handleRefundUpdate)
 })
+
+const handleRefundUpdate = () => {
+  currentPage.value = 1
+  hasMore.value = true
+  loadRefundList()
+}
 </script>
 
 <style scoped>

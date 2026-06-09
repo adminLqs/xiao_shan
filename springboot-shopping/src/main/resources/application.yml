@@ -1,92 +1,368 @@
+# ============================================
 # 服务器配置
+# ============================================
 server:
+  # 服务端口号
   port: 8088
 
-# 应用配置
+  # Undertow 容器配置（高性能Web服务器，替代Tomcat）
+  undertow:
+    # IO线程数：处理网络IO的线程数，默认为CPU核心数×2
+    # 8核CPU推荐8，4核CPU推荐4
+    io-threads: 8
+
+    # 工作线程数：处理业务逻辑的线程数，默认为IO线程数×8
+    # 64表示最多同时处理64个请求
+    worker-threads: 64
+
+    # 缓冲区大小：每个连接使用的缓冲区大小，单位字节
+    # 16KB适合大多数场景，过小影响性能，过大浪费内存
+    buffer-size: 16384
+
+    # 是否使用直接内存（NIO的DirectByteBuffer）
+    # true：性能更好，但内存管理需要依赖JVM
+    direct-buffers: true
+
+    # 每个请求的最大参数数量（包含GET和POST参数）
+    # 防止恶意请求携带大量参数攻击
+    max-parameters: 1000
+
+    # 每个请求的最大HTTP头数量
+    # 防止恶意请求携带大量头信息
+    max-headers: 200
+
+    # 请求体最大大小，单位字节
+    # 104857600 = 100MB，与文件上传配置保持一致
+    max-entity-size: 104857600
+
+  # HTTP响应压缩配置（减少网络传输量）
+  compression:
+    # 启用压缩
+    enabled: true
+    # 需要压缩的MIME类型
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    # 最小响应大小（字节），小于此值不压缩
+    min-response-size: 2048
+
+# ============================================
+# Spring Boot 核心配置
+# ============================================
 spring:
-  # 应用名称
+  # 应用名称（用于服务注册、监控等）
   application:
     name: shopping
 
-  # ====== 数据源配置 =======
+  # ========== 数据源配置 ==========
   datasource:
-    url: jdbc:mysql://localhost:3306/shopping-mobile?serverTimezone=Asia/Shanghai&characterEncoding=utf8 # 数据库连接URL
-    username: root # 数据库用户名
-    password: 21125211323 # 数据库密码
-    driver-class-name: com.mysql.cj.jdbc.Driver # MySQL驱动类
+    # 数据库连接URL
+    # serverTimezone=Asia/Shanghai：时区设置
+    # characterEncoding=utf8：字符编码
+    # useSSL=false：禁用SSL（本地开发）
+    # allowPublicKeyRetrieval=true：允许获取公钥（MySQL 8.0+）
+    url: jdbc:mysql://localhost:3306/shopping-mobile?serverTimezone=Asia/Shanghai&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+    # 数据库用户名
+    username: root
+    # 数据库密码
+    password: 21125211323
+    # MySQL驱动类
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+    # HikariCP 连接池配置（Spring Boot默认，性能最好的连接池）
+    hikari:
+      # 最小空闲连接数：连接池保持的最小空闲连接
+      minimum-idle: 5
+      # 最大连接数：连接池最多能创建的连接数
+      # 20个连接在QPS=200的系统中足够用
+      maximum-pool-size: 20
+      # 空闲超时：连接空闲多久后被释放（毫秒）
+      # 300000ms = 5分钟
+      idle-timeout: 300000
+      # 连接超时：获取连接的最大等待时间（毫秒）
+      # 20000ms = 20秒，超时则抛出异常
+      connection-timeout: 20000
+      # 连接最大存活时间：连接最多存活多久（毫秒）
+      # 必须小于MySQL的wait_timeout（默认8小时）
+      max-lifetime: 600000
+      # 连接泄漏检测阈值（毫秒）
+      # 60000ms = 1分钟，超过此时间未归还则记录警告
+      leak-detection-threshold: 60000
 
   # ========== Redis 配置 ==========
   redis:
-    host: localhost        # Redis 服务器地址（默认 localhost）
-    port: 6379             # Redis 端口（默认 6379）
-    password:              # 密码（没有就留空）
-    database: 0            # 使用哪个数据库（0-15）
-    timeout: 5000ms        # 连接超时时间
+    # Redis服务器地址
+    host: localhost
+    # Redis端口
+    port: 6379
+    # Redis密码（没有则留空）
+    password:
+    # 使用的数据库索引（0-15）
+    database: 0
+    # 连接超时时间
+    timeout: 5000ms
+
+    # Lettuce客户端配置（Spring Boot默认）
     lettuce:
+      # 连接池配置
       pool:
-        max-active: 8      # 最大活跃连接数
-        max-idle: 8        # 最大空闲连接数
-        min-idle: 0        # 最小空闲连接数
+        # 最大活跃连接数
+        max-active: 20
+        # 最大空闲连接数
+        max-idle: 10
+        # 最小空闲连接数
+        min-idle: 5
+      # 关闭超时
+      shutdown-timeout: 100ms
 
-  # Flyway数据库版本管理
+  # ========== RabbitMQ 消息队列配置 ==========
+  # 生产环境
+#  rabbitmq:
+#    # RabbitMQ服务器地址
+#    host: localhost
+#    # RabbitMQ端口
+#    port: 5672
+#    # 用户名
+#    username: admin
+#    # 密码
+#    password: admin123
+#    # 虚拟主机（默认/）
+#    virtual-host: /
+#    # WebSocket STOMP协议端口
+#    stomp:
+#      port: 61613
+#
+#    # 消息可靠性配置
+#    # 开启发布确认（异步），correlated表示发送方确认
+#    publisher-confirm-type: correlated
+#    # 开启消息返回（不可路由时返回）
+#    publisher-returns: true
+#    template:
+#      # 强制消息返回（必须配合publisher-returns使用）
+#      mandatory: true
+#
+#    # 消息监听器配置
+#    listener:
+#      simple:
+#        # 确认模式：manual表示手动确认（生产环境推荐）
+#        acknowledge-mode: manual
+#        # 预取数量：每次只取1条消息（防止消息堆积）
+#        prefetch: 1
+#        # 最小消费者数
+#        concurrency: 5
+#        # 最大消费者数
+#        max-concurrency: 20
+#        # 重试配置
+#        retry:
+#          # 开启重试
+#          enabled: true
+#          # 最大重试次数（3次）
+#          max-attempts: 3
+#          # 初始重试间隔（1秒）
+#          initial-interval: 1000ms
+#          # 重试间隔倍数（每次×2）
+#          multiplier: 2
+#          # 最大重试间隔（10秒）
+#          max-interval: 10000ms
+
+    # 开发环境
+    rabbitmq:
+      # RabbitMQ服务器地址
+      host: localhost
+      # RabbitMQ端口
+      port: 5672
+      # 用户名
+      username: guest
+      # 密码
+      password: guest
+      # 虚拟主机（默认/）
+      virtual-host: /
+      # WebSocket STOMP协议端口
+      stomp:
+        port: 61613
+
+      # 消息可靠性配置
+      # 开启发布确认（异步），correlated表示发送方确认
+      publisher-confirm-type: correlated
+      # 开启消息返回（不可路由时返回）
+      publisher-returns: true
+      template:
+        # 强制消息返回（必须配合publisher-returns使用）
+        mandatory: true
+
+      # 消息监听器配置
+      listener:
+        simple:
+          # 确认模式：manual表示手动确认（生产环境推荐）
+          acknowledge-mode: manual
+          # 预取数量：每次只取1条消息（防止消息堆积）
+          prefetch: 1
+          # 最小消费者数
+          concurrency: 5
+          # 最大消费者数
+          max-concurrency: 20
+          # 重试配置
+          retry:
+            # 开启重试
+            enabled: true
+            # 最大重试次数（3次）
+            max-attempts: 3
+            # 初始重试间隔（1秒）
+            initial-interval: 1000ms
+            # 重试间隔倍数（每次×2）
+            multiplier: 2
+            # 最大重试间隔（10秒）
+            max-interval: 10000ms
+
+  # ========== Jackson JSON 序列化配置 ==========
+  jackson:
+    # 日期格式（统一使用yyyy-MM-dd HH:mm:ss）
+    date-format: yyyy-MM-dd HH:mm:ss
+    # 时区（北京时间）
+    time-zone: Asia/Shanghai
+    # 序列化配置
+    serialization:
+      # 日期不输出为时间戳（输出为格式化字符串）
+      write-dates-as-timestamps: false
+    # 默认属性包含策略：只包含非null字段（减少传输量）
+    default-property-inclusion: non_null
+
+  # ========== Flyway 数据库版本管理 ==========
   flyway:
-#    baseline-on-migrate: true # 1. 允许对已有数据的数据库进行基线化
-#    baseline-version: 1 # 2. 将当前数据库状态标记为版本1
-#    baseline-description: "Base migration" # 3. 基线描述
-#    repair-on-migrate: true  # 添加这个配置自动修复
+    # 启用Flyway（数据库迁移）
+    enabled: true
+    # 迁移脚本位置（classpath:db/migration）
+    locations: classpath:db/migration
+    # 允许对已有数据的数据库进行基线化
+    baseline-on-migrate: true
+    # 基线版本号
+    baseline-version: 1
+    # 基线描述
+    baseline-description: "Base migration"
+    # 修复迁移（自动修复Checksum不匹配）
+    repair-on-migrate: true
 
-    enabled: true # 启用Flyway
-    locations: classpath:db/migration # 迁移脚本位置
-
-  # 文件上传配置（必须在spring下面）
+  # ========== 文件上传配置 ==========
   servlet:
     multipart:
-      max-file-size: 50MB # 单个文件最大大小
-      max-request-size: 100MB # 整个请求最大大小
+      # 单个文件最大大小（100MB）
+      max-file-size: 100MB
+      # 整个请求最大大小（100MB）
+      max-request-size: 100MB
+      # 文件大小阈值：超过2MB则写入磁盘（否则在内存中）
+      file-size-threshold: 2MB
+      # 临时文件存储目录（Linux默认/tmp）
+      location: /tmp
 
-  # RabbitMQ 配置
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-    stomp:
-      port: 61613
+  # ========== 异步任务线程池配置 ==========
+  task:
+    # 异步执行任务配置
+    execution:
+      pool:
+        # 核心线程数（常驻线程）
+        core-size: 10
+        # 最大线程数（峰值时最多创建50个线程）
+        max-size: 50
+        # 任务队列容量（200个任务排队等待）
+        queue-capacity: 200
+      # 线程名前缀（便于日志追踪）
+      thread-name-prefix: async-task-
+    # 定时任务线程池配置
+    scheduling:
+      pool:
+        # 线程池大小
+        size: 5
+      # 线程名前缀
+      thread-name-prefix: scheduled-task-
 
-# MyBatis配置
+# ============================================
+# MyBatis ORM框架配置
+# ============================================
 mybatis:
-  mapper-locations: classpath:mapper/*.xml # Mapper XML文件位置
-  type-aliases-package: com.xiaoshan.springbootdemo.entity # 实体类别名包路径，简化XML中的类型引用
+  # Mapper XML文件位置
+  mapper-locations: classpath:mapper/*.xml
+  # 实体类别名包路径（简化XML中的类型引用）
+  type-aliases-package: com.xiaoshan.springbootdemo.entity
 
   # MyBatis全局配置
   configuration:
-    map-underscore-to-camel-case: true   # 开启驼峰命名自动映射：数据库字段 user_name → Java属性 userName
-#    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    # 开启驼峰命名自动映射：user_name → userName
+    map-underscore-to-camel-case: true
+    # 日志实现：使用Slf4j
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    # 启用二级缓存（谨慎使用，默认关闭）
+    cache-enabled: false
+    # 启用延迟加载
+    lazy-loading-enabled: true
+    # 积极加载（立即加载关联数据）
+    aggressive-lazy-loading: false
+    # 本地缓存作用域（statement：仅当前语句）
+    local-cache-scope: statement
 
-# JWT配置
+# ============================================
+# JWT 认证配置
+# ============================================
 jwt:
+  # JWT密钥（至少256位，用于HS256算法）
+  # 生产环境请使用更复杂的密钥，不要提交到Git
   secret: mySuperSecretKeyThatIsAtLeast256BitsLongForHS256Algorithm1234567890!
 
-# 配置文件上传路径
+# ============================================
+# 文件上传路径配置
+# ============================================
 app:
   file:
+    # 文件上传根目录（相对路径）
     upload-dir: uploads
+    # 生产环境建议使用绝对路径：
+    # upload-dir: /data/shopping/uploads
 
+# ============================================
 # 日志配置
+# ============================================
 logging:
+  # 控制台字符编码
   charset:
     console: UTF-8
-  level:
-#    com.xiaoshan.springbootdemo: DEBUG  # 开发环境 看详细日志方便调试
-    com.xiaoshan.springbootdemo: INFO # 生产环境 只记录关键信息
-#    com.xiaoshan.springbootdemo.mapper: WARN
 
-# 快递鸟API配置
+  # 日志级别配置
+  level:
+    # 项目包：INFO级别（生产环境）
+    com.xiaoshan.springbootdemo: INFO
+    # 降低第三方库日志级别（减少日志量）
+    org.springframework: WARN
+    org.springframework.security: WARN
+    org.springframework.amqp: WARN
+    org.apache.ibatis: WARN
+    org.hibernate: WARN
+    redis.clients: WARN
+    com.zaxxer.hikari: WARN
+
+  # 日志文件配置
+  file:
+    # 日志文件名（相对路径）
+    name: logs/shopping.log
+    # 单个日志文件最大大小
+    max-size: 100MB
+    # 保留历史日志天数
+    max-history: 7
+
+  # 日志输出格式
+  pattern:
+    # 控制台日志格式
+    # %d：日期 %-5level：日志级别 %thread：线程名 %logger：类名 %msg：消息
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{50} - %msg%n"
+    # 文件日志格式
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{50} - %msg%n"
+
+# ============================================
+# 快递鸟API配置（物流查询）
+# ============================================
 kdniao:
   api:
-    # 正式环境API地址
+    # 正式环境API地址（即时查询）
     url: https://api.kdniao.com/api/dist
-    # 测试环境API地址（可选）
+    # 电子面单接口地址（上门取件）
+    eorder-url: https://api.kdniao.com/api/EOrderService
+    # 测试环境API地址
     test-url: https://api.kdniao.com/api/dist
   app:
     # 用户ID（EBusinessID）
@@ -94,28 +370,82 @@ kdniao:
     # API密钥（AppKey）
     secret: 37691e1f-fa2b-4ce8-b0aa-1e5c3fd7dae3
 
+# ============================================
+# 支付宝支付配置
+
 #  韵达：465144307875876
 #  买家账号: cmdiaf2162@sandbox.com
 #  登录密码: 111111
 #  支付密码: 111111
+# ============================================
 alipay:
-  # 您的沙箱APPID
+  # 支付宝沙箱APPID
   app-id: 9021000162629440
-  # 绑定的商家账号（PID）
+  # 商家账号PID（Partner ID）
   pid: 2088721098715691
-  # 支付宝网关
+  # 支付宝网关地址（沙箱环境）
   gateway-url: https://openapi-sandbox.dl.alipaydev.com/gateway.do
-  # 应用私钥
+
+  # 应用私钥（RSA2）
   private-key: MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCV/lyQEkZpqMM8Plk0d6rXD+NiHKjQsC+ppFyIRd9uOFfuKjrmICyzXzPoZYAJ/Nbt0JmEk6RuH//K8JO5jKangAF/6txbR/0dTRwId4jv+/EyupXPXnzZA+D20zNDJOBOST2mOcdXExfzZnQOP9K0fIFXv7A0AIPVCaClmDXAzudKAyjYHbIgRO0binOeyYySuigUy9dTbLkrjNrReJICqo+NCjLeHQqYf7JRBapJeikQawGqWSAQ0H3W7hu4y+4zd1ZTjDU0+Kk2eLFgSJppRq1NygQNhXcTZx8diPGsBPYGZsOTM0VH3XKQLglwBNdKIyeDM8WksjbsFW39eDjZAgMBAAECggEALmHr6bldAMtpJDX7i9f9gmetXueR5Ia3FnR3EMTapNDTkBiLAiKs8ALeoFzSzUPcisnYz0CAtnU6ulzOsbAm0OEqlY3g+nE2elsf8hZUyDFWkuNT9D45yToD1Q/WaEr8+fh4EfEIDYsf+uqRtN5Tn/BoZuQl7s7B9Zz2in6ZELfwwvpoNRDeswCT8ENnvrWXT1VISeJ/22BVqAl8SSVGZvM2U6gQhtG0C+EZv0UJVdlqW6C1lYb9Hl2EvGiG1z7hRM+GvFZeU0SysY0xKvKoWLdJDfOCCo4ftuezENo22KfRCFnx42siUD1UH6c6gI9gJJOc/kgL+8MPSKXa1IskiQKBgQDZR4/lgftv0yB2KfkqUgdHCJBfdzjtT1jEmKKlUPj4SXplx9Au/R8EKBIM5vwB5/AM71IJdXKB53Z9i+dgJ5ntpYAindrKaHI17BygsB17FKJOI/vHJXqywOK+EhLOUyJw/J0puvkV6vWE31HaKhRmgCvr7+cOfkrGjBDS3yTglwKBgQCwuSt/ko06zK8m7ASKYOCdCuAxxlcKrw/s45GAx9l4X0DSPrdY9PKrsjn8azCh5vlyFucVSFJV1sFrAlNrGq97XeDS5lzgISWJxbMqlPyR3DaaQ/JdkmuZsGFWmpDYjggqvhwIyW9YBUUMBUAALw01FznicgOMLaq6oS9IjPtwDwKBgC2LE31u7m41GePKzoBxazcXc3OfQN51OE0VFVqDi3w3oqE87cU7p0muwIHV1NLtc+KyM0bqSFM0WiDct2XvRxOKEj6vSdINbIsi76k64SMQYyjv3/GRSJO5XI2sqiZ3RIvcV3EM0PMoKchtKvIIyffmO86bnZnrHO9bIpeg0FEHAoGBAKW+5dcegir1sgiVL6UBO2jOvHqyhQxWKF+LB/p6dbJ50/fcLmXWRotV+yCM/+25DZc9d7n0PJSZeIp+gfJf8tmHsMbcm5ryO5y9uU5ksYWzvdptg7DTFOvuCz0IdnVEsNA1wWFUW4N4XcvqWJ5TgtWaVQXW3RDp+8hSSGCJKYFtAoGAJXHo0BLZklqL1nwOfTtQdevQsJxKyQKq1pzUvke5/7tOnuszyLATa3lhak0y7oRK3ioMmInmjQQiEh538PPB94UyJ0wf2/iuNe0NINNScrHu1zk6K1FN0eW0bkL1CtQhy8uy3T4bK8D3WllSwXDRk0cp7jTCIoEPDky802eFbEE=
   # 支付宝公钥
   alipay-public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnYJmw0mjl6h4nXH/7a6wezMMp7x0oVDaf9lD1tC3MFZ/fbZDbU0SHiUw1hkTilYSQRLQx+/f8yqbspSj/l4X69Ic4SQXRd4L31XABgvmiTYY5G6fe14BEIfA0bPpYowumeOSDrB4Vx7CrPvm/Yrjk4N8C5+U7AnLT8+bhJtwb+q/8TMG/EdP7wh1YVBZMLYQQBYZ+28up0ozhN75/Nov1Bq0cUqssDrXA8OEXa2BFg82XYLQZnFSiRXKQbjv+yz61Ivke+s0CWASFuqo0aMUj/mUxIT80Lis8Hhsm2Fc4hV3ooJeVoPCVmZxMndYwDnqYTdyrFegdC9hGzHHvKwDcQIDAQAB
-  # 支付宝支付结果的回调地址，后端接收支付结果的地址
-#  notify-url: http://62.234.79.156/api/v1/payment/callback # 生产环境
-  notify-url: http://w5da762d.natappfree.cc/api/v1/payment/callback
-  # 支付宝支付结果通知的回调地址，付款完毕后跳转本项目的页面
-#  return-url: http://62.234.79.156 # 生产环境
-  return-url: http://w5da762d.natappfree.cc
 
-  # 支付宝退款结果通知的回调地址
-#  refund-notify-url: http://62.234.79.156/api/v1/refund/callback # 生产环境
-  refund-notify-url: http://hfa4adbc.natappfree.cc/api/v1/refund/callback  # 退款回调
+  # 支付结果通知回调地址（支付宝异步通知）
+  notify-url: http://f6f3ba5a.natappfree.cc/api/v1/payment/callback
+#  notify-url: http://62.234.79.156/api/v1/payment/callback
+  # 支付完成跳转地址（同步跳转）
+  return-url: http://f6f3ba5a.natappfree.cc
+#  return-url: http://62.234.79.156
+
+  # 退款结果通知回调地址
+  refund-notify-url: /api/v1/refund/callback
+
+# ============================================
+# Spring Boot Actuator 监控配置
+# ============================================
+management:
+  # 端点配置
+  endpoints:
+    web:
+      # 暴露的端点（health健康检查、info信息、metrics指标）
+      exposure:
+        include: health,info,metrics
+      # 端点访问基础路径
+      base-path: /actuator
+
+  # 端点详细配置
+  endpoint:
+    health:
+      # 显示详细健康信息
+      show-details: always
+
+  # 指标配置
+  metrics:
+    export:
+      # 导出到Prometheus（配合Grafana监控）
+      prometheus:
+        enabled: true
+
+# ============================================
+# 自定义业务配置（便于统一管理业务参数）
+# ============================================
+business:
+  # 订单配置
+  order:
+    # 订单超时时间（分钟），30分钟后未支付自动取消
+    timeout-minutes: 30
+    # 自动确认收货天数，7天后自动确认
+    auto-confirm-days: 7
+
+  # 优惠券配置
+  coupon:
+    # 每人每天领取优惠券上限
+    user-daily-limit: 10
+
+  # 安全配置
+  security:
+    # 登录失败锁定时间（分钟），15分钟内锁定
+    login-lock-minutes: 15
+    # 最大登录失败次数，5次后锁定
+    max-login-attempts: 5

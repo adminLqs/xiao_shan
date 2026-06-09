@@ -4,6 +4,7 @@ import com.xiaoshan.springbootdemo.entity.Address;
 import com.xiaoshan.springbootdemo.entity.Order;
 import org.apache.ibatis.annotations.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -17,9 +18,9 @@ public interface OrderMapper {
     /**
      * 创建订单
      */
-    @Insert("INSERT INTO orders (id, order_number, user_id, address_id, total_amount, status, " +
+    @Insert("INSERT INTO orders (id, order_number, user_id, address_id, total_amount, discount_amount, status, " +
             "source, payment_method, is_deleted, created_at, updated_at) " +
-            "VALUES (#{id}, #{orderNumber}, #{userId}, #{addressId}, #{totalAmount}, #{status}, " +
+            "VALUES (#{id}, #{orderNumber}, #{userId}, #{addressId}, #{totalAmount}, #{discountAmount}, #{status}, " +
             "#{source}, #{paymentMethod}, 0, #{createdAt}, #{updatedAt})")
     @Options(useGeneratedKeys = false, keyProperty = "id")
     int insert(Order order);
@@ -40,10 +41,10 @@ public interface OrderMapper {
      * @param id 订单ID
      * @return 订单信息
      */
-    @Select("SELECT id, order_number, user_id, address_id, total_amount, status, source, " +
+    @Select("SELECT id, order_number, user_id, address_id, total_amount, discount_amount, status, source, " +
             "payment_method, transaction_id, paid_at, " +
             "tracking_number, logistics_code, logistics_name, " +
-            "shipped_at, delivered_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
+            "shipped_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
             "FROM orders WHERE id = #{id} AND is_deleted = 0")
     Optional<Order> findById(@Param("id") Long id);
 
@@ -54,10 +55,10 @@ public interface OrderMapper {
      * @return 订单列表
      */
     @Select("<script>" +
-            "SELECT id, order_number, user_id, address_id, total_amount, status, source, " +
+            "SELECT id, order_number, user_id, address_id, total_amount, discount_amount, status, source, " +
             "payment_method, transaction_id, paid_at, " +
             "tracking_number, logistics_code, logistics_name, " +
-            "shipped_at, delivered_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
+            "shipped_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
             "FROM orders WHERE id IN " +
             "<foreach collection='orderIds' item='id' open='(' separator=',' close=')'>" +
             "#{id}" +
@@ -70,10 +71,10 @@ public interface OrderMapper {
     /**
      * 根据用户ID查询订单列表（只查未删除）
      */
-    @Select("SELECT id, order_number, user_id, address_id, total_amount, status, source, " +
+    @Select("SELECT id, order_number, user_id, address_id, total_amount, discount_amount, status, source, " +
             "payment_method, transaction_id, paid_at, " +
             "tracking_number, logistics_code, logistics_name, " +
-            "shipped_at, delivered_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
+            "shipped_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
             "FROM orders WHERE user_id = #{userId} AND is_deleted = 0 ORDER BY created_at DESC")
     List<Order> findByUserId(Long userId);
 
@@ -87,20 +88,20 @@ public interface OrderMapper {
      * @param userId 用户ID（用于权限校验）
      * @return 订单信息
      */
-    @Select("SELECT id, order_number, user_id, address_id, total_amount, status, source," +
+    @Select("SELECT id, order_number, user_id, address_id, total_amount, discount_amount, status, source," +
             "payment_method, transaction_id, paid_at, " +
             "tracking_number, logistics_code, logistics_name, " +
-            "shipped_at, delivered_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
+            "shipped_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
             "FROM orders WHERE id = #{id} AND user_id = #{userId} AND is_deleted = 0")
     Optional<Order> findByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 
     /**
      * 根据订单号查询订单（只查未删除）
      */
-    @Select("SELECT id, order_number, user_id, address_id, total_amount, status, source," +
+    @Select("SELECT id, order_number, user_id, address_id, total_amount, discount_amount, status, source," +
             "payment_method, transaction_id, paid_at, " +
             "tracking_number, logistics_code, logistics_name, " +
-            "shipped_at, delivered_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
+            "shipped_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
             "FROM orders WHERE order_number = #{orderNumber} AND is_deleted = 0")
     Optional<Order> findByOrderNumber(String orderNumber);
 
@@ -110,10 +111,10 @@ public interface OrderMapper {
      * @return 超时订单列表
      */
     @Select("<script>" +
-            "SELECT id, order_number, user_id, address_id, total_amount, status, source, " +
+            "SELECT id, order_number, user_id, address_id, total_amount, discount_amount, status, source, " +
             "payment_method, transaction_id, paid_at, " +
             "tracking_number, logistics_code, logistics_name, " +
-            "shipped_at, delivered_at, completed_at, processing_at, cancelled_at, created_at, updated_at, is_deleted " +
+            "shipped_at, completed_at, processing_at, cancelled_at, created_at, updated_at, is_deleted " +
             "FROM orders " +
             "WHERE status = 'PENDING' AND is_deleted = 0 AND created_at &lt; #{expireTime}" +
             "</script>")
@@ -124,11 +125,16 @@ public interface OrderMapper {
      */
     @Select("<script>" +
             "SELECT COUNT(*) FROM orders WHERE user_id = #{userId} AND is_deleted = 0 " +
-            "<if test='status != null and status != \"\"'>" +
-            "AND status = #{status} " +
+            "<if test='status != null'>" +
+            "<if test='status instanceof java.util.List'>" +
+            "AND status IN <foreach collection='status' item='s' open='(' separator=',' close=')'>#{s}</foreach>" +
+            "</if>" +
+            "<if test='status.getClass().isArray()'>" +
+            "AND status IN <foreach collection='status' item='s' open='(' separator=',' close=')'>#{s}</foreach>" +
+            "</if>" +
             "</if>" +
             "</script>")
-    long countByUserId(@Param("userId") Long userId, @Param("status") String status);
+    long countByUserId(@Param("userId") Long userId, @Param("status") String[] status);
 
     /**
      * 查询用户订单ID列表（分页）
@@ -145,8 +151,13 @@ public interface OrderMapper {
             "FROM orders " +
             "WHERE user_id = #{userId} " +
             "AND is_deleted = 0 " +
-            "<if test='status != null and status != \"\"'>" +
-            "AND status = #{status} " +
+            "<if test='status != null'>" +
+            "<if test='status instanceof java.util.List'>" +
+            "AND status IN <foreach collection='status' item='s' open='(' separator=',' close=')'>#{s}</foreach>" +
+            "</if>" +
+            "<if test='status.getClass().isArray()'>" +
+            "AND status IN <foreach collection='status' item='s' open='(' separator=',' close=')'>#{s}</foreach>" +
+            "</if>" +
             "</if>" +
             "ORDER BY created_at DESC " +
             "LIMIT #{limit} OFFSET #{offset}" +
@@ -154,20 +165,21 @@ public interface OrderMapper {
     List<Long> findUserOrderIds(@Param("userId") Long userId,
                                 @Param("offset") int offset,
                                 @Param("limit") int limit,
-                                @Param("status") String status);
+                                @Param("status") String[] status);
 
 
     // ============= 商家 ===============
 
     @Select("<script>" +
             "<choose>" +
-            "<when test='status != null and status == \"REFUNDING\"'>" +
+            "<when test='status != null'>" +
+            "<choose>" +
+            "<when test='(status instanceof java.util.List and status.contains(\"PROCESSING\")) or (status.getClass().isArray() and status.length > 0 and \"PROCESSING\" == status[0])'>" +
             "SELECT DISTINCT o.id " +
             "FROM orders o " +
             "INNER JOIN order_items oi ON o.id = oi.order_id " +
             "WHERE oi.seller_id = #{sellerId} " +
-            "AND oi.refund_status IN ('REFUNDING', 'AFTER_SALE', 'APPROVED', 'WAITING_RETURN', 'RETURNING') " +
-            "AND o.is_deleted = 0 " +
+            "AND oi.refund_status IN ('PROCESSING', 'WAITING_RETURN', 'RETURNING') " +
             "ORDER BY o.created_at DESC " +
             "LIMIT #{limit} OFFSET #{offset}" +
             "</when>" +
@@ -179,10 +191,27 @@ public interface OrderMapper {
             "  FROM order_items oi " +
             "  WHERE oi.seller_id = #{sellerId}" +
             ") " +
-            "AND o.is_deleted = 0 " +
-            "<if test='status != null and status != \"\"'>" +
-            "AND o.status = #{status} " +
+            "<if test='status instanceof java.util.List'>" +
+            "AND o.status IN " +
+            "<foreach collection='status' item='s' open='(' separator=',' close=')'>#{s}</foreach>" +
             "</if>" +
+            "<if test='status.getClass().isArray()'>" +
+            "AND o.status IN " +
+            "<foreach collection='status' item='s' open='(' separator=',' close=')'>#{s}</foreach>" +
+            "</if>" +
+            "ORDER BY o.created_at DESC " +
+            "LIMIT #{limit} OFFSET #{offset}" +
+            "</otherwise>" +
+            "</choose>" +
+            "</when>" +
+            "<otherwise>" +
+            "SELECT o.id " +
+            "FROM orders o " +
+            "WHERE o.id IN (" +
+            "  SELECT DISTINCT oi.order_id " +
+            "  FROM order_items oi " +
+            "  WHERE oi.seller_id = #{sellerId}" +
+            ") " +
             "ORDER BY o.created_at DESC " +
             "LIMIT #{limit} OFFSET #{offset}" +
             "</otherwise>" +
@@ -191,7 +220,36 @@ public interface OrderMapper {
     List<Long> findSellerOrderIds(@Param("sellerId") Long sellerId,
                                   @Param("offset") int offset,
                                   @Param("limit") int limit,
-                                  @Param("status") String status);
+                                  @Param("status") String[] status);
+
+    @Select("<script>" +
+            "SELECT DISTINCT o.id " +
+            "FROM orders o " +
+            "JOIN order_items oi ON o.id = oi.order_id " +
+            "WHERE oi.seller_id = #{sellerId} " +
+            "AND o.is_deleted = 0 " +
+            "AND oi.refund_status IN " +
+            "<foreach collection='refundStatus' item='s' open='(' separator=',' close=')'>#{s}</foreach>" +
+            "ORDER BY oi.created_at DESC " +
+            "LIMIT #{limit} OFFSET #{offset}" +
+            "</script>")
+    List<Long> findSellerOrderIdsByRefundStatus(@Param("sellerId") Long sellerId,
+                                                 @Param("offset") int offset,
+                                                 @Param("limit") int limit,
+                                                 @Param("refundStatus") String[] refundStatus);
+
+    @Select("<script>" +
+            "SELECT COUNT(DISTINCT o.id) " +
+            "FROM orders o " +
+            "JOIN order_items oi ON o.id = oi.order_id " +
+            "WHERE oi.seller_id = #{sellerId} " +
+            "AND o.is_deleted = 0 " +
+            "AND oi.refund_status IN " +
+            "<foreach collection='refundStatus' item='s' open='(' separator=',' close=')'>#{s}</foreach>" +
+            "</script>")
+    long countSellerOrdersByRefundStatus(@Param("sellerId") Long sellerId,
+                                         @Param("refundStatus") String[] refundStatus);
+
 
     /**
      * 统计商家订单数量
@@ -202,28 +260,41 @@ public interface OrderMapper {
      */
     @Select("<script>" +
             "<choose>" +
-            "<when test='status != null and status == \"REFUNDING\"'>" +
+            "<when test='status != null'>" +
+            "<choose>" +
+            "<when test='(status instanceof java.util.List and status.contains(\"PROCESSING\")) or (status.getClass().isArray() and status.length > 0 and \"PROCESSING\" == status[0])'>" +
             "SELECT COUNT(DISTINCT o.id) " +
             "FROM orders o " +
             "INNER JOIN order_items oi ON o.id = oi.order_id " +
             "WHERE oi.seller_id = #{sellerId} " +
-            "AND oi.refund_status IN ('REFUNDING', 'AFTER_SALE', 'APPROVED', 'WAITING_RETURN', 'RETURNING') " +
-            "AND o.is_deleted = 0 " +
+            "AND oi.refund_status IN ('PROCESSING', 'WAITING_RETURN', 'RETURNING') " +
             "</when>" +
             "<otherwise>" +
             "SELECT COUNT(DISTINCT o.id) " +
             "FROM orders o " +
             "INNER JOIN order_items oi ON o.id = oi.order_id " +
             "WHERE oi.seller_id = #{sellerId} " +
-            "AND o.is_deleted = 0 " +
-            "<if test='status != null and status != \"\"'>" +
-            "AND o.status = #{status} " +
+            "<if test='status instanceof java.util.List'>" +
+            "AND o.status IN " +
+            "<foreach collection='status' item='s' open='(' separator=',' close=')'>#{s}</foreach>" +
             "</if>" +
+            "<if test='status.getClass().isArray()'>" +
+            "AND o.status IN " +
+            "<foreach collection='status' item='s' open='(' separator=',' close=')'>#{s}</foreach>" +
+            "</if>" +
+            "</otherwise>" +
+            "</choose>" +
+            "</when>" +
+            "<otherwise>" +
+            "SELECT COUNT(DISTINCT o.id) " +
+            "FROM orders o " +
+            "INNER JOIN order_items oi ON o.id = oi.order_id " +
+            "WHERE oi.seller_id = #{sellerId} " +
             "</otherwise>" +
             "</choose>" +
             "</script>")
     long countSellerOrders(@Param("sellerId") Long sellerId,
-                           @Param("status") String status);
+                           @Param("status") String[] status);
 
 
     /**
@@ -236,7 +307,6 @@ public interface OrderMapper {
             "FROM orders o " +
             "INNER JOIN order_items oi ON o.id = oi.order_id " +
             "WHERE oi.seller_id = #{sellerId} " +
-            "AND o.is_deleted = 0 " +
             "GROUP BY o.status")
     List<Map<String, Object>> getSellerOrderCounts(Long sellerId);
 
@@ -248,7 +318,7 @@ public interface OrderMapper {
      */
     @Select("SELECT COUNT(*) FROM order_items oi " +
             "WHERE oi.seller_id = #{sellerId} " +
-            "AND oi.refund_status IN ('REFUNDING', 'AFTER_SALE', 'APPROVED', 'WAITING_RETURN', 'RETURNING')")
+            "AND oi.refund_status IN ('PROCESSING', 'WAITING_RETURN', 'RETURNING')")
     Long countRefundingItems(Long sellerId);
 
     /**
@@ -259,15 +329,14 @@ public interface OrderMapper {
      * @param sellerId 商家ID（用于权限校验）
      * @return 订单信息
      */
-    @Select("SELECT o.id, o.order_number, o.user_id, o.address_id, o.total_amount, o.status, o.source, " +
+    @Select("SELECT o.id, o.order_number, o.user_id, o.address_id, o.total_amount, o.discount_amount, o.status, o.source, " +
             "o.payment_method, o.transaction_id, o.paid_at, " +
             "o.tracking_number, o.logistics_code, o.logistics_name, " +
-            "o.shipped_at, o.delivered_at, o.completed_at, o.processing_at, o.cancelled_at, o.created_at, o.updated_at " +
+            "o.shipped_at, o.completed_at, o.processing_at, o.cancelled_at, o.created_at, o.updated_at " +
             "FROM orders o " +
             "INNER JOIN order_items oi ON o.id = oi.order_id " +
             "WHERE o.id = #{id} " +
             "AND oi.seller_id = #{sellerId} " +
-            "AND o.is_deleted = 0 " +
             "GROUP BY o.id")
     Optional<Order> findByIdAndSellerId(@Param("id") Long id, @Param("sellerId") Long sellerId);
 
@@ -353,24 +422,24 @@ public interface OrderMapper {
      * @param trackingNumber 物流单号
      * @return 订单信息
      */
-    @Select("SELECT id, order_number, user_id, address_id, total_amount, status, source, " +
+    @Select("SELECT id, order_number, user_id, address_id, total_amount, discount_amount, status, source, " +
             "payment_method, transaction_id, paid_at, " +
             "tracking_number, logistics_code, logistics_name, " +
-            "shipped_at, delivered_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
+            "shipped_at, completed_at, processing_at, cancelled_at, created_at, updated_at " +
             "FROM orders WHERE tracking_number = #{trackingNumber} AND is_deleted = 0")
     Optional<Order> findByTrackingNumber(String trackingNumber);
 
     /**
-     * 根据物流单号更新订单送达时间和状态
+     * 更新订单优惠金额和总金额
      *
-     * @param trackingNumber 物流单号
-     * @param deliveredAt 送达时间
+     * @param id 订单ID
+     * @param discountAmount 优惠金额
+     * @param totalAmount 订单总金额
      * @return 影响行数
      */
-    @Update("UPDATE orders SET delivered_at = #{deliveredAt}, " +
-            "status = 'DELIVERED', " +
-            "updated_at = NOW() " +
-            "WHERE tracking_number = #{trackingNumber} AND is_deleted = 0")
-    int updateDeliveredTimeByTrackingNumber(@Param("trackingNumber") String trackingNumber,
-                                            @Param("deliveredAt") LocalDateTime deliveredAt);
+    @Update("UPDATE orders SET discount_amount = #{discountAmount}, total_amount = #{totalAmount}, " +
+            "updated_at = NOW() WHERE id = #{id}")
+    int updateDiscountAmount(@Param("id") Long id,
+                             @Param("discountAmount") BigDecimal discountAmount,
+                             @Param("totalAmount") BigDecimal totalAmount);
 }

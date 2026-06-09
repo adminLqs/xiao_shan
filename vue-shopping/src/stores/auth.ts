@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+﻿import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
@@ -10,20 +10,22 @@ export const useAuthStore = defineStore('auth', () => {
 
   // ========== State - 只存核心标识 ==========
   const isLoggedIn = ref(false) // 是否登录
-  const role = ref('') // 角色: ROLE_USER / ROLE_SELLER / ROLE_ADMIN
+  const role = ref('') // 当前活跃角色
+  const activeRole = ref('') // 当前活跃角色（同role，冗余字段）
+  const roles = ref<string[]>([]) // 用户拥有的所有角色
   const status = ref(1) // 账号状态: 0-禁用, 1-启用
   const userId = ref<number | null>(null) // 账号ID
+  const token = ref('') // JWT token
 
   // ========== Getters - 权限判断 ==========
   const isUser = computed(() => role.value === 'ROLE_USER')
   const isSeller = computed(() => role.value === 'ROLE_SELLER')
   const isAdmin = computed(() => role.value === 'ROLE_ADMIN')
-  const isActive = computed(() => status.value === 1)  // 账号是否启用
+  const isActive = computed(() => status.value === 1)
 
-  // 是否有任一角色
-  const hasRole = computed(() => (roles: string[]) => {
+  const hasRole = computed(() => (targetRole: string) => {
     if (!isLoggedIn.value) return false
-    return roles.includes(role.value)
+    return roles.value.includes(targetRole)
   })
 
   // ========== Actions ==========
@@ -31,35 +33,32 @@ export const useAuthStore = defineStore('auth', () => {
   /* 加载账号权限状态 */
   async function checkAndUpdate() {
     try {
-      // 请求账号信息
       const response = await authAPI.getAccountProfile()
 
       if (response.success && response.data?.accountProfile) {
-
         const userRole = response.data.accountProfile.role
         const userIdValue = response.data.accountProfile.id
-
         const accountStatus = response.data.accountProfile.status
+        const userRoles = response.data.accountProfile.roles || []
 
-        // 角色有效才设置登录状态
         if (['ROLE_USER', 'ROLE_SELLER', 'ROLE_ADMIN'].includes(userRole)) {
-          isLoggedIn.value = true // 是否登录
-          role.value = userRole // 角色权限
-          userId.value = userIdValue // 用户ID
+          isLoggedIn.value = true
+          role.value = userRole
+          activeRole.value = userRole
+          roles.value = userRoles
+          userId.value = userIdValue
         } else {
-          // 角色无效，保持未登录
           isLoggedIn.value = false
           role.value = ''
+          activeRole.value = ''
+          roles.value = []
           userId.value = null
         }
 
-        // 无论角色是否有效，都记录状态（供组件判断封禁）
         status.value = accountStatus
-
         return;
       }
 
-      // 未登录或无效，清空状态
       clear()
     } catch (error) {
       clear()
@@ -175,8 +174,11 @@ export const useAuthStore = defineStore('auth', () => {
   function clear() {
     isLoggedIn.value = false
     role.value = ''
+    activeRole.value = ''
+    roles.value = []
     status.value = 1
     userId.value = null
+    token.value = ''
   }
 
   // 登出
@@ -194,12 +196,27 @@ export const useAuthStore = defineStore('auth', () => {
     await checkAndUpdate()
   }
 
+  async function switchRole(newRole: string) {
+    const res = await authAPI.switchRole(newRole)
+    if (res.success && res.data) {
+      role.value = newRole
+      activeRole.value = newRole
+      token.value = res.data.token || ''
+      await checkAndUpdate()
+      return true
+    }
+    return false
+  }
+
   return {
     // state
     isLoggedIn,
     role,
+    activeRole,
+    roles,
     status,
     userId,
+    token,
 
     // getters
     isUser,
@@ -217,6 +234,7 @@ export const useAuthStore = defineStore('auth', () => {
     // actions
     checkAndUpdate,
     clear,
-    logout
+    logout,
+    switchRole
   }
 })

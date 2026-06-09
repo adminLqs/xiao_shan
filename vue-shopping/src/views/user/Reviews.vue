@@ -1,12 +1,11 @@
 <template>
-  <div class="reviews-page page-container" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
+  <div class="reviews-page page-container" @touchstart.passive="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
     <!-- 顶部导航栏 -->
     <div class="page-navbar">
       <button class="page-nav-back" @click="router.back()">
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-comment-dots"></i>
         <span>商品评价</span>
       </div>
       <div class="page-nav-right"></div>
@@ -25,43 +24,22 @@
       </div>
     </div>
 
-    <!-- 评价概览 -->
+    <!-- 评分概览 + Tab栏 -->
     <div class="review-stats" v-if="!loading && stats.total > 0">
       <div class="stats-left">
         <div class="score">{{ stats.averageRating }}</div>
         <div class="score-label">商品评分</div>
-        <div class="positive-rate">{{ stats.positiveRate }}% 好评</div>
       </div>
-      <div class="stats-right">
+      <div class="review-tabs">
         <div
-          v-for="rating in [5, 4, 3, 2, 1]"
-          :key="rating"
-          class="rating-bar"
-          @click="filterByRating(rating)"
+          v-for="tab in tabs"
+          :key="tab.value"
+          class="review-tab"
+          :class="{ active: activeTab === tab.value }"
+          @click="changeTab(tab.value)"
         >
-          <span class="rating-label">{{ rating }}星</span>
-          <div class="bar-bg">
-            <div
-              class="bar-fill"
-              :style="{ width: getRatingPercent(rating) + '%' }"
-            ></div>
-          </div>
-          <span class="rating-count">{{ stats.ratingDistribution[rating.toString()] || 0 }}</span>
+          {{ tab.label }}
         </div>
-      </div>
-    </div>
-
-    <!-- 评价筛选Tabs -->
-    <div class="review-tabs">
-      <div
-        v-for="tab in tabs"
-        :key="tab.value"
-        class="tab-item"
-        :class="{ active: activeTab === tab.value }"
-        @click="changeTab(tab.value)"
-      >
-        {{ tab.label }}
-        <span v-if="tab.count !== undefined" class="tab-count">{{ tab.count }}</span>
       </div>
     </div>
 
@@ -89,11 +67,11 @@
         <!-- 评价内容 -->
         <div class="review-content" v-if="review.content">{{ review.content }}</div>
 
-        <!-- 评价图片和视频并列 -->
+        <!-- 评价图片和视频（最多显示4张） -->
         <div class="review-media" v-if="(review.images || []).length > 0 || (review.videos || []).length > 0">
           <!-- 视频 -->
           <div
-            v-for="(video, vIdx) in (review.videos || [])"
+            v-for="(video, vIdx) in (review.videos || []).slice(0, 4)"
             :key="'v-' + vIdx"
             class="media-item video-item"
             @click.stop="previewVideo(video.videoUrl)"
@@ -111,18 +89,25 @@
           </div>
           <!-- 图片 -->
           <div
-            v-for="(img, idx) in (review.images || [])"
+            v-for="(img, idx) in (review.images || []).slice(0, 4)"
             :key="'img-' + idx"
             class="media-item"
             @click="previewImage(review.images, Number(idx))"
           >
             <img :src="img" class="media-thumb" />
           </div>
+          <!-- 更多数量提示 -->
+          <div
+            v-if="(review.images || []).length + (review.videos || []).length > 4"
+            class="media-item media-more"
+          >
+            <span>+{{ (review.images || []).length + (review.videos || []).length - 4 }}</span>
+          </div>
         </div>
 
-        <!-- 商品信息卡片（独立区块） -->
-        <div class="review-product-card" v-if="review.productId" @click="goToProductWithSku(review)">
-          <img :src="review.productImage || '/images/default-product.png'" class="review-product-image" />
+        <!-- 商品信息卡片（买同款） -->
+        <div class="review-product-card" v-if="review.productId" @click="goToProduct(review.productId)">
+          <img :src="review.productImage || defaultProductImage" class="review-product-image" />
           <div class="review-product-info">
             <div class="review-product-name">{{ review.productName || '已下架商品' }}</div>
             <div v-if="review.skuName" class="review-product-sku">{{ review.skuName }}</div>
@@ -131,11 +116,6 @@
             <span>买同款</span>
             <i class="fas fa-chevron-right"></i>
           </div>
-        </div>
-
-        <!-- SKU信息（保留原有，兼容旧数据） -->
-        <div class="review-sku" v-if="review.skuInfo && !review.skuName">
-          {{ review.skuInfo }}
         </div>
       </div>
 
@@ -158,46 +138,25 @@
     <!-- 底部留空 -->
     <div class="bottom-space"></div>
 
-    <!-- 图片预览弹窗 -->
-    <div class="image-preview-overlay" v-if="showPreview" @click="closePreview">
-      <button class="preview-close" @click.stop="closePreview">
-        <i class="fas fa-times"></i>
-      </button>
-      <button class="preview-arrow left" @click.stop="prevImage" v-if="previewImages.length > 1">
-        <i class="fas fa-chevron-left"></i>
-      </button>
-      <img :src="previewImages[previewIndex]" class="preview-image" @click.stop />
-      <button class="preview-arrow right" @click.stop="nextImage" v-if="previewImages.length > 1">
-        <i class="fas fa-chevron-right"></i>
-      </button>
-      <div class="preview-counter" v-if="previewImages.length > 1">
-        {{ previewIndex + 1 }}/{{ previewImages.length }}
-      </div>
-    </div>
-
-    <!-- 视频预览弹窗 -->
-    <div class="video-preview-overlay" v-if="showVideoPreview" @click="showVideoPreview = false">
-      <button class="preview-close" @click.stop="showVideoPreview = false">
-        <i class="fas fa-times"></i>
-      </button>
-      <video
-        :src="previewVideoUrl"
-        class="preview-video"
-        controls
-        autoplay
-        playsinline
-        @click.stop
-      ></video>
-    </div>
+    <!-- 全局媒体预览 -->
+    <ImagePreview
+      v-if="showMediaPreview"
+      :mediaList="allMediaList"
+      :currentIndex="mediaPreviewIndex"
+      @close="closeMediaPreview"
+      @update:index="mediaPreviewIndex = $event"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
+import ImagePreview from '@/components/ImagePreview.vue'
 import defaultAvatar from '@/static/images/user-avatar.jpg'
+import defaultProductImage from '@/static/images/云杉购图标.jpg'
 
 const router = useRouter()
 const route = useRoute()
@@ -234,42 +193,8 @@ let isTouching = false
 const tabs = computed(() => [
   { label: '全部', value: 'all', count: stats.value.total },
   { label: '有图', value: 'hasImages', count: stats.value.hasImages },
-  { label: '好评', value: 'good', count: (stats.value.ratingDistribution['4'] || 0) + (stats.value.ratingDistribution['5'] || 0) },
-  { label: '中评', value: 'medium', count: stats.value.ratingDistribution['3'] },
-  { label: '差评', value: 'bad', count: (stats.value.ratingDistribution['1'] || 0) + (stats.value.ratingDistribution['2'] || 0) }
+  { label: '好评', value: 'good', count: (stats.value.ratingDistribution['4'] || 0) + (stats.value.ratingDistribution['5'] || 0) }
 ])
-
-// 计算评分百分比
-const getRatingPercent = (rating: number) => {
-  if (stats.value.total === 0) return 0
-  const count = stats.value.ratingDistribution[rating.toString()] || 0
-  return Math.round((count / stats.value.total) * 100)
-}
-
-// 返回上一页
-const goBack = () => {
-  router.back()
-}
-
-// 跳转到商品详情页
-const goToProduct = (productId: number) => {
-  if (productId) {
-    router.push({ name: 'ProductDetail', params: { productId } })
-  }
-}
-
-// 跳转到商品详情页并自动选中规格
-const goToProductWithSku = (review: any) => {
-  let skuSpec = ''
-  if (review.skuName) {
-    skuSpec = review.skuName.replace(/，/g, ',').replace(/、/g, ',')
-  }
-  router.push({
-    name: 'ProductDetail',
-    params: { productId: review.productId },
-    query: { skuSpec }
-  })
-}
 
 // 加载评价统计
 const loadReviewStats = async () => {
@@ -334,7 +259,7 @@ const loadReviews = async (reset = false) => {
           // 商品信息
           productId: review.productId,
           productName: review.productName || userReviewVO.productName,
-          productImage: review.productImage || review.product_image || userReviewVO.productImage || userReviewVO.product_image || '/images/default-product.png',
+          productImage: review.productImage || review.product_image || userReviewVO.productImage || userReviewVO.product_image || defaultProductImage,
           skuName: review.skuName || userReviewVO.skuName
         }
       })
@@ -418,7 +343,6 @@ const handleScroll = () => {
 // 切换Tab
 const changeTab = async (tab: string) => {
   activeTab.value = tab
-  // 重置筛选条件
   filterRatingRange.value = null
   if (tab === 'all') {
     filterRating.value = undefined
@@ -427,53 +351,57 @@ const changeTab = async (tab: string) => {
     filterRating.value = undefined
     filterHasImages.value = true
   } else if (tab === 'good') {
-    // 好评：4星 + 5星
     filterRatingRange.value = [4, 5]
     filterRating.value = undefined
     filterHasImages.value = false
-  } else if (tab === 'medium') {
-    // 中评：3星
-    filterRatingRange.value = [3, 3]
-    filterRating.value = undefined
-    filterHasImages.value = false
-  } else if (tab === 'bad') {
-    // 差评：1星 + 2星
-    filterRatingRange.value = [1, 2]
-    filterRating.value = undefined
-    filterHasImages.value = false
-  } else {
-    // 具体星级
-    filterRating.value = Number(tab)
-    filterHasImages.value = false
   }
-  // 滚动到顶部
   window.scrollTo({ top: 0, behavior: 'smooth' })
   await loadReviews(true)
 }
 
-// 按评分筛选
-const filterByRating = (rating: number) => {
-  changeTab(rating.toString())
-}
+// 媒体预览相关
+const showMediaPreview = ref(false)
+const mediaPreviewIndex = ref(0)
 
-// 预览图片
-const showPreview = ref(false)
-const previewImages = ref<string[]>([])
-const previewIndex = ref(0)
-
-// 视频预览
-const previewVideoUrl = ref('')
-const showVideoPreview = ref(false)
+// 收集所有评论媒体
+const allMediaList = computed(() => {
+  const list: { type: 'image' | 'video'; url: string; cover?: string }[] = []
+  reviews.value.forEach((review: any) => {
+    if (review.images?.length) {
+      review.images.forEach((img: any) => list.push({ type: 'image', url: img }))
+    }
+    if (review.videos?.length) {
+      review.videos.forEach((v: any) => list.push({ type: 'video', url: v.videoUrl, cover: v.coverUrl }))
+    }
+  })
+  return list
+})
 
 const previewImage = (images: string[], index: number) => {
-  previewImages.value = images
-  previewIndex.value = index
-  showPreview.value = true
+  const targetImage = images[index]
+  if (targetImage) {
+    const foundIndex = allMediaList.value.findIndex(item => item.url === targetImage)
+    if (foundIndex !== -1) {
+      mediaPreviewIndex.value = foundIndex
+    } else {
+      mediaPreviewIndex.value = 0
+    }
+    showMediaPreview.value = true
+  }
 }
 
 const previewVideo = (url: string) => {
-  previewVideoUrl.value = url
-  showVideoPreview.value = true
+  const foundIndex = allMediaList.value.findIndex(item => item.url === url)
+  if (foundIndex !== -1) {
+    mediaPreviewIndex.value = foundIndex
+  } else {
+    mediaPreviewIndex.value = 0
+  }
+  showMediaPreview.value = true
+}
+
+const closeMediaPreview = () => {
+  showMediaPreview.value = false
 }
 
 const formatDuration = (seconds: number): string => {
@@ -482,29 +410,11 @@ const formatDuration = (seconds: number): string => {
   return `${min}:${String(sec).padStart(2, '0')}`
 }
 
-const closePreview = () => {
-  showPreview.value = false
-  previewImages.value = []
-  previewIndex.value = 0
-}
-
-const prevImage = () => {
-  if (previewIndex.value > 0) {
-    previewIndex.value--
-  } else {
-    previewIndex.value = previewImages.value.length - 1
-  }
-}
-
-const nextImage = () => {
-  if (previewIndex.value < previewImages.value.length - 1) {
-    previewIndex.value++
-  } else {
-    previewIndex.value = 0
-  }
-}
-
 // 格式化时间
+const goToProduct = (productId: number) => {
+  router.push({ name: 'ProductDetail', params: { productId } })
+}
+
 const formatTime = (dateStr: string) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)

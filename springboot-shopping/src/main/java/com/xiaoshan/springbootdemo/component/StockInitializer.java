@@ -11,6 +11,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 项目启动时，将商品库存同步到 Redis
@@ -38,11 +40,12 @@ public class StockInitializer implements CommandLineRunner {
             List<ProductSku> skus = productSkuMapper.findByProductId(product.getId());
 
             for (ProductSku sku : skus) {
-                // Redis Key：product:stock:sku:SKU_ID
-                String stockKey = "product:stock:sku:" + sku.getId();
+                // Redis Key：sku:stock:SKU_ID（真实库存）
+                String realStockKey = "sku:stock:" + sku.getId();
 
-                // 将 SKU 库存存入 Redis
-                redisTemplate.opsForValue().set(stockKey, sku.getStock());
+                // 将 SKU 真实库存存入 Redis（加随机过期时间防止缓存雪崩）
+                redisTemplate.opsForValue().set(realStockKey, sku.getStock(),
+                    60 + new Random().nextInt(60), TimeUnit.SECONDS);
                 totalSkus++;
             }
         }

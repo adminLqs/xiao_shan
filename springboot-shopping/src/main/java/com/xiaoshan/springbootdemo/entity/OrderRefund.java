@@ -70,10 +70,6 @@ public class OrderRefund {
     // 审核人ID
     private Long reviewedBy;
 
-    // ========== 沟通信息 ==========
-    // 沟通轮次（最多3轮）
-    private Integer communicationRound = 1;
-
     // ========== 退货信息 ==========
     // 退货方式: PICKUP-上门取件, STORE-到店寄件, SELF-自寄
     private String returnMethod;
@@ -98,9 +94,10 @@ public class OrderRefund {
 
     // ========== 退款状态枚举 ==========
     public enum RefundStatus {
-        PROCESSING, // 退款中（待处理）
-        APPROVED,   // 商家已同意（待退货）
-        SUCCESS,    // 退款成功
-        FAILED      // 退款失败
+        PROCESSING,      // 退款中（待处理）
+        WAITING_RETURN,  // 待退货
+        RETURNING,       // 退货中
+        SUCCESS,         // 退款成功
+        FAILED           // 退款失败
     }
 }

@@ -6,22 +6,15 @@ import com.xiaoshan.springbootdemo.entity.Product;
 import com.xiaoshan.springbootdemo.entity.ProductImage;
 import com.xiaoshan.springbootdemo.entity.ProductParam;
 import com.xiaoshan.springbootdemo.entity.ProductSku;
+import com.xiaoshan.springbootdemo.entity.SellerProfile;
+import com.xiaoshan.springbootdemo.entity.UserProfile;
 import com.xiaoshan.springbootdemo.entity.dto.ProductDTO;
 import com.xiaoshan.springbootdemo.entity.dto.SkuDTO;
 import com.xiaoshan.springbootdemo.entity.vo.ProductImageVO;
 import com.xiaoshan.springbootdemo.entity.vo.ProductParamVO;
 import com.xiaoshan.springbootdemo.entity.vo.ProductVO;
-import com.xiaoshan.springbootdemo.mapper.CartItemMapper;
-import com.xiaoshan.springbootdemo.mapper.FavoriteMapper;
-import com.xiaoshan.springbootdemo.mapper.OrderItemMapper;
-import com.xiaoshan.springbootdemo.mapper.ProductFreezeLogMapper;
-import com.xiaoshan.springbootdemo.mapper.ProductImageMapper;
-import com.xiaoshan.springbootdemo.mapper.ProductMapper;
-import com.xiaoshan.springbootdemo.mapper.ProductParamMapper;
-import com.xiaoshan.springbootdemo.mapper.ProductSkuMapper;
-import com.xiaoshan.springbootdemo.mapper.ReviewMapper;
-import com.xiaoshan.springbootdemo.mapper.ReviewImageMapper;
-import com.xiaoshan.springbootdemo.mapper.ReviewVideoMapper;
+import com.xiaoshan.springbootdemo.mapper.*;
+import com.xiaoshan.springbootdemo.service.SellerPackageService;
 import com.xiaoshan.springbootdemo.entity.vo.CheckoutItemVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import com.xiaoshan.springbootdemo.util.SnowflakeIdGenerator;
@@ -63,6 +57,8 @@ public class ProductService {
     private final ReviewMapper reviewMapper;
     private final ReviewImageMapper reviewImageMapper;
     private final ReviewVideoMapper reviewVideoMapper;
+    private final SellerProfileMapper sellerProfileMapper;
+    private final UserProfileMapper userProfileMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
     private final SellerPackageService sellerPackageService;
@@ -76,12 +72,7 @@ public class ProductService {
 
     @Transactional
     public void addProduct(Long sellerId, ProductDTO productDTO, List<MultipartFile> images, List<MultipartFile> skuImages) {
-        // 检查商家套餐权限
-        var permission = sellerPackageService.checkPublishPermission(sellerId);
-        if (!(Boolean) permission.get("canPublish")) {
-            throw new RuntimeException((String) permission.get("message"));
-        }
-
+        // 不检查套餐，直接保存为下架状态(status=0)
         validateProduct(productDTO, images);
 
         Product product = saveProductToMySQL(sellerId, productDTO);
@@ -90,12 +81,13 @@ public class ProductService {
         // 保存 SKU 列表
         if (productDTO.getSkus() != null && !productDTO.getSkus().isEmpty()) {
             saveSkus(product.getId(), productDTO.getSkus(), skuImages);
-            // 商品发布成功后，将每个 SKU 的库存同步到 Redis
+            // 商品发布成功后，将每个 SKU 的真实库存同步到 Redis
             List<ProductSku> skus = productSkuMapper.findByProductId(product.getId());
             for (ProductSku sku : skus) {
-                String stockKey = "product:stock:sku:" + sku.getId();
-                redisTemplate.opsForValue().set(stockKey, sku.getStock());
-                log.info("同步 SKU 库存到 Redis: skuId={}, stock={}", sku.getId(), sku.getStock());
+                String realStockKey = "sku:stock:" + sku.getId();
+                redisTemplate.opsForValue().set(realStockKey, sku.getStock(),
+                    60 + new java.util.Random().nextInt(60), java.util.concurrent.TimeUnit.SECONDS);
+                log.info("同步 SKU 真实库存到 Redis: skuId={}, stock={}", sku.getId(), sku.getStock());
             }
         }
 
@@ -239,7 +231,7 @@ public class ProductService {
         product.setServiceGuarantee(productDTO.getServiceGuarantee());
         product.setDeliveryCity(productDTO.getDeliveryCity());
         product.setDetailHtml(productDTO.getDetailHtml());
-        product.setStatus(1); // 确保上架状态
+        product.setStatus(0); // 保存为下架状态，上架时再检查配额
         
         // 先生成雪花 ID，确保 product.getId() 不为 null
         product.setId(snowflakeIdGenerator.nextId());
@@ -329,8 +321,8 @@ public class ProductService {
      */
     private void syncStockToRedis(Long productId, Integer stock) {
         String stockKey = "product:stock:" + productId;
-        redisTemplate.opsForValue().set(stockKey, stock);
-
+        redisTemplate.opsForValue().set(stockKey, stock,
+            60 + new java.util.Random().nextInt(60), java.util.concurrent.TimeUnit.SECONDS);
     }
 
     private String getFileExtension(String filename) {
@@ -413,9 +405,11 @@ public class ProductService {
                 if (Boolean.TRUE.equals(dto.getDeleted()) && dto.getId() != null && dto.getId() > 0) {
                     // 删除 SKU，保留图片文件（订单可能引用）
                     productSkuMapper.deleteById(dto.getId());
-                    // SKU 被删除，清除 Redis 中的库存
-                    String stockKey = "product:stock:sku:" + dto.getId();
-                    redisTemplate.delete(stockKey);
+                    // SKU 被删除，清除 Redis 中的真实库存和预扣库存
+                    String realStockKey = "sku:stock:" + dto.getId();
+                    String reservedStockKey = "sku:stock:reserved:" + dto.getId();
+                    redisTemplate.delete(realStockKey);
+                    redisTemplate.delete(reservedStockKey);
                     log.info("删除 SKU 库存缓存: skuId={}", dto.getId());
                     continue;
                 }
@@ -433,6 +427,17 @@ public class ProductService {
                 sku.setPrice(dto.getPrice());
                 sku.setOriginalPrice(dto.getOriginalPrice());
                 sku.setStock(dto.getStock());
+
+                // 先保存旧库存值（在更新数据库之前获取）
+                int oldStock = 0;
+                if (dto.getId() != null) {
+                    ProductSku existingSku = productSkuMapper.findById(dto.getId()).orElse(null);
+                    if (existingSku != null) {
+                        oldStock = existingSku.getStock() != null ? existingSku.getStock() : 0;
+                    }
+                }
+                int newStock = dto.getStock() != null ? dto.getStock() : 0;
+                int diff = newStock - oldStock;
 
                 // 处理 SKU 图片增量更新
                 if (dto.getId() != null && dto.getId() > 0) {
@@ -496,11 +501,33 @@ public class ProductService {
                     productSkuMapper.insert(sku);
                 }
 
-                // 更新 SKU 库存到 Redis
-                String stockKey = "product:stock:sku:" + (dto.getId() != null ? dto.getId() : sku.getId());
-                redisTemplate.opsForValue().set(stockKey, dto.getStock());
-                log.info("更新 SKU 库存缓存: skuId={}, stock={}", 
-                        dto.getId() != null ? dto.getId() : sku.getId(), dto.getStock());
+                // 更新 SKU 真实库存到 Redis（增量更新）
+                Long skuId = dto.getId() != null ? dto.getId() : sku.getId();
+                String realStockKey = "sku:stock:" + skuId;
+                
+                log.info("修改SKU库存: skuId={}, oldStock={}, newStock={}, diff={}", 
+                    skuId, oldStock, newStock, diff);
+                
+                // 从 Redis 获取当前真实库存
+                Object currentRealStockObj = redisTemplate.opsForValue().get(realStockKey);
+                Long currentRealStock = currentRealStockObj instanceof Number 
+                    ? ((Number) currentRealStockObj).longValue() 
+                    : null;
+                
+                log.info("Redis当前真实库存: skuId={}, key={}, value={}", skuId, realStockKey, currentRealStock);
+                
+                if (currentRealStock == null) {
+                    // Redis 中不存在该 key，从数据库加载旧值并设置
+                    currentRealStock = (long) oldStock;
+                    redisTemplate.opsForValue().set(realStockKey, currentRealStock,
+                        60 + new java.util.Random().nextInt(60), java.util.concurrent.TimeUnit.SECONDS);
+                    log.info("初始化 SKU 真实库存缓存: skuId={}, stock={}", skuId, currentRealStock);
+                }
+                
+                // 使用差值增量更新真实库存
+                redisTemplate.opsForValue().increment(realStockKey, diff);
+                log.info("增量更新 SKU 真实库存缓存完成: skuId={}, key={}, diff={}, newStock={}", 
+                    skuId, realStockKey, diff, currentRealStock + diff);
             }
         }
 
@@ -510,8 +537,10 @@ public class ProductService {
             for (ProductSku sku : oldSkus) {
                 if (!keepSkuIds.contains(sku.getId())) {
                     productSkuMapper.deleteById(sku.getId());
-                    String stockKey = "product:stock:sku:" + sku.getId();
-                    redisTemplate.delete(stockKey);
+                    String realStockKey = "sku:stock:" + sku.getId();
+                    String reservedStockKey = "sku:stock:reserved:" + sku.getId();
+                    redisTemplate.delete(realStockKey);
+                    redisTemplate.delete(reservedStockKey);
                     log.info("删除 SKU 库存缓存: skuId={}", sku.getId());
                 }
             }
@@ -520,8 +549,10 @@ public class ProductService {
             List<ProductSku> oldSkus = productSkuMapper.findByProductId(productId);
             for (ProductSku sku : oldSkus) {
                 productSkuMapper.deleteById(sku.getId());
-                String stockKey = "product:stock:sku:" + sku.getId();
-                redisTemplate.delete(stockKey);
+                String realStockKey = "sku:stock:" + sku.getId();
+                String reservedStockKey = "sku:stock:reserved:" + sku.getId();
+                redisTemplate.delete(realStockKey);
+                redisTemplate.delete(reservedStockKey);
                 log.info("删除 SKU 库存缓存: skuId={}", sku.getId());
             }
         }
@@ -648,6 +679,11 @@ public class ProductService {
         Product product = productMapper.findById(productId)
                 .orElseThrow(() -> new RuntimeException("商品不存在"));
 
+        // 检查商品状态（用户端只能购买上架商品）
+        if (product.getStatus() == null || product.getStatus() != 1) {
+            throw new RuntimeException("商品已下架，无法购买");
+        }
+
         // 查询商品主图
         String mainImage = productImageMapper.findMainImageByProductId(productId);
 
@@ -658,6 +694,36 @@ public class ProductService {
         item.setBrand(product.getBrand());
         item.setQuantity(quantity);
         item.setProductImage(mainImage);
+        item.setProductStatus(product.getStatus());
+
+        item.setSellerId(product.getSellerId());
+
+        // 查询商家信息
+        String sellerName = "商家";
+        String sellerAvatar = null;
+        if (product.getSellerId() != null) {
+            Optional<SellerProfile> sellerProfile = sellerProfileMapper.findByUserId(product.getSellerId());
+            if (sellerProfile.isPresent()) {
+                SellerProfile sp = sellerProfile.get();
+                sellerName = sp.getStoreName();
+                sellerAvatar = sp.getStoreAvatar();
+            }
+            if (sellerName == null || sellerName.isEmpty()) {
+                Optional<UserProfile> userProfile = userProfileMapper.findByUserId(product.getSellerId());
+                if (userProfile.isPresent()) {
+                    UserProfile up = userProfile.get();
+                    sellerName = up.getNickname();
+                    if (sellerAvatar == null) {
+                        sellerAvatar = up.getAvatar();
+                    }
+                }
+            }
+            if (sellerName == null || sellerName.isEmpty()) {
+                sellerName = "商家";
+            }
+        }
+        item.setSellerName(sellerName);
+        item.setSellerAvatar(sellerAvatar);
 
         // 如果指定了 SKU，从 SKU 获取价格和规格信息
         if (skuId != null) {
@@ -699,7 +765,7 @@ public class ProductService {
             item.setStock(productStock != null ? productStock : 0);
         }
 
-        // 设置包邮状态
+        // 设置包邮状态和卖家信息
         item.setIsFreeShipping(product.getIsFreeShipping());
 
         return item;
@@ -707,11 +773,26 @@ public class ProductService {
 
     /**
      * 获取商品详情
+     * @param productId 商品ID
+     * @param isSeller 是否商家端访问（商家端可见下架商品，用户端只能看上架商品）
      */
-    public ProductVO getProductDetail(Long productId) {
+    public ProductVO getProductDetail(Long productId, boolean isSeller) {
         // 查询商品基础信息
         ProductVO productVO = productMapper.findProductVOById(productId)
-                .orElseThrow(() -> new RuntimeException("获取商品详情失败"));
+                .orElseThrow(() -> new RuntimeException("商品不存在"));
+
+        // 用户端访问：区分已下架和已删除
+        if (!isSeller) {
+            if (productVO.getStatus() == null) {
+                throw new RuntimeException("商品不存在");
+            }
+            if (productVO.getStatus() == 2) {
+                throw new RuntimeException("商品不存在");
+            }
+            if (productVO.getStatus() == 0) {
+                throw new RuntimeException("商品已下架");
+            }
+        }
 
         // 查询商品图片列表
         List<ProductImage> images = productImageMapper.findByProductId(productId);
@@ -836,43 +917,14 @@ public class ProductService {
     }
 
     /**
-     * 删除商品（只删数据库记录，保留图片文件）
-     * 
-     * 删除顺序：
-     * 1. 删除评论图片记录（不删文件）
-     * 2. 删除评论视频记录（不删文件）
-     * 3. 删除评论
-     * 4. 删除商品参数
-     * 5. 删除商品图片记录（不删文件）
-     * 6. 删除SKU
-     * 7. 删除购物车中的该商品
-     * 8. 删除收藏中的该商品
-     * 9. 删除冻结记录
-     * 10. 最后删除商品主表
-     * 
-     * 注意：order_items 不删（已购用户需查看订单），所有图片视频文件不删
+     * 软删除商品（status = 2）
      * 
      * @param productId 商品ID
      */
     @Transactional
     public void deleteProduct(Long productId) {
-        // 1. 删除评论图片记录（不删文件）
-        reviewImageMapper.deleteByProductId(productId);
-        
-        // 删除评论视频记录（不删文件）
-        reviewVideoMapper.deleteByProductId(productId);
-        
-        // 删除评论
-        reviewMapper.deleteByProductId(productId);
-        
-        // 删除商品参数
-        productParamMapper.deleteByProductId(productId);
-        
-        // 删除商品图片记录（不删文件）
-        productImageMapper.deleteByProductId(productId);
-        
-        // 删除SKU
-        productSkuMapper.deleteByProductId(productId);
+        // 软删除：设置状态为已删除
+        productMapper.softDelete(productId);
         
         // 删除购物车中的该商品
         cartItemMapper.deleteByProductId(productId);
@@ -880,17 +932,11 @@ public class ProductService {
         // 删除收藏中的该商品
         favoriteMapper.deleteByProductId(productId);
         
-        // 删除冻结记录
-        productFreezeLogMapper.deleteByProductId(productId);
-        
-        // 最后删除商品主表
-        productMapper.deleteById(productId);
-        
-        log.info("商品删除成功: productId={}", productId);
+        log.info("商品软删除成功: productId={}", productId);
     }
 
     /**
-     * 批量删除商品（只删数据库记录，保留图片文件）
+     * 批量软删除商品（status = 2）
      * 
      * @param productIds 商品ID列表
      * @return 删除成功的数量
@@ -901,23 +947,8 @@ public class ProductService {
         
         for (Long productId : productIds) {
             try {
-                // 删除评论图片记录（不删文件）
-                reviewImageMapper.deleteByProductId(productId);
-                
-                // 删除评论视频记录（不删文件）
-                reviewVideoMapper.deleteByProductId(productId);
-                
-                // 删除评论
-                reviewMapper.deleteByProductId(productId);
-                
-                // 删除商品参数
-                productParamMapper.deleteByProductId(productId);
-                
-                // 删除商品图片记录（不删文件）
-                productImageMapper.deleteByProductId(productId);
-                
-                // 删除SKU
-                productSkuMapper.deleteByProductId(productId);
+                // 软删除：设置状态为已删除
+                productMapper.softDelete(productId);
                 
                 // 删除购物车中的该商品
                 cartItemMapper.deleteByProductId(productId);
@@ -925,16 +956,10 @@ public class ProductService {
                 // 删除收藏中的该商品
                 favoriteMapper.deleteByProductId(productId);
                 
-                // 删除冻结记录
-                productFreezeLogMapper.deleteByProductId(productId);
-                
-                // 最后删除商品主表（order_items 不删，已购用户需查看订单）
-                productMapper.deleteById(productId);
-                
                 deletedCount++;
-                log.info("商品批量删除成功: productId={}", productId);
+                log.info("商品批量软删除成功: productId={}", productId);
             } catch (Exception e) {
-                log.warn("商品删除失败: productId={}, error={}", productId, e.getMessage());
+                log.warn("商品软删除失败: productId={}, error={}", productId, e.getMessage());
             }
         }
         
@@ -942,25 +967,79 @@ public class ProductService {
     }
 
     /**
+     * 恢复已删除商品（status = 0，恢复到下架状态）
+     * 
+     * @param productId 商品ID
+     */
+    @Transactional
+    public void restoreProduct(Long productId) {
+        productMapper.restoreProduct(productId);
+        log.info("商品恢复成功: productId={}", productId);
+    }
+
+    /**
      * 获取 SKU 实时可用库存（Redis 优先）
-     * 如果 Redis 中有值，返回 Redis 中的值（已减去预扣）
-     * 如果 Redis 中没有，从数据库查询并回写 Redis
+     * 可售库存 = 真实库存 - 预扣库存
      */
     public Integer getSkuAvailableStock(Long skuId) {
-        String stockKey = "product:stock:sku:" + skuId;
+        String realStockKey = "sku:stock:" + skuId;
+        String reservedStockKey = "sku:stock:reserved:" + skuId;
 
-        // 1. 先从 Redis 取
-        Integer redisStock = (Integer) redisTemplate.opsForValue().get(stockKey);
-        if (redisStock != null) {
-            return redisStock;
+        // 1. 先从 Redis 获取真实库存
+        Object realStockObj = redisTemplate.opsForValue().get(realStockKey);
+        Long realStock = realStockObj instanceof Number 
+            ? ((Number) realStockObj).longValue() 
+            : null;
+
+        // 2. 如果 Redis 没有真实库存，从数据库查询并回写
+        if (realStock == null) {
+            ProductSku sku = productSkuMapper.findById(skuId).orElse(null);
+            if (sku == null) return 0;
+            realStock = sku.getStock() != null ? sku.getStock().longValue() : 0L;
+            redisTemplate.opsForValue().set(realStockKey, realStock,
+                60 + new java.util.Random().nextInt(60), java.util.concurrent.TimeUnit.SECONDS);
         }
 
-        // 2. Redis 没有，从数据库查
-        ProductSku sku = productSkuMapper.findById(skuId).orElse(null);
-        if (sku == null) return 0;
+        // 3. 从 Redis 获取预扣库存
+        Object reservedStockObj = redisTemplate.opsForValue().get(reservedStockKey);
+        Long reservedStock = reservedStockObj instanceof Number 
+            ? ((Number) reservedStockObj).longValue() 
+            : 0L;
 
-        // 3. 回写 Redis
-        redisTemplate.opsForValue().set(stockKey, sku.getStock());
-        return sku.getStock();
+        // 4. 计算可售库存 = 真实库存 - 预扣库存
+        int available = (int) Math.max(0, realStock - reservedStock);
+        return available;
     }
+
+    /**
+     * 获取推荐商品
+     * 优先级：
+     * 1. 有浏览记录 → 根据浏览品类推荐同类热销商品
+     * 2. 无浏览记录 → 推荐全站销量最高的商品
+     *
+     * @param userId 用户ID（可为null，未登录时只返回热销）
+     * @param limit 返回数量
+     * @return 推荐商品列表
+     */
+    public List<Product> getRecommendProducts(Long userId, int limit) {
+        if (userId != null) {
+            try {
+                List<Long> categoryIds = productMapper.findBrowsedCategoryIds(userId);
+                if (categoryIds != null && !categoryIds.isEmpty()) {
+                    List<Product> categoryProducts = productMapper.findHotProductsByCategories(categoryIds, limit);
+                    if (categoryProducts != null && !categoryProducts.isEmpty()) {
+                        return categoryProducts;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("查询浏览品类推荐失败: {}", e.getMessage());
+            }
+        }
+        return productMapper.findHotProducts(limit);
+    }
+
+    public List<String> suggest(String keyword, int limit) {
+        return productMapper.suggest(keyword, limit);
+    }
+
 }

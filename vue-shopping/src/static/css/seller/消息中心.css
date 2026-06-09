@@ -1,0 +1,448 @@
+
+.seller-messages-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding-top: 0;
+}
+
+.skeleton-list {
+  padding: 20px;
+}
+
+.skeleton-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.skeleton {
+  background: #e2e8f0;
+}
+
+.skeleton-line {
+  background: #e2e8f0;
+  border-radius: 4px;
+}
+
+.skeleton-line.medium {
+  width: 60%;
+  height: 16px;
+}
+
+.skeleton-line.short {
+  width: 40%;
+  height: 12px;
+}
+
+.messages-content {
+  padding: 20px;
+}
+
+.notify-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.notify-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.notify-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.card-icon i {
+  font-size: 22px;
+  color: white;
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.card-preview {
+  font-size: 13px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-badge {
+  order: 0;
+  min-width: 20px;
+  height: 20px;
+  background: #ef4444;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+.card-arrow {
+  order: 1;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.chat-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.section-title span:first-child {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.section-hint {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.chat-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.chat-card:hover {
+  background: #f8fafc;
+}
+
+.user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.chat-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.last-message {
+  font-size: 13px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.chat-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.empty-state i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 14px;
+}
+
+/* ========== 移动端响应式布局 ========== */
+@media (max-width: 768px) {
+  /* 页面头部 */
+  .page-header {
+    padding: 12px 16px;
+  }
+
+  .page-title {
+    font-size: 16px;
+  }
+
+  /* 内容区域 */
+  .messages-content {
+    padding: 12px;
+  }
+
+  /* 通知卡片 */
+  .notify-cards {
+    gap: 8px;
+  }
+
+  .notify-card {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .card-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .card-icon i {
+    font-size: 20px;
+  }
+
+  .card-title {
+    font-size: 14px;
+  }
+
+  .card-preview {
+    font-size: 12px;
+  }
+
+  /* 聊天区域 */
+  .chat-section {
+    padding: 12px;
+  }
+
+  .chat-card {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .user-name {
+    font-size: 14px;
+  }
+
+  .last-message {
+    font-size: 12px;
+  }
+
+  .chat-time {
+    font-size: 11px;
+  }
+
+  /* 空状态 */
+  .empty-state {
+    padding: 40px 16px;
+  }
+
+  .empty-state i {
+    font-size: 40px;
+  }
+}
+
+
+.refresh-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.refresh-indicator {
+  position: absolute;
+  top: -60px;
+  left: 0;
+  right: 0;
+  height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.refresh-indicator i {
+  font-size: 16px;
+  margin-bottom: 4px;
+  transition: transform 0.2s;
+}
+
+.refresh-indicator i.rotate {
+  transform: rotate(180deg);
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #4a6491;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.chat-card-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  transform: translateX(100%);
+  transition: transform 0.2s;
+}
+
+.chat-card-wrapper.active .chat-actions {
+  transform: translateX(0);
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  border: none;
+  cursor: pointer;
+  color: white;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.action-btn i {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.action-top {
+  background: #f59e0b;
+}
+
+.action-mute {
+  background: #6b7280;
+}
+
+.action-delete {
+  background: #ef4444;
+}
+
+.action-btn:active {
+  opacity: 0.8;
+}
+
+.top-tag, .mute-tag {
+  position: absolute;
+  top: 8px;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.top-tag {
+  left: 56px;
+}
+
+.mute-tag {
+  left: 72px;
+}
+
+.top-label, .normal-label {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #94a3b8;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.top-label i {
+  color: #f59e0b;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: #94a3b8;
+}
+
+.empty-state i {
+  font-size: 48px;
+  margin-bottom: 12px;
+  display: block;
+}

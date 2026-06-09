@@ -35,5 +35,11 @@ public class CheckoutItemVO {
 
     private Boolean isFreeShipping;  // 是否包邮
 
+    private Integer productStatus;   // 商品状态（0-下架，1-上架，2-已删除）
+
+    /** 卖家信息（用于按卖家拆单） */
+    private Long sellerId;           // 卖家ID
+    private String sellerName;       // 卖家名称
+    private String sellerAvatar;     // 卖家头像
 
 }

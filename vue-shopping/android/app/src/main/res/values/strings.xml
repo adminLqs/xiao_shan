@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">商家助手</string>
+    <string name="title_activity_main">商家助手</string>
+    <string name="package_name">com.yourcompany.sellerassistant</string>
+    <string name="custom_url_scheme">com.yourcompany.sellerassistant</string>
+</resources>

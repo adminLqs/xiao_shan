@@ -1,0 +1,6 @@
+2026-07-21 22:51:56.666 INFO  [MessageBroker-25] c.xiaoshan.springbootdemo.task.PackageExpireTask - 开始检测到期套餐（兜底检查）...
+2026-07-21 22:51:56.673 INFO  [MessageBroker-25] c.xiaoshan.springbootdemo.task.PackageExpireTask - 今日无到期套餐
+2026-07-21 22:51:56.678 INFO  [MessageBroker-27] c.x.springbootdemo.service.SellerPackageService - 更新了 1 个过期套餐
+2026-07-21 22:51:57.241 INFO  [XNIO-1 I/O-21] c.x.springbootdemo.config.WebSocketEventListener - WebSocket连接: userId=365331733250304
+2026-07-21 22:51:57.242 INFO  [XNIO-1 I/O-21] c.x.springbootdemo.config.WebSocketEventListener - 用户 365331733250304 在线状态已设置
+2026-07-21 22:51:58.367 WARN  [HikariPool-1:housekeeper] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=7d14h3m53s98ms140µs500ns).

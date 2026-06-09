@@ -1,4 +1,4 @@
-import { fileURLToPath, URL } from 'node:url'
+﻿import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -19,7 +19,7 @@ export default defineConfig({
     host: '0.0.0.0',  // 监听所有网络接口，允许外部访问
     port: 5173,       // Vite 服务端口
     allowedHosts: [
-      'http://w5da762d.natappfree.cc',  // 允许这个域名访问
+      'http://y4a2fb3e.natappfree.cc',  // 允许这个域名访问
       '.natappfree.cc',           // 允许所有 natapp 子域名
     ],
     proxy: {

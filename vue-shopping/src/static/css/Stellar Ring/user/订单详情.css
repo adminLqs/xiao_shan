@@ -93,9 +93,7 @@
   color: transparent;
 }
 
-.page-nav-title i {
-  color: #4a6491;
-}
+
 
 .page-nav-right {
   width: 36px;
@@ -420,16 +418,16 @@
 .tags-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 
 .tag-spec {
-  padding: 2px 10px;
-  background: rgba(74, 100, 145, 0.1);
-  border-radius: 20px;
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
   max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -438,11 +436,12 @@
 
 /* 数量标签 - 无背景色，保持灰度文字 */
 .tag-quantity {
-  padding: 2px 6px;
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8;
   font-weight: 500;
   background: transparent;
+  padding: 0;
+  white-space: nowrap;
 }
 
 /* 退款标签 */
@@ -530,6 +529,10 @@
   justify-content: space-between;
   padding: 6px 0;
   font-size: 14px;
+  color: #64748b;
+}
+
+.amount-row .amount-value {
   color: #64748b;
 }
 
@@ -927,5 +930,5 @@
 }
 
 .btn-action:first-child:hover {
-  background-color: #e55a2b;
+  background-color: #3a5479;
 }

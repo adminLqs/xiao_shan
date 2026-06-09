@@ -3,7 +3,7 @@
 .user-logistics-container {
   min-height: 100vh;
   background: #f5f7fa;
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
   position: relative;
 }
 
@@ -57,9 +57,7 @@
   color: #1e293b;
 }
 
-.page-nav-title i {
-  color: #4a6491;
-}
+
 
 .page-nav-right {
   width: 36px;
@@ -72,43 +70,39 @@
   z-index: 1;
 }
 
-/* ========== 订单号行 ========== */
-.order-number-row {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 12px 16px;
+/* ========== 商品列表滚动容器 ========== */
+.product-list-wrapper {
+  max-height: 200px;
+  overflow-y: auto;
   background: white;
-  border-radius: 0;
   margin: 0 0 8px 0;
-  border: 1px solid #e8ecf0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* ========== 商品信息卡片 ========== */
 .product-info-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 12px 16px;
   background: white;
   border-radius: 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  margin: 0 0 8px 0;
+  margin: 0;
 }
 .product-info-card .product-image {
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   border-radius: 8px;
   object-fit: cover;
   flex-shrink: 0;
+  align-self: center;
 }
 .product-detail {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  align-self: flex-start;
 }
 .product-detail .product-name {
   font-size: 14px;
@@ -121,43 +115,22 @@
 }
 .tags-group {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
 }
 .tag-spec {
   font-size: 12px;
-  color: #64748b;
-  background: #f0f2f5;
-  padding: 2px 8px;
-  border-radius: 12px;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
-  width: fit-content;
+  color: #94a3b8;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 .tag-quantity {
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8;
   font-weight: 500;
   background: transparent;
-  padding: 4px 6px;
+  padding: 0;
   white-space: nowrap;
-}
-
-.order-label {
-  font-size: 13px;
-  color: #64748b;
-}
-
-.order-value {
-  font-size: 13px;
-  font-weight: 500;
-  color: #1e293b;
-  flex: 1;
-  word-break: break-all;
 }
 
 /* ========== 物流公司卡片 ========== */
@@ -171,10 +144,6 @@
   border: 1px solid #e8ecf0;
   transition: all 0.2s;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.logistics-company-card:active {
-  transform: scale(0.98);
 }
 
 .company-logo {
@@ -388,100 +357,120 @@
 
 /* ========== 收件信息卡片 ========== */
 .address-card {
-  background: white;
-  border-radius: 0;
-  padding: 16px;
-  margin: 0 0 8px 0;
-  border: 1px solid #e8ecf0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.card-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #f0f2f5;
-}
-
-.card-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.card-content {
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.receiver {
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: white;
   margin-bottom: 8px;
 }
 
-.receiver-name {
-  font-weight: 600;
+.address-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fef3c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.address-icon i {
+  color: #f59e0b;
+  font-size: 16px;
+}
+
+.address-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.address-detail {
+  font-size: 14px;
   color: #1e293b;
-  margin-right: 12px;
-}
-
-.receiver-phone {
-  color: #64748b;
-}
-
-.receiver-address {
-  color: #64748b;
+  line-height: 1.5;
+  margin-bottom: 8px;
   word-break: break-all;
 }
 
+.phone-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.phone-row .phone {
+  color: #64748b;
+}
+
 /* ========== 底部操作按钮 ========== */
-.bottom-bar-fixed,
-.action-buttons {
+.order-footer {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
-  padding: 6px 10px;
   display: flex;
-  gap: 6px;
   justify-content: flex-end;
-  box-shadow: 0 -1px 4px rgba(0,0,0,0.05);
+  align-items: center;
+  padding: 12px 16px;
+  background: #fafbfc;
+  border-top: 1px solid #f0f2f5;
   z-index: 100;
-  padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
-.bottom-bar-fixed button,
-.action-buttons button {
-  flex: none;
+.order-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.order-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.order-actions button {
+  white-space: nowrap;
   flex-shrink: 0;
-  padding: 6px 14px;
+  flex: none;
+  padding: 6px 16px;
+  font-size: 13px;
   border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  border: none;
   cursor: pointer;
   text-align: center;
+  transition: all 0.2s;
 }
 
 .bottom-space {
   height: 42px;
 }
 
-.btn-receive {
-  background: #4a6491;
-  color: white;
-}
-
 .btn-contact {
+  padding: 6px 16px;
   background: white;
-  border: 1px solid #4a6491;
-  color: #4a6491;
-  display: flex;
+  border: 1px solid #d0d5dc;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+}
+
+.btn-contact:active {
+  background: #f5f7fa;
+  transform: scale(0.95);
 }
 
 /* ========== 空状态 ========== */
@@ -512,14 +501,9 @@
   color: #94a3b8;
 }
 
-/* ========== 响应式 ========== */
-@media (max-width: 480px) {
-  /* 只保留布局相关响应式 */
-}
-
 /* 安全区域适配 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .user-logistics-container {
-    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
   }
 }

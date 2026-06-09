@@ -82,6 +82,9 @@ public class SellerPackageController {
     /**
      * 购买套餐（创建订单并返回支付宝支付HTML）
      * POST /api/v1/seller/packages/{packageId}/buy
+     * 
+     * 同套餐续费也创建新 PENDING 订单，避免支付宝报重复支付
+     * 支付回调 handlePaymentSuccess 中处理同套餐续费逻辑
      */
     @PostMapping("/{packageId}/buy")
     @PreAuthorize("hasAnyAuthority('ROLE_SELLER','ROLE_ADMIN')")
@@ -89,8 +92,17 @@ public class SellerPackageController {
         try {
             Long sellerId = userService.getCurrentUserId(authentication);
             
-            // 创建套餐订单（待支付状态）
+            // 检查是否有同套餐的 ACTIVE 或 PAUSED 订单（仅用于日志记录）
+            SellerPackageOrder existingOrder = sellerPackageService.findActiveOrPausedSamePackage(sellerId, packageId);
+            if (existingOrder != null) {
+                log.info("同套餐续费，将创建新订单: sellerId={}, packageId={}, existingOrderId={}", 
+                        sellerId, packageId, existingOrder.getId());
+            }
+            
+            // 始终创建新 PENDING 订单（避免支付宝重复支付）
             SellerPackageOrder order = sellerPackageService.createOrder(sellerId, packageId);
+            log.info("创建套餐订单: sellerId={}, packageId={}, orderId={}, isRenew={}", 
+                    sellerId, packageId, order.getId(), existingOrder != null);
             
             // 使用订单ID作为订单号创建支付宝支付页面
             String pageHtml = alipayService.createPackagePayPage(order);
@@ -99,7 +111,8 @@ public class SellerPackageController {
                     "success", true,
                     "data", Map.of(
                             "orderId", order.getId(),
-                            "paymentHtml", pageHtml
+                            "paymentHtml", pageHtml,
+                            "isRenew", existingOrder != null
                     )
             ));
 

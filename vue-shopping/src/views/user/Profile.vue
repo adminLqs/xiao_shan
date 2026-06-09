@@ -1,11 +1,10 @@
-<template>
+﻿<template>
   <div class="profile-page-container page-container">
     <div class="page-navbar">
       <button class="page-nav-back" @click="router.back()">
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-user-edit"></i>
         <span>个人资料</span>
       </div>
       <div class="page-nav-right"></div>
@@ -35,11 +34,21 @@
     <div v-else class="profile-content">
       <!-- 操作按钮区 -->
       <div class="profile-actions">
-        <button v-if="!isEditing" class="btn primary-btn" @click="startEdit">
-          <i class="fas fa-edit"></i>
-          编辑资料
-        </button>
-        <div v-else class="edit-actions">
+        <template v-if="!isEditing">
+          <button class="btn primary-btn" @click="startEdit">
+            <i class="fas fa-edit"></i>
+            编辑资料
+          </button>
+          <button 
+            v-if="authStore.hasRole('ROLE_SELLER') && authStore.activeRole !== 'ROLE_SELLER'" 
+            class="btn secondary-btn" 
+            @click="enterSellerMode"
+          >
+            <i class="fas fa-store"></i>
+            进入商家后台
+          </button>
+        </template>
+        <template v-else>
           <button class="btn outline-btn" @click="cancelEdit">
             <i class="fas fa-times"></i>
             取消编辑
@@ -49,7 +58,7 @@
             <i v-else class="fas fa-save"></i>
             {{ isSaving ? '保存中...' : '保存更改' }}
           </button>
-        </div>
+        </template>
       </div>
 
       <!-- 基本资料 -->
@@ -573,6 +582,19 @@ const sendPhoneVerification = () => {
   }
 
   Message.success('验证码已发送到手机，请注意查收')
+}
+
+/**
+* 进入商家后台
+* @description 切换角色为商家并跳转商家端
+*/
+const enterSellerMode = async () => {
+  const success = await authStore.switchRole('ROLE_SELLER')
+  if (success) {
+    router.push({ name: 'SellerDashboard' })
+  } else {
+    Message.error('切换角色失败')
+  }
 }
 
 /**

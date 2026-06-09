@@ -1,24 +1,27 @@
 package com.xiaoshan.springbootdemo.controller;
 
-import com.xiaoshan.springbootdemo.entity.Category;
-import com.xiaoshan.springbootdemo.entity.Product;
-import com.xiaoshan.springbootdemo.entity.ProductSku;
+import com.xiaoshan.springbootdemo.entity.*;
 import com.xiaoshan.springbootdemo.entity.dto.ProductDTO;
+import com.xiaoshan.springbootdemo.entity.vo.ProductVO;
 import com.xiaoshan.springbootdemo.mapper.ProductMapper;
+import com.xiaoshan.springbootdemo.mapper.ProductParamMapper;
 import com.xiaoshan.springbootdemo.mapper.ProductSkuMapper;
 import com.xiaoshan.springbootdemo.service.CategoryService;
 import com.xiaoshan.springbootdemo.service.ProductService;
+import com.xiaoshan.springbootdemo.service.SellerPackageService;
 import com.xiaoshan.springbootdemo.service.SellerProfileService;
 import com.xiaoshan.springbootdemo.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +38,9 @@ public class ProductController {
     private final ProductSkuMapper productSkuMapper;
     private final ProductService productService;
     private final CategoryService categoryService;
+    private final ProductParamMapper productParamMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final SellerPackageService sellerPackageService;
 
     // 商家商品发布 几十毫秒到200毫秒即0.1秒左右
     @PostMapping("/seller/products")
@@ -159,10 +165,56 @@ public class ProductController {
         }
     }
 
-    /** 修改商品状态 */
+    /**
+     * 恢复已删除商品（恢复到下架状态）
+     */
+    @PostMapping("/seller/products/{productId}/restore")
+    @PreAuthorize("hasAnyAuthority('ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> restoreProduct(
+            Authentication authentication,
+            @PathVariable("productId") Long productId) {
+        try {
+            Long sellerId = userService.getCurrentUserId(authentication);
+
+            Product product = productMapper.findById(productId)
+                    .orElseThrow(() -> new RuntimeException("商品不存在"));
+
+            if (!product.getSellerId().equals(sellerId)) {
+                return ResponseEntity.ok(Map.of(
+                        "success", false,
+                        "message", "无权恢复此商品"
+                ));
+            }
+
+            if (product.getStatus() != 2) {
+                return ResponseEntity.ok(Map.of(
+                        "success", false,
+                        "message", "只有已删除的商品才能恢复"
+                ));
+            }
+
+            productService.restoreProduct(productId);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "商品恢复成功，已恢复到下架状态"
+            ));
+        } catch (Exception e) {
+            log.error("恢复商品失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * 修改商品状态
+     */
     @PatchMapping("/seller/products/{product_id}")
     @PreAuthorize("hasAnyAuthority('ROLE_SELLER','ROLE_ADMIN')")
     public ResponseEntity<?> updateProductStatus(
+            Authentication authentication,
             @PathVariable("product_id") Long productId,
             @RequestBody Map<String,Object> requestBody
             ) {
@@ -170,14 +222,55 @@ public class ProductController {
         Integer status = (Integer) requestBody.get("status");
 
         try {
+            // 获取商家ID
+            Long sellerId = userService.getCurrentUserId(authentication);
+
+            // 如果是上架操作（status == 1），需要检查套餐配额
+            if (status != null && status == 1) {
+                // 查询当前套餐
+                SellerPackageOrder currentPackage = sellerPackageService.getCurrentPackage(sellerId);
+                
+                // 无套餐
+                if (currentPackage == null) {
+                    return ResponseEntity.ok(Map.of(
+                            "success", false,
+                            "message", "请先购买套餐"
+                    ));
+                }
+
+                // 套餐已到期
+                if (currentPackage.getEndDate().isBefore(LocalDateTime.now())) {
+                    return ResponseEntity.ok(Map.of(
+                            "success", false,
+                            "message", "套餐已到期，请续费"
+                    ));
+                }
+
+                // 检查商品数量限制
+                SellerPackage pkg = sellerPackageService.getPackageById(currentPackage.getPackageId());
+                int productLimit = pkg.getProductLimit();
+                
+                if (productLimit != -1) {
+                    // 统计当前上架商品数
+                    long activeCount = productMapper.countActiveBySellerId(sellerId);
+                    if (activeCount >= productLimit) {
+                        return ResponseEntity.ok(Map.of(
+                                "success", false,
+                                "message", "商品已达套餐上限（" + productLimit + "），请升级套餐"
+                        ));
+                    }
+                }
+            }
+
             // 更改商品状态
-            productMapper.updateStatus(productId,status);
+            productMapper.updateStatus(productId, status);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "商品状态更新成功"
             ));
         } catch (Exception e) {
+            log.error("修改商品状态失败: productId={}, status={}", productId, status, e);
             return ResponseEntity.ok().body(Map.of(
                     "success", false,
                     "message", e.getMessage()
@@ -233,6 +326,48 @@ public class ProductController {
     }
 
     /**
+     * 获取商品详情（商家端，可查看所有状态的商品）
+     * GET /api/v1/seller/products/{productId}
+     */
+    @GetMapping("/seller/products/{productId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_SELLER','ROLE_ADMIN')")
+    public ResponseEntity<?> getSellerProductDetail(
+            Authentication authentication,
+            @PathVariable Long productId) {
+        try {
+            // 获取商家ID
+            Long sellerId = userService.getCurrentUserId(authentication);
+
+            // 查询商品
+            Product product = productMapper.findById(productId)
+                    .orElseThrow(() -> new RuntimeException("商品不存在"));
+
+            // 验证商品属于当前商家
+            if (!product.getSellerId().equals(sellerId)) {
+                return ResponseEntity.ok(Map.of(
+                        "success", false,
+                        "message", "无权查看此商品"
+                ));
+            }
+
+            // 商家端访问：允许查看所有状态
+                ProductVO productVO = productService.getProductDetail(productId, true);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of("product", productVO)
+            ));
+
+        } catch (Exception e) {
+            log.error("获取商品详情失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
      * 修改商品
      * PUT /api/v1/seller/products/{id}
      */
@@ -266,8 +401,6 @@ public class ProductController {
             return ResponseEntity.ok(result);
         }
     }
-
-
 
     /**
      * 获取存在分类（一次性返回所有分类）
@@ -416,8 +549,20 @@ public class ProductController {
                 return ResponseEntity.ok(Map.of("success", false, "message", "无权访问此商品"));
             }
 
-            // 查询SKU列表（直接从数据库读取，不经过Redis）
+            // 查询SKU列表
             List<ProductSku> skus = productSkuMapper.findByProductId(productId);
+            
+            // 打印Redis库存信息用于调试
+            for (ProductSku sku : skus) {
+                String realStockKey = "sku:stock:" + sku.getId();
+                String reservedStockKey = "sku:stock:reserved:" + sku.getId();
+                Object realStockObj = redisTemplate.opsForValue().get(realStockKey);
+                Object reservedStockObj = redisTemplate.opsForValue().get(reservedStockKey);
+                Long realStock = realStockObj instanceof Number ? ((Number) realStockObj).longValue() : null;
+                Long reservedStock = reservedStockObj instanceof Number ? ((Number) reservedStockObj).longValue() : null;
+                log.info("商家端查询SKU库存: skuId={}, dbStock={}, redisRealStock={}, redisReservedStock={}", 
+                    sku.getId(), sku.getStock(), realStock, reservedStock);
+            }
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -491,4 +636,97 @@ public class ProductController {
             ));
         }
     }
+
+    /**
+     * 获取商品详情（公共方法）
+     * GET /api/v1/products/{productId}
+     */
+    @GetMapping("/products/{productId}")
+    public ResponseEntity<?> getProductDetail(@PathVariable Long productId) {
+        try {
+            // 查询商品详情（用户端访问，只显示上架商品）
+            ProductVO product = productService.getProductDetail(productId, false);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of("product", product)
+            ));
+
+        } catch (Exception e) {
+            log.error("获取商品详情失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * 获取商品参数
+     * GET /api/v1/products/{productId}/params
+     */
+    @GetMapping("/products/{productId}/params")
+    public ResponseEntity<?> getProductParams(@PathVariable Long productId) {
+        try {
+            List<ProductParam> params = productParamMapper.findByProductId(productId);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of("params", params)
+            ));
+
+        } catch (Exception e) {
+            log.error("获取商品参数失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * 获取推荐商品（公开访问）
+     * GET /api/v1/products/recommend
+     * 优先级：
+     * 1. 有浏览记录 → 根据浏览品类推荐同类热销商品
+     * 2. 无浏览记录 → 推荐全站销量最高的商品
+     */
+    @GetMapping("/products/recommend")
+    public ResponseEntity<?> getRecommendProducts(
+            Authentication authentication,
+            @RequestParam(defaultValue = "5") Integer limit
+    ) {
+        try {
+            Long userId = null;
+            if (authentication != null && authentication.isAuthenticated()) {
+                userId = userService.getCurrentUserId(authentication);
+            }
+
+            List<Product> products = productService.getRecommendProducts(userId, limit);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", products
+            ));
+
+        } catch (Exception e) {
+            log.error("获取推荐商品失败: {}", e.getMessage(), e);
+            return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/products/suggest")
+    public ResponseEntity<?> suggest(@RequestParam String keyword, @RequestParam(defaultValue = "10") Integer limit) {
+        try {
+            List<String> suggestions = productService.suggest(keyword, limit);
+            return ResponseEntity.ok(Map.of("success", true, "data", suggestions));
+        } catch (Exception e) {
+            log.error("搜索建议失败: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
 }

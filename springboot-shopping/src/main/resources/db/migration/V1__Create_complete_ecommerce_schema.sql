@@ -15,6 +15,40 @@ CREATE TABLE users (
     INDEX idx_account (account)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
+-- 角色表
+CREATE TABLE roles (
+    id BIGINT PRIMARY KEY COMMENT '角色ID',
+    name VARCHAR(50) UNIQUE NOT NULL COMMENT '角色名称: ROLE_USER, ROLE_SELLER, ROLE_ADMIN',
+    description VARCHAR(200) COMMENT '角色描述',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    INDEX idx_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色表';
+
+-- 用户角色关联表
+CREATE TABLE user_roles (
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    role_id BIGINT NOT NULL COMMENT '角色ID',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+
+    PRIMARY KEY (user_id, role_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户角色关联表';
+
+-- 初始化角色数据（使用固定ID）
+INSERT INTO roles (id, name, description) VALUES (1, 'ROLE_USER', '普通用户');
+INSERT INTO roles (id, name, description) VALUES (2, 'ROLE_SELLER', '商家');
+INSERT INTO roles (id, name, description) VALUES (3, 'ROLE_ADMIN', '管理员');
+
+-- 创建管理员用户（密码用 BCrypt 加密）
+INSERT INTO users (account, password, status, role) VALUES
+('13295370591', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5Eh', 1, 'ROLE_ADMIN');
+
+-- 关联角色
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id FROM users u, roles r
+WHERE u.account = '13295370591' AND r.name = 'ROLE_ADMIN';
+
 -- 用户信息表
 CREATE TABLE user_profiles (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -81,7 +115,7 @@ CREATE TABLE products (
     delivery_city VARCHAR(100) COMMENT '发货城市',
     sales_count INT DEFAULT 0 COMMENT '已售数量',
     view_count INT DEFAULT 0 COMMENT '浏览量',
-    status TINYINT(1) DEFAULT 1 NOT NULL COMMENT '商品状态：0-下架，1-上架',
+    status TINYINT(1) DEFAULT 1 NOT NULL COMMENT '商品状态：0-下架，1-上架，2-已删除（软删除）',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
 
@@ -137,8 +171,9 @@ CREATE TABLE orders (
     order_number VARCHAR(64) UNIQUE NOT NULL COMMENT '订单号',
     user_id BIGINT NOT NULL COMMENT '买家ID',
     total_amount DECIMAL(10,2) NOT NULL COMMENT '订单总金额',
+    discount_amount DECIMAL(10,2) DEFAULT 0 COMMENT '优惠金额',
     -- 订单状态
-    status VARCHAR(20) DEFAULT 'PENDING' COMMENT '订单状态: PENDING-待付款, PAID-已付款, PROCESSING-处理中, SHIPPED-已发货, DELIVERED-已送达, COMPLETED-已完成, CANCELLED-已取消, REFUNDED-已退款',
+    status VARCHAR(20) DEFAULT 'PENDING' COMMENT '订单状态: PENDING-待付款, PAID-已付款, PROCESSING-处理中, SHIPPED-已发货, COMPLETED-已完成, CANCELLED-已取消',
     source VARCHAR(20) DEFAULT 'cart' COMMENT '订单来源: cart-购物车, product-直接购买',
     -- 收货地址信息
     address_id BIGINT NOT NULL COMMENT '收货地址ID',
@@ -153,7 +188,6 @@ CREATE TABLE orders (
     logistics_code VARCHAR(20) COMMENT '物流公司代码（SF、YTO、ZTO、EMS）',
     logistics_name VARCHAR(50) COMMENT '物流公司名称（顺丰速运、圆通速递）',
     shipped_at DATETIME NULL COMMENT '发货时间',
-    delivered_at DATETIME NULL COMMENT '送达时间（物流签收/用户确认）',
     -- 完成与取消
     completed_at DATETIME NULL COMMENT '完成时间（用户确认收货/自动完成）',
     cancelled_at DATETIME NULL COMMENT '取消时间',
@@ -189,7 +223,6 @@ CREATE TABLE order_items (
     is_reviewed TINYINT(1) DEFAULT 0 COMMENT '是否已评论',
     reviewed_at DATETIME NULL COMMENT '评论时间',
     refund_status VARCHAR(20) NULL COMMENT '售后状态: REFUNDING-退款中, AFTER_SALE-售后退款中, WAITING_RETURN-待退货, COMPLETED-已退款',
-    refund_id BIGINT NULL COMMENT '退款记录ID（关联order_refunds表）',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
 
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
@@ -198,27 +231,8 @@ CREATE TABLE order_items (
     INDEX idx_order_id (order_id),
     INDEX idx_product_id (product_id),
     INDEX idx_seller_id (seller_id),
-    INDEX idx_is_reviewed (is_reviewed),
-    INDEX idx_refund_id (refund_id)
+    INDEX idx_is_reviewed (is_reviewed)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单项表';
-
--- 商品冻结记录表
-CREATE TABLE product_freeze_log (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '冻结记录ID',
-    seller_id BIGINT NOT NULL COMMENT '商家ID',
-    product_id BIGINT NOT NULL COMMENT '商品ID',
-    freeze_reason VARCHAR(100) COMMENT '冻结原因（套餐到期等）',
-    freeze_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '冻结时间',
-    unfreeze_time DATETIME NULL COMMENT '解冻时间',
-    unfreeze_reason VARCHAR(100) COMMENT '解冻原因（续费等）',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-
-    FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    INDEX idx_seller_id (seller_id),
-    INDEX idx_product_id (product_id),
-    INDEX idx_freeze_time (freeze_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品冻结记录表';
 
 -- 退款记录表
 CREATE TABLE order_refunds (
@@ -240,7 +254,7 @@ CREATE TABLE order_refunds (
     return_apply_time DATETIME NULL COMMENT '买家提交退货时间',
     return_receive_time DATETIME NULL COMMENT '商家确认收货时间',
     -- 退款状态和类型
-    refund_status VARCHAR(20) DEFAULT 'PROCESSING' COMMENT '退款状态: PROCESSING-处理中, APPROVED-已同意, SUCCESS-退款成功, FAILED-已拒绝',
+    refund_status VARCHAR(20) DEFAULT 'PROCESSING' COMMENT '退款状态: PROCESSING-处理中, WAITING_RETURN-待退货, RETURNING-退货中, SUCCESS-退款成功, FAILED-已拒绝';,
     refund_type VARCHAR(20) DEFAULT 'REFUND' COMMENT '退款类型: REFUND-仅退款, AFTER_SALE-退货退款',
     description VARCHAR(500) COMMENT '退款描述',
     refund_transaction_id VARCHAR(100) COMMENT '退款交易编号（支付宝/微信退款单号）',
@@ -250,8 +264,6 @@ CREATE TABLE order_refunds (
     complete_time DATETIME NULL COMMENT '退款完成时间',
     review_notes VARCHAR(500) COMMENT '审核备注',
     reviewed_by BIGINT COMMENT '审核人ID',
-    -- 沟通信息
-    communication_round INT DEFAULT 1 COMMENT '沟通轮次（最多3轮）',
 
     -- 索引
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE RESTRICT,
@@ -445,21 +457,102 @@ CREATE TABLE IF NOT EXISTS follow_sellers (
     INDEX idx_seller_id (seller_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注商家表';
 
+-- 商品冻结记录表
+CREATE TABLE product_freeze_log (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '冻结记录ID',
+    seller_id BIGINT NOT NULL COMMENT '商家ID',
+    product_id BIGINT NOT NULL COMMENT '商品ID',
+    freeze_reason VARCHAR(100) COMMENT '冻结原因（套餐到期等）',
+    freeze_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '冻结时间',
+    unfreeze_time DATETIME NULL COMMENT '解冻时间',
+    unfreeze_reason VARCHAR(100) COMMENT '解冻原因（续费等）',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+
+    FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    INDEX idx_seller_id (seller_id),
+    INDEX idx_product_id (product_id),
+    INDEX idx_freeze_time (freeze_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品冻结记录表';
+
+-- 用户浏览记录表
+CREATE TABLE user_browse_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    product_id BIGINT NOT NULL COMMENT '商品ID',
+    product_name VARCHAR(255) COMMENT '商品名称（冗余）',
+    product_image VARCHAR(500) COMMENT '商品图片（冗余）',
+    product_price DECIMAL(10,2) COMMENT '浏览时价格',
+    browse_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '浏览时间',
+
+    INDEX idx_user_time (user_id, browse_time DESC),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户浏览记录表';
+
 -- 消息通知表
 CREATE TABLE notifications (
     id BIGINT PRIMARY KEY COMMENT '消息ID',
     user_id BIGINT NOT NULL COMMENT '接收者用户ID',
-    sender_id BIGINT COMMENT '发送者用户ID',
-    type VARCHAR(30) NOT NULL COMMENT 'ORDER/REFUND/SHIPMENT/CHAT/SYSTEM',
+    type VARCHAR(30) NOT NULL COMMENT '类型: ORDER-订单, SYSTEM-系统',
     title VARCHAR(200) NOT NULL COMMENT '消息标题',
     content VARCHAR(1000) COMMENT '消息内容',
     extra_data JSON COMMENT '扩展数据（orderId、trackingNumber、amount、isDeleted等）',
     is_read TINYINT DEFAULT 0 COMMENT '0-未读, 1-已读',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    INDEX idx_user_read (user_id, is_read),
+    INDEX idx_user_id (user_id),
+    INDEX idx_type (type),
+    INDEX idx_is_read (is_read),
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='消息通知表';
+
+-- =============================================
+-- 聊天模块
+-- =============================================
+
+CREATE TABLE chat_messages (
+    id BIGINT PRIMARY KEY COMMENT '消息ID',
+    sender_id BIGINT NOT NULL,
+    receiver_id BIGINT NOT NULL,
+    content TEXT COMMENT '消息内容',
+    message_type VARCHAR(20) DEFAULT 'TEXT' COMMENT 'TEXT/IMAGE/PRODUCT_CARD/ORDER_CARD',
+    media_urls TEXT COMMENT '媒体URL列表',
+    product_id BIGINT COMMENT '商品ID',
+    order_id BIGINT COMMENT '订单ID',
+    is_read TINYINT(1) DEFAULT 0,
+    is_recalled TINYINT(1) DEFAULT 0,
+    recalled_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sender (sender_id),
+    INDEX idx_receiver (receiver_id),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天消息表';
+
+CREATE TABLE chat_sessions (
+    id BIGINT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    target_id BIGINT NOT NULL,
+    last_message TEXT,
+    last_message_time DATETIME,
+    unread_count INT DEFAULT 0,
+    is_top TINYINT(1) DEFAULT 0,
+    is_muted TINYINT(1) DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_user_target (user_id, target_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_updated_at (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='会话表';
+
+CREATE TABLE seller_quick_replies (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    seller_id BIGINT NOT NULL,
+    content TEXT NOT NULL,
+    sort_order INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_seller_id (seller_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商家快捷回复表';
 
 -- =============================================
 -- 商家套餐相关表
@@ -485,19 +578,27 @@ CREATE TABLE seller_package_orders (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '记录ID',
     seller_id BIGINT NOT NULL COMMENT '商家用户ID',
     package_id BIGINT NOT NULL COMMENT '套餐ID',
-    package_name VARCHAR(50) NOT NULL COMMENT '套餐名称（冗余）',
+    package_name VARCHAR(50) NOT NULL COMMENT '套餐名称',
     price DECIMAL(10, 2) NOT NULL COMMENT '购买价格',
-    start_date DATETIME NULL COMMENT '开始日期（支付成功后设置）',
-    end_date DATETIME NULL COMMENT '结束日期（支付成功后设置）',
-    status VARCHAR(20) DEFAULT 'PENDING' COMMENT '状态: PENDING(待支付), ACTIVE(生效中), EXPIRED(已到期), CANCELLED(已取消)',
-    payment_method VARCHAR(20) COMMENT '支付方式',
+
+    start_date DATETIME NULL COMMENT '开始日期',
+    end_date DATETIME NULL COMMENT '结束日期',
+    remaining_seconds INT DEFAULT 0 COMMENT '暂停时剩余秒数（PAUSED时使用）',
+
+    STATUS VARCHAR(20) DEFAULT 'PENDING' COMMENT '状态: PENDING, ACTIVE, PAUSED, EXPIRED, CANCELLED',
+
+    payment_method VARCHAR(20) COMMENT '支付方式: ALIPAY, WECHAT',
     transaction_id VARCHAR(100) COMMENT '交易单号',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_seller_status (seller_id, STATUS),
+    INDEX idx_status (STATUS),
 
     FOREIGN KEY (seller_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (package_id) REFERENCES seller_packages(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商家套餐购买记录表';
+) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COMMENT='商家套餐购买记录表';
 
 -- 插入默认套餐数据
 INSERT INTO seller_packages (name, description, price, duration_days, product_limit, features, sort_order) VALUES
@@ -505,3 +606,95 @@ INSERT INTO seller_packages (name, description, price, duration_days, product_li
 ('标准版', '适合成长型店铺，最多发布50个商品', 299.00, 30, 50, '{"ads": true, "analytics": true, "priority": 3}', 2),
 ('高级版', '适合成熟商家，最多发布200个商品', 799.00, 30, 200, '{"ads": true, "analytics": true, "priority": 5, "support": true}', 3),
 ('旗舰版', '适合大型商家，商品数量无限制', 1999.00, 30, -1, '{"ads": true, "analytics": true, "priority": 10, "support": true, "api": true}', 4);
+
+-- =============================================
+-- 复合索引优化
+-- =============================================
+
+-- 商品列表查询复合索引
+CREATE INDEX idx_products_category_id ON products(category_id);
+CREATE INDEX idx_products_status ON products(status);
+CREATE INDEX idx_products_seller_id ON products(seller_id);
+
+-- 订单查询复合索引
+CREATE INDEX idx_orders_user_id_status_created ON orders(user_id, status, created_at);
+CREATE INDEX idx_orders_seller_id_status_created ON orders(seller_id, status, created_at);
+
+-- 套餐查询复合索引
+CREATE INDEX idx_seller_package_orders_seller_id_status ON seller_package_orders(seller_id, status);
+
+-- 用户角色关联索引
+CREATE INDEX idx_user_roles_user_id ON user_roles(user_id);
+CREATE INDEX idx_user_roles_role_id ON user_roles(role_id);
+
+-- 聊天消息索引
+CREATE INDEX idx_chat_messages_sender_id ON chat_messages(sender_id);
+CREATE INDEX idx_chat_messages_receiver_id ON chat_messages(receiver_id);
+
+-- 通知索引
+CREATE INDEX idx_notifications_user_id_read ON notifications(user_id, is_read);
+CREATE INDEX idx_notifications_user_id_type ON notifications(user_id, type);
+
+-- 收藏索引
+CREATE INDEX idx_favorites_user_id ON favorites(user_id);
+CREATE INDEX idx_favorites_user_product ON favorites(user_id, product_id);
+
+-- 评论索引
+CREATE INDEX idx_reviews_product_id ON reviews(product_id);
+CREATE INDEX idx_reviews_user_id ON reviews(user_id);
+
+-- =============================================
+-- 优惠券模块
+-- =============================================
+
+-- 优惠券模板表
+CREATE TABLE IF NOT EXISTS coupons (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    seller_id BIGINT NOT NULL COMMENT '商家ID',
+    name VARCHAR(100) NOT NULL COMMENT '优惠券名称',
+    type VARCHAR(20) NOT NULL COMMENT '类型: FULL_REDUCTION(满减), DISCOUNT(折扣), NO_THRESHOLD(无门槛)',
+    min_amount DECIMAL(10,2) DEFAULT 0 COMMENT '满减门槛金额(满减类型有效)',
+    discount_amount DECIMAL(10,2) DEFAULT NULL COMMENT '减免金额(满减/无门槛类型有效)',
+    discount_rate DECIMAL(3,2) DEFAULT NULL COMMENT '折扣率(折扣类型有效，如0.85表示85折)',
+    total_count INT DEFAULT 1 NOT NULL COMMENT '发行总量(-1表示不限)',
+    received_count INT DEFAULT 0 COMMENT '已领取数量',
+    used_count INT DEFAULT 0 COMMENT '已使用数量',
+    per_user_limit INT DEFAULT 1 COMMENT '每人限领数量',
+    start_time DATETIME NOT NULL COMMENT '生效开始时间',
+    end_time DATETIME NOT NULL COMMENT '生效结束时间',
+    status TINYINT(1) DEFAULT 1 COMMENT '状态: 1-启用, 0-禁用',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_seller_id (seller_id),
+    INDEX idx_status (status),
+    INDEX idx_start_end (start_time, end_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='优惠券模板表';
+
+-- 用户优惠券表
+CREATE TABLE IF NOT EXISTS user_coupons (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    coupon_id BIGINT NOT NULL COMMENT '优惠券ID',
+    status VARCHAR(20) DEFAULT 'UNUSED' COMMENT 'UNUSED, USED, EXPIRED',
+    order_id BIGINT DEFAULT NULL COMMENT '使用的订单ID',
+    received_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '领取时间',
+    used_at DATETIME DEFAULT NULL COMMENT '使用时间',
+    expire_at DATETIME NOT NULL COMMENT '过期时间',
+    INDEX idx_user_id (user_id),
+    INDEX idx_coupon_id (coupon_id),
+    INDEX idx_user_status (user_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户优惠券表';
+
+-- 订单优惠券表
+CREATE TABLE IF NOT EXISTS order_coupons (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT NOT NULL COMMENT '订单ID',
+    user_coupon_id BIGINT NOT NULL COMMENT '用户优惠券ID',
+    coupon_id BIGINT NOT NULL COMMENT '优惠券ID',
+    coupon_name VARCHAR(100) NOT NULL COMMENT '优惠券名称',
+    coupon_type VARCHAR(20) NOT NULL COMMENT '优惠券类型',
+    discount_amount DECIMAL(10,2) NOT NULL COMMENT '优惠金额',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_order_id (order_id),
+    INDEX idx_coupon_id (coupon_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单优惠券表';

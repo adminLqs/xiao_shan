@@ -18,11 +18,16 @@ import com.xiaoshan.springbootdemo.mapper.ProductMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 支付宝支付服务类
@@ -39,6 +44,7 @@ public class AlipayService {
     private final ProductMapper productMapper;
     private final OrderService orderService;
     private final SellerPackageService sellerPackageService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     // ========== 支付宝配置参数，从application配置文件中注入 ==========
 
@@ -138,31 +144,23 @@ public class AlipayService {
      */
     public String createPagePay(Order order) {
         try {
-            // ========== 步骤1：构建支付宝网页支付请求 ==========
             AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
 
-            // 设置异步通知地址（支付结果通知）
             request.setNotifyUrl(notifyUrl);
-            // 设置同步跳转地址（支付完成后前端跳转）
             request.setReturnUrl(returnUrl);
 
-            // 构建业务参数
             Map<String, Object> bizContent = new HashMap<>();
-            bizContent.put("out_trade_no", order.getOrderNumber());           // 商户订单号
-            bizContent.put("total_amount", order.getTotalAmount().toString()); // 订单金额
-            bizContent.put("subject", "购物清单");   // 订单标题
-            bizContent.put("product_code", "FAST_INSTANT_TRADE_PAY");         // 产品码，网页支付必填
+            bizContent.put("out_trade_no", order.getOrderNumber());
+            bizContent.put("total_amount", order.getTotalAmount().toString());
+            bizContent.put("subject", "购物清单");
+            bizContent.put("product_code", "FAST_INSTANT_TRADE_PAY");
 
             request.setBizContent(com.alibaba.fastjson.JSON.toJSONString(bizContent));
 
-            // ========== 步骤2：调用支付宝接口 ==========
             AlipayTradePagePayResponse response = getAlipayClient().pageExecute(request);
 
             if (response.isSuccess()) {
-                // 获取支付页面HTML
-                String pageHtml = response.getBody();
-
-                return pageHtml;
+                return response.getBody();
             } else {
                 log.error("支付宝创建订单失败: {}", response.getMsg());
                 throw new RuntimeException(response.getMsg());
@@ -175,11 +173,67 @@ public class AlipayService {
     }
 
     /**
+     * 创建多订单合并支付的支付宝网页支付订单
+     * 使用合并支付单号作为 out_trade_no，支付成功后批量更新所有关联订单状态
+     *
+     * @param orders 订单列表
+     * @param totalAmount 总金额
+     * @return 支付宝支付页面HTML
+     */
+    public String createPagePayForMultipleOrders(List<Order> orders, BigDecimal totalAmount) {
+        try {
+            String mergeOrderNo = generateMergeOrderNumber();
+
+            String orderNumbers = orders.stream()
+                    .map(Order::getOrderNumber)
+                    .collect(java.util.stream.Collectors.joining(","));
+
+            redisTemplate.opsForValue().set("merge:order:" + mergeOrderNo, orderNumbers,
+                    30, TimeUnit.MINUTES);
+
+            AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
+
+            request.setNotifyUrl(notifyUrl);
+            request.setReturnUrl(returnUrl);
+
+            Map<String, Object> bizContent = new HashMap<>();
+            bizContent.put("out_trade_no", mergeOrderNo);
+            bizContent.put("total_amount", totalAmount.toString());
+            bizContent.put("subject", "购物清单");
+            bizContent.put("product_code", "FAST_INSTANT_TRADE_PAY");
+
+            request.setBizContent(com.alibaba.fastjson.JSON.toJSONString(bizContent));
+
+            AlipayTradePagePayResponse response = getAlipayClient().pageExecute(request);
+
+            if (response.isSuccess()) {
+                return response.getBody();
+            } else {
+                log.error("支付宝创建合并支付订单失败: {}", response.getMsg());
+                throw new RuntimeException(response.getMsg());
+            }
+
+        } catch (AlipayApiException e) {
+            log.error("支付宝支付失败", e);
+            throw new RuntimeException("支付宝支付失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 生成合并支付单号
+     */
+    private String generateMergeOrderNumber() {
+        String timestamp = DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
+                .format(LocalDateTime.now());
+        int random = (int) (Math.random() * 10000);
+        return "MERGE" + timestamp + String.format("%04d", random);
+    }
+
+    /**
      * 处理支付宝支付回调
      */
     public boolean handleAlipayCallback(Map<String, String> params) {
         try {
-            // 验签（支付宝专用）
             boolean signVerified = AlipaySignature.rsaCheckV1(
                     params, alipayPublicKey, "utf-8", "RSA2"
             );
@@ -188,22 +242,17 @@ public class AlipayService {
                 return false;
             }
 
-            // 获取关键参数
             String orderNumber = params.get("out_trade_no");
             String transactionId = params.get("trade_no");
             String tradeStatus = params.get("trade_status");
 
-
-
-            // 只处理支付成功状态
             if ("TRADE_SUCCESS".equals(tradeStatus)) {
-                // 判断订单类型：前缀PKG表示套餐订单
                 if (orderNumber.startsWith("PKG")) {
-                    // 套餐订单
                     Long orderId = Long.parseLong(orderNumber.substring(3));
                     sellerPackageService.handlePaymentSuccess(orderId, transactionId);
+                } else if (orderNumber.startsWith("MERGE")) {
+                    handleMergeOrderPaymentSuccess(orderNumber, transactionId);
                 } else {
-                    // 商品订单
                     orderService.handlePaymentSuccess(orderNumber, transactionId, "ALIPAY");
                 }
             }
@@ -213,6 +262,34 @@ public class AlipayService {
         } catch (Exception e) {
             log.error("处理支付宝回调异常", e);
             return false;
+        }
+    }
+
+    /**
+     * 处理合并订单支付成功
+     */
+    private void handleMergeOrderPaymentSuccess(String mergeOrderNo, String transactionId) {
+        try {
+            String orderNumbersStr = (String) redisTemplate.opsForValue().get("merge:order:" + mergeOrderNo);
+            if (orderNumbersStr == null || orderNumbersStr.isEmpty()) {
+                log.error("合并支付订单关联信息不存在: {}", mergeOrderNo);
+                return;
+            }
+
+            String[] orderNumbers = orderNumbersStr.split(",");
+            for (String orderNo : orderNumbers) {
+                try {
+                    orderService.handlePaymentSuccess(orderNo, transactionId, "ALIPAY");
+                } catch (Exception e) {
+                    log.error("处理合并支付子订单失败: orderNo={}, error={}", orderNo, e.getMessage());
+                }
+            }
+
+            redisTemplate.delete("merge:order:" + mergeOrderNo);
+            log.info("合并支付订单处理完成: mergeOrderNo={}, orderCount={}", mergeOrderNo, orderNumbers.length);
+
+        } catch (Exception e) {
+            log.error("处理合并支付订单异常: {}", e.getMessage());
         }
     }
 

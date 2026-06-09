@@ -36,4 +36,10 @@ public class CartItemVO {
     private Integer stock;              // 库存
 
     private String productImage;        // 商品主图
+
+    private Integer productStatus;      // 商品状态（0-下架，1-上架，2-已删除）
+
+    private String sellerName;          // 商家名称
+
+    private String sellerAvatar;        // 商家头像
 }

@@ -401,9 +401,19 @@
   cursor: pointer;
 }
 
-.btn-reject {
+.seller-actions .btn-reject {
   background: #f1f5f9;
   color: #64748b;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.seller-actions .btn-reject:active {
+  background: #e2e8f0;
+}
+
+.seller-actions .btn-reject:disabled {
+  opacity: 0.5;
 }
 
 .btn-approve {

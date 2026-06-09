@@ -6,7 +6,6 @@
         <i class="fas fa-chevron-left"></i>
       </button>
       <div class="page-nav-title">
-        <i class="fas fa-edit"></i>
         <span>发表评价</span>
       </div>
       <div class="page-nav-right"></div>
@@ -15,11 +14,13 @@
     <!-- 骨架屏 -->
     <div v-if="loading" class="skeleton-form">
       <div class="product-card skeleton-card">
-        <div class="skeleton" style="width: 100px; height: 100px; border-radius: 8px;"></div>
+        <div class="skeleton" style="width: 72px; height: 72px; border-radius: 10px;"></div>
         <div class="product-detail">
           <div class="skeleton-line long"></div>
-          <div class="skeleton-line"></div>
-          <div class="skeleton-line short"></div>
+          <div class="skeleton-line" style="width: 50%;"></div>
+        </div>
+        <div class="product-price-row">
+          <div class="skeleton" style="width: 60px; height: 16px;"></div>
         </div>
       </div>
       <div class="review-section skeleton-card">
@@ -35,13 +36,16 @@
     <!-- 商品信息 -->
     <div v-else>
       <div class="product-card" v-if="orderItem">
-      <img :src="orderItem.productImage" class="product-image" :alt="orderItem.productName" />
-      <div class="product-detail">
-        <div class="product-name">{{ orderItem.productName }}</div>
-        <div class="product-spec" v-if="orderItem.skuName">{{ orderItem.skuName }}</div>
+        <img :src="orderItem.productImage" class="product-image" :alt="orderItem.productName" />
+        <div class="product-detail">
+          <div class="product-name">{{ orderItem.productName }}</div>
+          <div class="tags-group">
+            <span class="tag-spec" v-if="orderItem.skuName">{{ orderItem.skuName }}</span>
+            <span class="tag-quantity">x{{ orderItem.quantity }}</span>
+          </div>
+        </div>
         <div class="product-price-row">
           <span class="product-price">¥{{ formatPrice(orderItem.price) }}</span>
-          <span class="product-quantity">x{{ orderItem.quantity }}</span>
         </div>
       </div>
     </div>
@@ -140,7 +144,6 @@
 
     <!-- 底部留空 -->
     <div class="bottom-space"></div>
-    </div>
 
     <!-- 媒体预览弹窗 -->
     <div v-if="previewVisible" class="media-preview-overlay" @click="previewVisible = false">
@@ -207,14 +210,14 @@ const generateVideoCover = (file: File, seconds: number = 1): Promise<string> =>
     video.preload = 'metadata'
     video.muted = true
     video.playsInline = true
-    
+
     const url = URL.createObjectURL(file)
     video.src = url
-    
+
     video.onloadeddata = () => {
       video.currentTime = seconds
     }
-    
+
     video.onseeked = () => {
       const canvas = document.createElement('canvas')
       canvas.width = video.videoWidth
@@ -223,7 +226,7 @@ const generateVideoCover = (file: File, seconds: number = 1): Promise<string> =>
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
       }
-      
+
       // 转为 Blob URL 用于预览
       canvas.toBlob((blob) => {
         URL.revokeObjectURL(url)
@@ -236,7 +239,7 @@ const generateVideoCover = (file: File, seconds: number = 1): Promise<string> =>
         }
       }, 'image/jpeg', 0.8)
     }
-    
+
     video.onerror = () => {
       URL.revokeObjectURL(url)
       resolve('')
@@ -313,7 +316,7 @@ const selectVideo = () => {
 const selectImages = async (e: Event) => {
   const files = (e.target as HTMLInputElement).files
   if (!files) return
-  
+
   for (const file of Array.from(files)) {
     if (mediaFiles.value.length >= 9) {
       Message.warning('最多上传9张图片')
@@ -323,10 +326,10 @@ const selectImages = async (e: Event) => {
       Message.warning(`${file.name} 超过5MB`)
       continue
     }
-    mediaFiles.value.push({ 
-      type: 'image', 
-      file, 
-      previewUrl: URL.createObjectURL(file) 
+    mediaFiles.value.push({
+      type: 'image',
+      file,
+      previewUrl: URL.createObjectURL(file)
     })
   }
 }
@@ -335,7 +338,7 @@ const selectImages = async (e: Event) => {
 const selectVideos = async (e: Event) => {
   const files = (e.target as HTMLInputElement).files
   if (!files) return
-  
+
   for (const file of Array.from(files)) {
     if (videoCount.value >= 3) {
       Message.warning('最多上传3个视频')
@@ -350,13 +353,13 @@ const selectVideos = async (e: Event) => {
       Message.warning(`${file.name} 格式不支持，仅支持 MP4、MOV、AVI、WEBM 格式`)
       continue
     }
-    
+
     const coverUrl = await generateVideoCover(file, 1)
-    mediaFiles.value.push({ 
-      type: 'video', 
-      file, 
+    mediaFiles.value.push({
+      type: 'video',
+      file,
       previewUrl: URL.createObjectURL(file),
-      coverUrl: coverUrl 
+      coverUrl: coverUrl
     })
   }
 }
@@ -389,16 +392,16 @@ const submitReview = async () => {
     formData.append('orderItemId', String(orderItemId.value))
     formData.append('rating', String(rating.value))
     if (content.value) formData.append('comment', content.value)
-    
+
     // 分离图片和视频
     const imageFiles = mediaFiles.value.filter(f => f.type === 'image')
     const videoFiles = mediaFiles.value.filter(f => f.type === 'video')
-    
+
     // 添加图片（可多张）
     imageFiles.forEach(f => {
       formData.append('images', f.file)
     })
-    
+
     // 添加视频和封面（可多个，最多3个）
     videoFiles.forEach(f => {
       formData.append('videos', f.file)
@@ -413,10 +416,10 @@ const submitReview = async () => {
           })
       }
     })
-    
+
     // 等待所有封面上传准备完成
     await new Promise(resolve => setTimeout(resolve, 100))
-    
+
     const response = await authAPI.submitReviewFormData(formData)
     if (response.success) {
       Message.success('评价提交成功')

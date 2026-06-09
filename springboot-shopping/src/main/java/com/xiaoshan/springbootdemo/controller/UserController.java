@@ -10,11 +10,13 @@ import com.xiaoshan.springbootdemo.entity.dto.RegisterDTO;
 import com.xiaoshan.springbootdemo.entity.dto.UserProfileDTO;
 import com.xiaoshan.springbootdemo.mapper.ProductParamMapper;
 import com.xiaoshan.springbootdemo.mapper.UserMapper;
+import com.xiaoshan.springbootdemo.service.OnlineStatusService;
 import com.xiaoshan.springbootdemo.service.ProductService;
 import com.xiaoshan.springbootdemo.service.SellerProfileService;
 import com.xiaoshan.springbootdemo.service.UserService;
 import com.xiaoshan.springbootdemo.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,27 +42,35 @@ public class UserController {
     private final UserMapper userMapper;
     private final ProductService productService;
     private final SellerProfileService sellerProfileService;
-    private final ProductParamMapper productParamMapper;
+
+    private final OnlineStatusService onlineStatusService;
+    private final JwtUtil jwtUtil;
+    private final StringRedisTemplate stringRedisTemplate;
 
 
     /** ===================== 公共权限 ======================= */
 
-    // 登录用户
     @PostMapping("/auth/login")
     public ResponseEntity<?> login(
             @RequestBody @Valid LoginDTO loginDTO,
             HttpServletResponse response) {
         try {
-            // 登录逻辑返回用户信息
             User user = userService.loginUser(loginDTO, response);
 
-            // 返回用户信息和角色
+            List<String> roles = new ArrayList<>();
+            if (user.getRoles() != null) {
+                for (com.xiaoshan.springbootdemo.entity.Role role : user.getRoles()) {
+                    roles.add(role.getName());
+                }
+            }
+
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("success", true);
             responseData.put("message", "登录成功");
             responseData.put("data", Map.of(
                     "id", user.getId(),
-                    "role", user.getRole()
+                    "role", user.getRole(),
+                    "roles", roles
             ));
             return ResponseEntity.ok(responseData);
 
@@ -133,7 +144,6 @@ public class UserController {
         }
     }
 
-    // 退出账户
     @GetMapping("/auth/logout")
     @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_SELLER', 'ROLE_ADMIN')")
     public ResponseEntity<?> logout(HttpServletResponse response, Authentication authentication) {
@@ -142,7 +152,6 @@ public class UserController {
             if (authentication != null && authentication.getPrincipal() instanceof Long) {
                 userId = (Long) authentication.getPrincipal();
             }
-            // 清除Cookie和Redis会话
             userService.clearAuthCookie(response, userId);
 
             return ResponseEntity.ok().body(Map.of(
@@ -158,23 +167,41 @@ public class UserController {
     }
 
     /**
-     * 获取商品详情（公共方法）
-     * GET /api/v1/products/{productId}
+     * 切换活跃角色
+     * POST /api/v1/user/switch-role
      */
-    @GetMapping("/products/{productId}")
-    public ResponseEntity<?> getProductDetail(@PathVariable Long productId) {
+    @PostMapping("/user/switch-role")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_SELLER', 'ROLE_ADMIN')")
+    public ResponseEntity<?> switchRole(
+            @RequestBody Map<String, String> requestBody,
+            HttpServletResponse response,
+            Authentication authentication) {
         try {
-            // 查询商品详情（包含图片和参数）
-            ProductVO product = productService.getProductDetail(productId);
+            Long userId = userService.getCurrentUserId(authentication);
+            String newRole = requestBody.get("role");
 
-            return ResponseEntity.ok(Map.of(
+            if (newRole == null || newRole.isEmpty()) {
+                return ResponseEntity.ok().body(Map.of(
+                        "success", false,
+                        "message", "角色不能为空"
+                ));
+            }
+
+            userService.switchActiveRole(userId, newRole);
+
+            User user = userService.getUserWithRoles(userId);
+            String newToken = jwtUtil.generateToken(user);
+            stringRedisTemplate.opsForValue().set("jwt:user:" + userId, newToken);
+            userService.setAuthCookie(response, newToken);
+
+            return ResponseEntity.ok().body(Map.of(
                     "success", true,
-                    "data", Map.of("product", product)
+                    "message", "角色切换成功",
+                    "data", Map.of("role", newRole, "token", newToken)
             ));
-
         } catch (Exception e) {
-            log.error("获取商品详情失败: {}", e.getMessage());
-            return ResponseEntity.ok(Map.of(
+            log.error("切换角色失败: {}", e.getMessage());
+            return ResponseEntity.ok().body(Map.of(
                     "success", false,
                     "message", e.getMessage()
             ));
@@ -182,21 +209,52 @@ public class UserController {
     }
 
     /**
-     * 获取商品参数
-     * GET /api/v1/products/{productId}/params
+     * 获取用户角色列表
+     * GET /api/v1/user/roles
      */
-    @GetMapping("/products/{productId}/params")
-    public ResponseEntity<?> getProductParams(@PathVariable Long productId) {
+    @GetMapping("/user/roles")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_SELLER', 'ROLE_ADMIN')")
+    public ResponseEntity<?> getUserRoles(Authentication authentication) {
         try {
-            List<ProductParam> params = productParamMapper.findByProductId(productId);
+            Long userId = userService.getCurrentUserId(authentication);
+            List<com.xiaoshan.springbootdemo.entity.Role> roles = userService.getUserRoles(userId);
+
+            List<Map<String, Object>> roleList = roles.stream().map(role -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", role.getId());
+                map.put("name", role.getName());
+                map.put("description", role.getDescription());
+                return map;
+            }).toList();
+
+            return ResponseEntity.ok().body(Map.of(
+                    "success", true,
+                    "data", Map.of("roles", roleList)
+            ));
+        } catch (Exception e) {
+            log.error("获取角色列表失败: {}", e.getMessage());
+            return ResponseEntity.ok().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * 获取用户在线状态
+     * GET /api/v1/user/{userId}/online-status
+     */
+    @GetMapping("/user/{userId}/online-status")
+    public ResponseEntity<?> getOnlineStatus(@PathVariable Long userId) {
+        try {
+            Map<String, Object> status = onlineStatusService.getOnlineStatus(userId);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "data", Map.of("params", params)
+                    "data", status
             ));
-
         } catch (Exception e) {
-            log.error("获取商品参数失败: {}", e.getMessage());
+            log.error("获取在线状态失败: {}", e.getMessage());
             return ResponseEntity.ok(Map.of(
                     "success", false,
                     "message", e.getMessage()

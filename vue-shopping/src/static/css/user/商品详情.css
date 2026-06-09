@@ -36,6 +36,83 @@ html {
   padding-bottom: 80px;
 }
 
+/* ========== 商家信息栏（顶部） ========== */
+.seller-bar {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: white;
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.seller-bar .seller-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+.seller-bar .seller-info {
+  flex: 1;
+  cursor: pointer;
+}
+
+.seller-bar .seller-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.seller-bar .seller-stats {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.seller-bar .btn-contact-service {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #4a6491 0%, #6b8ab5 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.seller-bar .btn-contact-service:active {
+  transform: scale(0.96);
+}
+
+/* ========== 商品状态通知 ========== */
+.product-offline-notice,
+.product-deleted-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.product-offline-notice {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.product-deleted-notice {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
 /* ========== 主图轮播 ========== */
 .product-swiper {
   position: relative;
@@ -219,7 +296,7 @@ html {
   padding: 8px 0;
   border: none;
   border-radius: 20px;
-  background: #4a6491;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24) !important;
   color: white;
   font-size: 13px;
   font-weight: 500;
@@ -233,7 +310,6 @@ html {
 
 .btn-enter-shop:active {
   transform: scale(0.96);
-  background: #3a5479;
 }
 
 /* ========== 价格区 ========== */
@@ -271,6 +347,27 @@ html {
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
+}
+
+.coupon-price {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.coupon-label {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.current-price-line {
+  font-size: 15px;
+  color: #94a3b8;
+  text-decoration: line-through;
 }
 
 .sales-row {
@@ -336,33 +433,34 @@ html {
 
 /* ========== 品牌卡片 ========== */
 .brand-row {
-  padding: 0 16px 12px;
+  padding: 0 0 12px;
 }
 
 .brand-card {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #f0f2f5;
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
 }
 
 .brand-logo-area {
   width: 44px;
   height: 44px;
-  background: #4a6491;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: transparent;
+  border-radius: 8px;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
-.brand-icon {
-  font-size: 20px;
-  color: white;
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .brand-info {
@@ -531,26 +629,6 @@ html {
   font-weight: 500;
 }
 
-/* ========== 服务保障 ========== */
-.service-guarantee {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 16px;
-  background: white;
-}
-
-.guarantee-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.08);
-  padding: 4px 10px;
-  border-radius: 20px;
-}
-
 /* ========== 灰色间隔 ========== */
 .gray-divider {
   height: 8px;
@@ -560,21 +638,23 @@ html {
 /* ========== 规格选择行 ========== */
 .service-rows {
   background: white;
-  margin: 0 16px;
-  border-radius: 12px;
+  margin: 0;
+  border-radius: 0;
 }
 
 .service-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  font-size: 15px;
+  padding: 12px 16px;
+  font-size: 14px;
   color: #1e293b;
   cursor: pointer;
   background: white;
-  border-radius: 12px;
-  border: 1px solid #e8ecf0;
+  border-radius: 0;
+  border: 1px solid #f0f2f5;
+  border-left: none;
+  border-right: none;
 }
 
 .service-row:active {
@@ -628,68 +708,122 @@ html {
 /* ========== 双栏卡片 ========== */
 .dual-card-section {
   display: flex;
-  gap: 8px;
+  gap: 0;
   padding: 0;
-  margin: 0 0 8px 0;
+  margin: 0;
 }
 
 .dual-card {
   flex: 1;
   background: white;
   border-radius: 0;
-  padding: 14px;
-  border: 1px solid #e8ecf0;
+  padding: 10px 12px;
+  border: 1px solid #f0f2f5;
+  border-left: none;
 }
 
-.delivery-card {
-  border-left: 3px solid #4a6491;
+.dual-card:first-child {
+  border-left: 1px solid #f0f2f5;
 }
 
-.card-icon {
-  font-size: 24px;
+.dual-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f2f5;
 }
 
-.card-title {
+.dual-card .card-icon {
+  width: 28px;
+  height: 28px;
+  background: #4a6491;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: white;
+  margin-bottom: 0;
+}
+
+.dual-card .card-title {
   font-size: 13px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
-.card-content {
+.dual-card .card-content {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
 }
 
-.info-row {
+.dual-card .info-row {
   display: flex;
   justify-content: space-between;
+  padding: 6px 0;
+  font-size: 12px;
+  border-bottom: 1px dashed #f0f2f5;
+}
+
+.dual-card .info-row:last-child {
+  border-bottom: none;
+}
+
+.dual-card .info-label {
+  color: #94a3b8;
   font-size: 12px;
 }
 
-.info-row span:first-child {
-  color: #94a3b8;
-}
-
-.info-row span:last-child {
+.dual-card .info-value {
   color: #1e293b;
+  font-weight: 500;
+  font-size: 12px;
 }
 
-.free-tag {
-  color: #10b981 !important;
+.delivery-card .info-value.highlight {
+  color: #10b981;
+  font-weight: 600;
 }
 
-.guarantee-tag {
-  display: inline-block;
+.service-card .guarantee-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.service-card .guarantee-item {
   font-size: 11px;
   color: #4a6491;
-  background: #f5f7fa;
+  background: #f8fafc;
   padding: 3px 8px;
   border-radius: 12px;
-  margin-right: 4px;
-  margin-bottom: 4px;
+  border: 1px solid #e0e7ff;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.service-card .guarantee-item i {
+  color: #10b981;
+  font-size: 9px;
+}
+
+.card-empty {
+  text-align: center;
+  padding: 16px 8px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.card-empty i {
+  display: block;
+  font-size: 20px;
+  margin-bottom: 6px;
+  color: #cbd5e1;
 }
 
 /* ========== 商品参数时间轴 ========== */
@@ -821,6 +955,7 @@ html {
   font-size: 13px;
   font-weight: 500;
   color: #1e293b;
+  margin-bottom: 3px;
 }
 
 .rmc-stars {
@@ -845,12 +980,12 @@ html {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-bottom: 10px;
 }
 
 .rmc-images {
   display: flex;
   gap: 6px;
+  margin-top: 8px;
 }
 
 .rmc-img {
@@ -1022,12 +1157,12 @@ html {
 }
 
 .btn-cart {
-  background: #f59e0b;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
   color: white;
 }
 
 .btn-buy {
-  background: #ef4444;
+  background: linear-gradient(135deg, #ef4444, #ff6b6b);
   color: white;
 }
 
@@ -1197,9 +1332,9 @@ html {
 }
 
 .spec-value-tag.active {
-  background: #4a6491;
-  border-color: #4a6491;
-  color: white;
+  color: #2563ef;
+  border-color: #2563ef;
+  background: transparent;
 }
 
 .spec-value-tag.sold-out {
@@ -1302,12 +1437,12 @@ html {
 }
 
 .btn-sku-cart {
-  background: #f59e0b;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
   color: white;
 }
 
 .btn-sku-buy {
-  background: #ef4444;
+  background: linear-gradient(135deg, #ef4444, #ff6b6b);
   color: white;
 }
 
@@ -1479,47 +1614,66 @@ html {
   font-weight: 500;
 }
 
-/* ========== 悬浮胶囊导航 ========== */
-.detail-floating-capsule {
+/* ========== 固定返回按钮 ========== */
+.back-btn-fixed {
   position: fixed;
   top: 12px;
   top: calc(12px + env(safe-area-inset-top));
-  left: 16px;
-  right: 16px;
-  height: 46px;
-  background: white;
-  border-radius: 23px;
+  left: 12px;
+  z-index: 99;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.back-btn-fixed:active {
+  transform: scale(0.95);
+}
+
+/* ========== 悬浮导航栏 ========== */
+.detail-floating-capsule {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: white;
   z-index: 101;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #e8ecf0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   opacity: 0;
-  transform: translateY(-20px);
   pointer-events: none;
-  transition: all 0.3s ease;
-  border: 1px solid #e8ecf0;
+  transition: opacity 0.3s ease;
 }
 
 .detail-floating-capsule.visible {
   opacity: 1;
-  transform: translateY(0);
   pointer-events: auto;
 }
 
 .capsule-back {
-  width: 32px;
-  height: 32px;
-  background: #f5f7fa;
+  width: 36px;
+  height: 36px;
   border: none;
+  background: #f5f7fa;
   border-radius: 50%;
-  color: #4a6491;
-  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
 }
 
 .capsule-back:active {
@@ -1527,12 +1681,17 @@ html {
   transform: scale(0.95);
 }
 
+.capsule-back i {
+  color: #4a6491;
+  font-size: 16px;
+}
+
 .capsule-center {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
+  justify-content: center;
 }
 
 .capsule-avatar {
@@ -1543,31 +1702,16 @@ html {
 }
 
 .capsule-shop-name {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 17px;
+  font-weight: 700;
   color: #1e293b;
 }
 
-.capsule-cart {
-  width: 32px;
-  height: 32px;
-  background: #f5f7fa;
-  border-radius: 50%;
-  font-size: 14px;
-  color: #4a6491;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  text-decoration: none;
+.capsule-right {
+  width: 36px;
 }
 
-.capsule-cart:active {
-  background: #e8ecf0;
-  transform: scale(0.95);
-}
-
-/* ========== 图片预览弹窗 ========== */
+/* ========== 底部固定操作栏 ========== */
 .image-preview-overlay {
   position: fixed;
   top: 0;
@@ -1742,10 +1886,6 @@ html {
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .bottom-bar {
     padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  .detail-floating-capsule {
-    top: calc(12px + env(safe-area-inset-top));
   }
 
   .sku-content {
@@ -1987,4 +2127,178 @@ html {
 .empty-reviews-desc {
   font-size: 13px;
   color: #94a3b8;
+}
+
+/* ========== 优惠券领取区 ========== */
+.coupon-section {
+  background: white;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border: 1px solid #e8ecf0;
+}
+
+.coupon-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.coupon-icon {
+  font-size: 16px;
+}
+
+.coupon-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.coupon-count {
+  font-size: 12px;
+  color: #94a3b8;
+  background: #f5f7fa;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.coupon-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.coupon-list::-webkit-scrollbar {
+  display: none;
+}
+
+.coupon-card {
+  flex: 0 0 auto;
+  width: 160px;
+  height: 70px;
+  display: flex;
+  background: linear-gradient(135deg, #fff0f0 0%, #ffeeee 100%);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #ffe4e4;
+  transition: all 0.2s;
+}
+
+.coupon-card:active {
+  transform: scale(0.98);
+}
+
+.coupon-card.received {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-color: #e2e8f0;
+}
+
+.coupon-card.disabled {
+  opacity: 0.6;
+}
+
+.coupon-left {
+  width: 60px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  position: relative;
+}
+
+.coupon-card.received .coupon-left {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+}
+
+.coupon-amount {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.coupon-condition {
+  font-size: 10px;
+  margin-top: 2px;
+  opacity: 0.9;
+}
+
+.coupon-left::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background: #f5f7fa;
+  border-radius: 50%;
+}
+
+.coupon-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  position: relative;
+}
+
+.coupon-right::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background: #f5f7fa;
+  border-radius: 50%;
+}
+
+.coupon-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+
+.coupon-validity {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.coupon-receive-btn {
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  transition: all 0.2s;
+}
+
+.coupon-receive-btn:active {
+  transform: scale(0.95);
+}
+
+.coupon-card.received .coupon-receive-btn {
+  background: #e2e8f0;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.coupon-card.disabled:not(.received) .coupon-receive-btn {
+  background: #cbd5e1;
+  color: white;
+  cursor: not-allowed;
 }

@@ -1,4 +1,4 @@
-/* ========== 商家信息页 - 简洁版样式 ========== */
+﻿/* ========== 商家信息页 - 简洁版样式 ========== */
 
 .seller-info-container {
   min-height: 100vh;
@@ -394,43 +394,105 @@ textarea.form-control {
   100% { background-position: 200% 0; }
 }
 
-/* ========== 响应式 ========== */
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .seller-info-container {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ========== 移动端响应式布局 ========== */
 @media (max-width: 768px) {
+  /* 内容卡片 */
+  .info-card {
+    margin: 0;
+  }
+
   .card-header {
     flex-direction: column;
+    gap: 12px;
     align-items: flex-start;
+    padding: 12px 16px;
   }
 
-  .info-row {
-    flex-direction: column;
-  }
-
-  .info-label {
-    width: auto;
-  }
-
-  .form-row {
-    flex-direction: column;
-  }
-
-  .avatar-upload {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .form-actions {
-    flex-direction: column;
+  .card-title {
+    font-size: 16px;
   }
 
   .edit-btn {
     width: 100%;
     justify-content: center;
   }
-}
 
-/* 安全区域适配 */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .seller-info-container {
-    padding-bottom: env(safe-area-inset-bottom);
+  /* 查看模式 */
+  .view-mode {
+    padding: 16px;
+  }
+
+  .info-row {
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 0;
+  }
+
+  .info-label {
+    width: 100%;
+  }
+
+  .info-value {
+    width: 100%;
+  }
+
+  /* 编辑模式 */
+  .edit-mode {
+    padding: 16px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* 头像上传 */
+  .avatar-upload {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .preview-avatar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .upload-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* 横幅上传 */
+  .banner-placeholder {
+    padding: 24px 16px;
+  }
+
+  .banner-placeholder i {
+    font-size: 24px;
+  }
+
+  /* 操作按钮 */
+  .form-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn-cancel,
+  .btn-save {
+    width: 100%;
+  }
+
+  /* 店铺头像 */
+  .store-avatar {
+    width: 64px;
+    height: 64px;
   }
 }

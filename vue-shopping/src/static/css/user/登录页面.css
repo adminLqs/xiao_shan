@@ -1,160 +1,48 @@
-/* ========== 登录页 - 简洁版样式 ========== */
-
-* {
-  padding: 0;
-  margin: 0;
-  box-sizing: border-box;
-  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* 主容器 */
-.main-container {
-  width: 100%;
+.login-page {
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  background: #f5f7fa;
-}
-
-/* 背景 - 纯色 */
-#main_background {
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  background: #f5f7fa;
-  z-index: -2;
-}
-
-/* 移除星环光晕和动画 */
-#main_background::before,
-#main_background::after {
-  display: none;
-  content: none;
-}
-
-.ring-layer {
-  display: none;
-}
-
-/* 移除漂浮粒子 */
-.shopping-elements {
-  display: none;
-}
-
-/* 主卡片容器 */
-.main_section {
-  width: 1000px;
-  min-height: 580px;
   background: white;
-  border-radius: 24px;
-  overflow: hidden;
-  display: flex;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  margin: 20px;
-  position: relative;
-  z-index: 1;
-}
-
-/* 移除边框流光 */
-.main_section::before {
-  display: none;
-}
-
-/* 左侧欢迎区 */
-.welcome-section {
-  width: 45%;
-  padding: 48px 36px;
-  background: linear-gradient(135deg, #4a6491, #6b8ab5);
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
-  color: white;
+  padding: 40px 16px;
 }
 
-.welcome-section::before {
-  display: none;
+.brand-area {
+  text-align: center;
+  margin-bottom: 48px;
 }
 
-.welcome-title {
+.brand-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.brand-name {
   font-size: 32px;
   font-weight: 700;
-  color: white;
-  margin-bottom: 16px;
-}
-
-.welcome-text {
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.85);
-  line-height: 1.6;
-  margin-bottom: 32px;
-}
-
-.shopping-benefits {
-  list-style: none;
-}
-
-.shopping-benefits li {
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.shopping-benefits i {
-  width: 24px;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-  font-size: 12px;
-  color: white;
-}
-
-/* 右侧表单区 */
-.form-section {
-  width: 55%;
-  padding: 48px 40px;
-}
-
-/* Logo区域 */
-.logo {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.logo h2 {
-  font-size: 28px;
-  font-weight: 700;
   color: #1e293b;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+  letter-spacing: 2px;
+  margin: 0;
 }
 
-.logo h2 i {
-  color: #4a6491;
-}
-
-.logo p {
+.brand-slogan {
   font-size: 14px;
-  color: #64748b;
+  color: #94a3b8;
   margin-top: 8px;
 }
 
-/* 选项卡 */
+.form-area {
+  width: 100%;
+  max-width: 360px;
+}
+
 .tabs {
   display: flex;
-  background: #f1f5f9;
+  background: #f5f7fa;
   border-radius: 12px;
   padding: 4px;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .tab {
@@ -175,14 +63,9 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.tab.active::after {
-  display: none;
-}
-
-/* 输入框 */
 .input-container {
   position: relative;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .input-icon {
@@ -198,7 +81,7 @@
 .input-container input {
   width: 100%;
   padding: 14px 16px 14px 48px;
-  background: white;
+  background: #f5f7fa;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   font-size: 15px;
@@ -216,7 +99,6 @@
   color: #94a3b8;
 }
 
-/* 密码切换按钮 */
 .toggle-password {
   position: absolute;
   right: 16px;
@@ -232,12 +114,8 @@
   color: #4a6491;
 }
 
-/* 按钮 - 纯色 */
 .btn {
-  width: 100%;
   padding: 14px;
-  background: #4a6491;
-  color: white;
   border: none;
   border-radius: 12px;
   font-size: 16px;
@@ -248,7 +126,6 @@
 
 .btn:active {
   transform: scale(0.97);
-  background: #3a5479;
 }
 
 .btn:disabled {
@@ -256,28 +133,107 @@
   cursor: not-allowed;
 }
 
-.btn::before {
-  display: none;
+.login-btn {
+  width: 100%;
+  height: 50px;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
+  border: none;
+  border-radius: 25px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(74, 100, 145, 0.3);
+  transition: background 0.2s, box-shadow 0.2s;
 }
 
-/* 辅助链接 */
-.helper-links {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
+.login-btn:hover {
+  background: linear-gradient(135deg, #3a5479, #5a74a5);
+  box-shadow: 0 4px 15px rgba(74, 100, 145, 0.4);
 }
 
-.helper-links a {
+.login-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(74, 100, 145, 0.2);
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
   color: #64748b;
-  text-decoration: none;
-  font-size: 13px;
 }
 
-.helper-links a:active {
+.register-link a {
+  color: #4a6491;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.register-link a:active {
+  color: #3a5479;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.divider-text {
+  padding: 0 16px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.social-login {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+.social-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.social-btn:active {
+  transform: scale(0.96);
+  background: #f8fafc;
+}
+
+.social-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.social-btn i {
+  font-size: 24px;
   color: #4a6491;
 }
 
-/* 已登录用户卡片 */
+.social-btn span {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.phone-btn i {
+  color: #4a6491;
+}
+
 .existing-user-card {
   text-align: center;
   padding: 40px 24px;
@@ -321,17 +277,20 @@
 }
 
 .continue-btn {
-  background: #4a6491;
+  flex: 1;
+  background: linear-gradient(135deg, #4a6491, #6b8ab5);
   color: white;
+  border-radius: 12px;
 }
 
 .switch-btn {
+  flex: 1;
   background: transparent;
   border: 1px solid #4a6491;
   color: #4a6491;
+  border-radius: 12px;
 }
 
-/* 检查登录状态遮罩 */
 .checking-overlay {
   text-align: center;
   padding: 60px 20px;
@@ -353,30 +312,47 @@
   to { transform: rotate(360deg); }
 }
 
-/* 响应式适配 */
-@media (max-width: 768px) {
-  .main_section {
-    flex-direction: column;
-    width: calc(100% - 32px);
-    margin: 16px;
-    border-radius: 20px;
+@media (max-width: 480px) {
+  .login-page {
+    padding: 32px 16px;
   }
 
-  .welcome-section {
-    display: none;
+  .brand-icon {
+    font-size: 48px;
   }
 
-  .form-section {
-    width: 100%;
-    padding: 32px 24px;
+  .brand-name {
+    font-size: 28px;
   }
 
-  .tab {
-    padding: 10px 0;
+  .brand-area {
+    margin-bottom: 36px;
+  }
+
+  .tabs {
+    margin-bottom: 20px;
   }
 
   .input-container input {
     padding: 12px 12px 12px 44px;
+    font-size: 14px;
+  }
+
+  .login-btn {
+    height: 46px;
+    font-size: 15px;
+  }
+
+  .social-login {
+    gap: 16px;
+  }
+
+  .social-btn {
+    padding: 12px 16px;
+  }
+
+  .existing-user-card {
+    padding: 24px 20px;
   }
 
   .existing-actions {
@@ -384,30 +360,14 @@
   }
 }
 
-/* 移动端小屏适配 */
-@media (max-width: 480px) {
-  .form-section {
-    padding: 24px 20px;
-  }
-
-  .tabs {
-    margin-bottom: 20px;
-  }
-
-  .existing-user-card {
-    padding: 24px 20px;
-  }
-}
-
-/* 安全区域适配 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .main-container {
-    padding-bottom: env(safe-area-inset-bottom);
+  .login-page {
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
   }
 }
 
 @supports (padding-top: env(safe-area-inset-top)) {
-  .main-container {
-    padding-top: env(safe-area-inset-top);
+  .login-page {
+    padding-top: calc(40px + env(safe-area-inset-top));
   }
 }

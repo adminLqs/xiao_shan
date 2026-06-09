@@ -1,5 +1,6 @@
 package com.xiaoshan.springbootdemo.util;
 
+import com.xiaoshan.springbootdemo.entity.Role;
 import com.xiaoshan.springbootdemo.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -11,7 +12,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Component
 @Slf4j // 日志注解
@@ -23,26 +26,34 @@ public class JwtUtil {
 
     /* 生成Token */
     public String generateToken(User user) {
-        // 获取当前时间
         ZonedDateTime now = ZonedDateTime.now();
-
-        // 获取下个月1日时间
-        ZonedDateTime expirationTime = now.plusMonths(1) // 计算基础时间点：在当前时间的基础上增加一个月。
-                .withDayOfMonth(1) // // 将日期调整到计算后日期所在月份的第一天。
-                .withHour(0) // 将时间部分的小时设置为0，即午夜0点。
-                .withMinute(0) // 将时间部分的分钟设置为0。
-                .withSecond(0) // 将时间部分的秒设置为0。
-                .withNano(0); // 将时间部分的纳秒设置为0，清除所有更精细的时间单位
-
-        //  将 `ZonedDateTime` 对象转换为传统的 `java.util.Date` 对象
+        ZonedDateTime expirationTime = now.plusMonths(1);
         Date expirationDate = Date.from(expirationTime.toInstant());
+
+        List<String> roles = new ArrayList<>();
+        if (user.getRoles() != null) {
+            for (Role role : user.getRoles()) {
+                roles.add(role.getName());
+            }
+        } else if (user.getRole() != null) {
+            roles.add(user.getRole());
+        }
 
         return Jwts.builder()
                 .setSubject(user.getId().toString())
                 .setIssuedAt(new Date())
                 .setExpiration(expirationDate)
+                .claim("roles", roles)
                 .signWith(SignatureAlgorithm.HS256, secret)
                 .compact();
+    }
+
+    public List<String> getRolesFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(secret)
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.get("roles", List.class);
     }
 
     // 从请求中提取Token

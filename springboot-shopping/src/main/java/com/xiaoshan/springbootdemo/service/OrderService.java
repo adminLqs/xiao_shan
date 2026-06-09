@@ -1,9 +1,6 @@
 package com.xiaoshan.springbootdemo.service;
 
-import com.xiaoshan.springbootdemo.entity.Order;
-import com.xiaoshan.springbootdemo.entity.OrderItem;
-import com.xiaoshan.springbootdemo.entity.Product;
-import com.xiaoshan.springbootdemo.entity.ProductSku;
+import com.xiaoshan.springbootdemo.entity.*;
 import com.xiaoshan.springbootdemo.entity.dto.OrderDTO;
 import com.xiaoshan.springbootdemo.entity.vo.OrderWithItemsVO;
 import com.xiaoshan.springbootdemo.mapper.*;
@@ -38,107 +35,179 @@ public class OrderService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final StringRedisTemplate stringRedisTemplate;
     private final WebSocketService webSocketService;
+    private final NotificationService notificationService;
+    private final SellerProfileMapper sellerProfileMapper;
+    private final UserProfileMapper userProfileMapper;
+    private final CouponService couponService;
+    private final UserCouponMapper userCouponMapper;
+    private final OrderCouponMapper orderCouponMapper;
+    private final CouponMapper couponMapper;
 
     /**
-     * 创建订单（结算页直接支付）
+     * 创建订单（结算页直接支付）- 单订单版本
      * @param userId   用户ID
      * @param orderDTO 订单信息（包含地址ID、支付方式、商品列表）
      * @return 创建的订单
      */
-    @Transactional // 开启数据库事务，保证数据一致性
+    @Transactional
     public Order createOrder(Long userId, OrderDTO orderDTO) {
-        // 生成订单号
+        return createOrderInternal(userId, orderDTO.getAddressId(), orderDTO.getSource(), orderDTO.getOrderItems());
+    }
+
+    /**
+     * 按卖家拆单创建多个订单
+     * @param userId   用户ID
+     * @param orderDTO 订单信息
+     * @return 创建的订单列表
+     */
+    @Transactional
+    public List<Order> createOrdersBySeller(Long userId, OrderDTO orderDTO) {
+        List<Order> orders = new ArrayList<>();
+
+        Map<Long, List<OrderItem>> itemsBySeller = orderDTO.getOrderItems().stream()
+                .collect(Collectors.groupingBy(item -> {
+                    if (item.getSellerId() != null) {
+                        return item.getSellerId();
+                    }
+                    Product product = productMapper.findById(item.getProductId()).orElse(null);
+                    return product != null ? product.getSellerId() : 0L;
+                }));
+
+        UserCoupon userCoupon = null;
+        Coupon coupon = null;
+        Long couponSellerId = null;
+
+        if (orderDTO.getUserCouponId() != null) {
+            userCoupon = userCouponMapper.findById(orderDTO.getUserCouponId())
+                    .orElseThrow(() -> new RuntimeException("优惠券不存在"));
+            if (!userId.equals(userCoupon.getUserId())) {
+                throw new RuntimeException("无权使用该优惠券");
+            }
+            if (!"UNUSED".equals(userCoupon.getStatus())) {
+                throw new RuntimeException("优惠券状态异常");
+            }
+            coupon = couponMapper.findById(userCoupon.getCouponId())
+                    .orElseThrow(() -> new RuntimeException("优惠券模板不存在"));
+            couponSellerId = coupon.getSellerId();
+        }
+
+        for (Map.Entry<Long, List<OrderItem>> entry : itemsBySeller.entrySet()) {
+            Long sellerId = entry.getKey();
+            List<OrderItem> sellerItems = entry.getValue();
+            Order order = createOrderInternal(userId, orderDTO.getAddressId(), orderDTO.getSource(), sellerItems);
+
+            if (userCoupon != null && coupon != null && sellerId.equals(couponSellerId)) {
+                BigDecimal discountAmount = couponService.calculateDiscount(coupon, order.getTotalAmount());
+                if (discountAmount.compareTo(BigDecimal.ZERO) > 0) {
+                    order.setDiscountAmount(discountAmount);
+                    order.setTotalAmount(order.getTotalAmount().subtract(discountAmount).max(BigDecimal.ZERO));
+                    orderMapper.updateDiscountAmount(order.getId(), discountAmount, order.getTotalAmount());
+
+                    OrderCoupon orderCoupon = new OrderCoupon();
+                    orderCoupon.setId(snowflakeIdGenerator.nextId());
+                    orderCoupon.setOrderId(order.getId());
+                    orderCoupon.setUserCouponId(userCoupon.getId());
+                    orderCoupon.setCouponId(coupon.getId());
+                    orderCoupon.setCouponName(coupon.getName());
+                    orderCoupon.setCouponType(coupon.getType());
+                    orderCoupon.setDiscountAmount(discountAmount);
+                    orderCouponMapper.insert(orderCoupon);
+
+                    userCouponMapper.markUsed(userCoupon.getId(), order.getId());
+                    couponMapper.incrementUsedCount(coupon.getId());
+
+                    log.info("订单使用优惠券: orderId={}, userCouponId={}, couponId={}, discountAmount={}",
+                            order.getId(), userCoupon.getId(), coupon.getId(), discountAmount);
+                }
+            }
+
+            orders.add(order);
+        }
+
+        return orders;
+    }
+
+    /**
+     * 内部方法：创建单个订单
+     */
+    private Order createOrderInternal(Long userId, Long addressId, String source, List<OrderItem> orderItems) {
         String orderNumber = generateOrderNumber();
-
-        // 计算订单总金额
         BigDecimal totalAmount = BigDecimal.ZERO;
-        List<OrderItem> orderItems = new ArrayList<>();
+        List<OrderItem> processedItems = new ArrayList<>();
 
-        // ==========遍历商品，Redis原子扣减库存 ==========
-        for (OrderItem item : orderDTO.getOrderItems()) {
-            // 查询商品信息
+        for (OrderItem item : orderItems) {
             Product product = productMapper.findById(item.getProductId())
                     .orElseThrow(() -> new RuntimeException("商品不存在: " + item.getProductId()));
 
-            // ===== 按 SKU 预扣库存 =====
             if (item.getSkuId() != null) {
-                String skuStockKey = "product:stock:sku:" + item.getSkuId();
+                String realStockKey = "sku:stock:" + item.getSkuId();
+                String reservedStockKey = "sku:stock:reserved:" + item.getSkuId();
 
-                // 如果 Redis 中没有该 SKU 的库存，从数据库同步
-                Boolean exists = redisTemplate.hasKey(skuStockKey);
-                if (exists == null || !exists) {
+                Object realStockObj = redisTemplate.opsForValue().get(realStockKey);
+                Long realStock = realStockObj instanceof Number 
+                    ? ((Number) realStockObj).longValue() 
+                    : null;
+                
+                if (realStock == null) {
                     ProductSku sku = productSkuMapper.findById(item.getSkuId())
                             .orElseThrow(() -> new RuntimeException("SKU不存在"));
-                    redisTemplate.opsForValue().set(skuStockKey, sku.getStock());
+                    realStock = sku.getStock() != null ? sku.getStock().longValue() : 0L;
+                    redisTemplate.opsForValue().set(realStockKey, realStock);
                 }
 
-                // 原子扣减
-                Long remainStock = redisTemplate.opsForValue().decrement(skuStockKey, item.getQuantity());
+                Object reservedStockObj = redisTemplate.opsForValue().get(reservedStockKey);
+                Long reservedStock = reservedStockObj instanceof Number 
+                    ? ((Number) reservedStockObj).longValue() 
+                    : 0L;
 
-                if (remainStock == null || remainStock < 0) {
-                    // 库存不足，回滚
-                    if (remainStock != null) {
-                        redisTemplate.opsForValue().increment(skuStockKey, item.getQuantity());
-                    }
+                Long availableStock = realStock - reservedStock;
+                if (availableStock < item.getQuantity()) {
                     throw new RuntimeException("商品「" + product.getName() + "」库存不足");
                 }
 
-                // 记录预扣信息（用于回滚）
+                redisTemplate.opsForValue().increment(reservedStockKey, item.getQuantity());
+                log.info("预扣 SKU 库存: skuId={}, quantity={}", item.getSkuId(), item.getQuantity());
+
                 String prestockKey = "order:prestock:" + orderNumber;
                 redisTemplate.opsForHash().put(prestockKey, "sku:" + item.getSkuId(),
                         String.valueOf(item.getQuantity()));
                 redisTemplate.expire(prestockKey, 30, TimeUnit.MINUTES);
 
             } else {
-                // 没有 SKU，按商品总库存预扣
                 String stockKey = "product:stock:" + item.getProductId();
 
-                // 如果 Redis 中没有库存数据，先从数据库同步
                 Boolean keyExists = redisTemplate.hasKey(stockKey);
                 if (keyExists == null || !keyExists) {
                     Integer dbStock = productSkuMapper.getTotalStockByProductId(product.getId());
                     redisTemplate.opsForValue().set(stockKey, dbStock != null ? dbStock : 0);
                 }
 
-                // opsForValue().decrement() 是原子操作，高并发下安全
-                // 返回值是扣减后的剩余库存
                 Long remainStock = redisTemplate.opsForValue().decrement(stockKey, item.getQuantity());
 
                 if (remainStock == null || remainStock < 0) {
-                    // 库存不足，回滚已扣减的库存
                     if (remainStock != null) {
                         redisTemplate.opsForValue().increment(stockKey, item.getQuantity());
                     }
                     throw new RuntimeException("商品「" + product.getName() + "」库存不足");
                 }
 
-                // 记录预扣库存信息到 Redis Hash（用于支付成功确认或超时回滚）
-                //     Key: order:prestock:订单号
-                //     Field: 商品ID
-                //     Value: 购买数量
                 String prestockKey = "order:prestock:" + orderNumber;
                 redisTemplate.opsForHash().put(prestockKey,
                         String.valueOf(item.getProductId()),
                         String.valueOf(item.getQuantity()));
-
-                // 设置预扣库存记录的过期时间（30分钟）与订单超时时间一致，超时后 Redis 自动删除
                 redisTemplate.expire(prestockKey, 30, TimeUnit.MINUTES);
             }
 
-            // 设置订单项完整信息
-            item.setSellerId(product.getSellerId()); // 商家ID
-            item.setProductName(product.getName()); // 商品名称快照
+            item.setSellerId(product.getSellerId());
+            item.setProductName(product.getName());
             
-            // 获取商品主图作为兜底
             String productMainImage = getProductMainImage(item.getProductId());
             
-            // 根据 SKU 获取对应图片
             if (item.getSkuId() != null) {
                 ProductSku sku = productSkuMapper.findById(item.getSkuId()).orElse(null);
                 if (sku != null) {
                     item.setSkuName(sku.getSkuName());
                     item.setPrice(sku.getPrice() != null ? sku.getPrice() : BigDecimal.ZERO);
-                    // SKU 有图片则使用 SKU 图片，否则使用商品主图
                     if (sku.getSkuImage() != null && !sku.getSkuImage().isEmpty()) {
                         item.setProductImage(sku.getSkuImage());
                     } else {
@@ -146,50 +215,57 @@ public class OrderService {
                     }
                 } else {
                     item.setProductImage(productMainImage);
-                    // SKU不存在时使用最低SKU价格
                     BigDecimal productPrice = productSkuMapper.getMinPriceByProductId(product.getId());
                     item.setPrice(productPrice != null ? productPrice : BigDecimal.ZERO);
                 }
             } else {
                 item.setProductImage(productMainImage);
-                // 未指定SKU时，使用最低SKU价格
                 BigDecimal productPrice = productSkuMapper.getMinPriceByProductId(product.getId());
                 item.setPrice(productPrice != null ? productPrice : BigDecimal.ZERO);
             }
             
             BigDecimal itemPrice = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;
             item.setTotalPrice(itemPrice.multiply(BigDecimal.valueOf(item.getQuantity())));
-            item.setCreatedAt(LocalDateTime.now()); // 创建时间
-            item.setId(snowflakeIdGenerator.nextId()); // 生成雪花ID
+            item.setCreatedAt(LocalDateTime.now());
+            item.setId(snowflakeIdGenerator.nextId());
 
-            // 累加总金额
             totalAmount = totalAmount.add(item.getTotalPrice());
-            orderItems.add(item);
+            processedItems.add(item);
         }
 
-        // 创建订单（结算页直接支付，状态为PAID）
         Order order = new Order();
-        order.setId(snowflakeIdGenerator.nextId()); // 生成雪花ID
-        order.setOrderNumber(orderNumber); // 生成订单号
-        order.setSource(orderDTO.getSource());  // 保存来源
-        order.setUserId(userId); // 用户ID
-        order.setAddressId(orderDTO.getAddressId()); // 收货地址ID
-        order.setTotalAmount(totalAmount); // 订单总金额
+        order.setId(snowflakeIdGenerator.nextId());
+        order.setOrderNumber(orderNumber);
+        order.setSource(source);
+        order.setUserId(userId);
+        order.setAddressId(addressId);
+        order.setTotalAmount(totalAmount);
 
-        // 保存订单
         orderMapper.insert(order);
 
-        // 设置订单ID并保存订单项
-        for (OrderItem item : orderItems) {
+        for (OrderItem item : processedItems) {
             item.setOrderId(order.getId());
         }
-        orderItemMapper.batchInsert(orderItems);
+        orderItemMapper.batchInsert(processedItems);
 
         log.info("订单创建成功: orderId={}, orderNumber={}, userId={}, totalAmount={}",
                 order.getId(), order.getOrderNumber(), userId, totalAmount);
 
-        // 发送新订单通知给商家
         webSocketService.sendNewOrder(order.getOrderNumber(), totalAmount);
+
+        Map<Long, List<OrderItem>> sellerItems = processedItems.stream()
+                .filter(item -> item.getSellerId() != null)
+                .collect(Collectors.groupingBy(OrderItem::getSellerId));
+
+        for (Map.Entry<Long, List<OrderItem>> entry : sellerItems.entrySet()) {
+            Long sellerId = entry.getKey();
+            BigDecimal sellerAmount = entry.getValue().stream()
+                    .map(OrderItem::getTotalPrice)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            String extraData = "{\"orderId\":" + order.getId() + "}";
+            notificationService.create(sellerId, "ORDER", "新订单通知",
+                    "您有一个新订单：" + order.getOrderNumber() + "，金额：¥" + sellerAmount, extraData);
+        }
 
         return order;
     }
@@ -218,33 +294,17 @@ public class OrderService {
             return;
         }
 
-        // 查询所有订单项
-        List<OrderItem> orderItems = orderItemMapper.findByOrderId(order.getId());
-
-        // 扣减库存 + 增加销量
-        for (OrderItem item : orderItems) {
-            Long skuId = item.getSkuId();
-            
-            // 如果没有指定 SKU，查找库存充足的 SKU
-            if (skuId == null) {
-                skuId = productMapper.findAvailableSkuId(item.getProductId(), item.getQuantity());
-                if (skuId == null) {
-                    throw new RuntimeException("商品库存不足: " + item.getProductName());
-                }
-            }
-            
-            // 扣减 SKU 库存
-            int affected = productMapper.deductSkuStock(skuId, item.getQuantity());
-            if (affected == 0) {
-                throw new RuntimeException("商品库存不足: " + item.getProductName());
-            }
-            
-            // 增加销量
-            productMapper.incrementSalesCount(item.getProductId(), item.getQuantity());
-
+        // 校验 Redis 预扣库存记录存在（下单时已经预扣，这里只做确认，不再重复扣减）
+        String prestockKey = "order:prestock:" + orderNumber;
+        Boolean prestockExists = redisTemplate.hasKey(prestockKey);
+        if (prestockExists == null || !prestockExists) {
+            log.warn("未找到 Redis 预扣库存记录，可能已超时或非本系统订单: orderNumber={}", orderNumber);
         }
 
-        // 更新订单状态
+        // 查询所有订单项（用于删除购物车商品）
+        List<OrderItem> orderItems = orderItemMapper.findByOrderId(order.getId());
+
+        // 更新订单状态：PENDING → PAID，以及支付时间、交易单号
         order.setStatus(Order.OrderStatus.PAID);
         order.setPaymentMethod(Order.PaymentMethod.valueOf(paymentMethod));
         order.setTransactionId(transactionId);
@@ -252,15 +312,22 @@ public class OrderService {
         order.setUpdatedAt(LocalDateTime.now());
         orderMapper.updatePaymentInfo(order);
 
-        // 支付成功后清除预扣记录
-        String prestockKey = "order:prestock:" + orderNumber;
-        redisTemplate.delete(prestockKey);
-        log.info("清除预扣库存记录: orderNumber={}", orderNumber);
+        // 支付成功后清除预扣记录（Redis 预扣即真正消耗，不再回滚）
+        if (prestockExists != null && prestockExists) {
+            redisTemplate.delete(prestockKey);
+            log.info("清除预扣库存记录: orderNumber={}", orderNumber);
+        }
+
+        // 增加商品销量
+        for (OrderItem item : orderItems) {
+            productMapper.incrementSalesCount(item.getProductId(), item.getQuantity());
+            log.info("增加商品销量 - productId: {}, quantity: {}", item.getProductId(), item.getQuantity());
+        }
 
         log.info("订单支付成功 - 订单号: {}", orderNumber);
 
         // 发送支付成功通知给用户
-        webSocketService.sendUserPaymentSuccess(order.getUserId(), orderNumber);
+        webSocketService.sendUserPaymentSuccess(order.getUserId(), order.getId(), orderNumber);
 
         // 发送支付成功通知给商家（广播）
         webSocketService.sendSellerPaymentSuccess(orderNumber, order.getTotalAmount());
@@ -285,7 +352,7 @@ public class OrderService {
      * @param status 订单状态
      * @return 订单VO列表（包含订单信息和订单项）
      */
-    public List<OrderWithItemsVO> getUserOrdersWithItems(Long userId, int page, int pageSize, String status) {
+    public List<OrderWithItemsVO> getUserOrdersWithItems(Long userId, int page, int pageSize, String[] status) {
         // 计算分页偏移量
         int offset = (page - 1) * pageSize;
 
@@ -300,19 +367,27 @@ public class OrderService {
         // 批量查询订单详情
         List<Order> orders = orderMapper.findByIds(orderIds);
 
-        // 批量查询所有订单项
         List<OrderItem> allOrderItems = orderItemMapper.findOrderItemsByOrderIds(orderIds);
 
-        // 将订单项按订单ID分组
-        Map<Long, List<OrderItem>> orderItemMap = allOrderItems.stream()
-                .collect(Collectors.groupingBy(OrderItem::getOrderId));
+        final Map<Long, List<OrderItem>> orderItemMap = allOrderItems != null 
+                ? allOrderItems.stream().collect(Collectors.groupingBy(OrderItem::getOrderId))
+                : new HashMap<>();
 
-        // 将订单信息和订单项列表合并
-        return orders.stream().map(order -> new OrderWithItemsVO(
-                        order,
-                        orderItemMap.getOrDefault(order.getId(), Collections.emptyList())
-                ))
-                .collect(Collectors.toList());
+        // 将订单信息和订单项列表合并，并查询商家信息
+        return orders.stream().map(order -> {
+            List<OrderItem> items = orderItemMap.getOrDefault(order.getId(), Collections.emptyList());
+            String sellerName = "商家";
+            String sellerAvatar = null;
+            
+            if (!items.isEmpty() && items.get(0).getSellerId() != null) {
+                Long sellerId = items.get(0).getSellerId();
+                String[] sellerInfo = getSellerInfo(sellerId);
+                sellerName = sellerInfo[0];
+                sellerAvatar = sellerInfo[1];
+            }
+            
+            return new OrderWithItemsVO(order, items, sellerName, sellerAvatar);
+        }).collect(Collectors.toList());
     }
 
     /**
@@ -322,7 +397,7 @@ public class OrderService {
      * @param status 订单状态
      * @return 订单总数
      */
-    public long countUserOrdersWithStatus(Long userId, String status) {
+    public long countUserOrdersWithStatus(Long userId, String[] status) {
         return orderMapper.countByUserId(userId, status);
     }
 
@@ -331,15 +406,19 @@ public class OrderService {
      */
     public Map<String, Long> getOrderCountsByUserId(Long userId) {
         Map<String, Long> counts = new HashMap<>();
-        counts.put("total", orderMapper.countByUserId(userId, null));
-        counts.put("PENDING", orderMapper.countByUserId(userId, "PENDING"));
-        counts.put("PAID", orderMapper.countByUserId(userId, "PAID"));
-        counts.put("SHIPPED", orderMapper.countByUserId(userId, "SHIPPED"));
-        counts.put("COMPLETED", orderMapper.countByUserId(userId, "COMPLETED"));
-        counts.put("CANCELLED", orderMapper.countByUserId(userId, "CANCELLED"));
-        // 统计已完成订单中未评价的订单项数量
-        counts.put("pendingReview", orderItemMapper.countPendingReviewByUserId(userId));
+        counts.put("total", getOrDefault(orderMapper.countByUserId(userId, null), 0L));
+        counts.put("PENDING", getOrDefault(orderMapper.countByUserId(userId, new String[]{"PENDING"}), 0L));
+        counts.put("PAID", getOrDefault(orderMapper.countByUserId(userId, new String[]{"PAID"}), 0L));
+        counts.put("PROCESSING", getOrDefault(orderMapper.countByUserId(userId, new String[]{"PROCESSING"}), 0L));
+        counts.put("SHIPPED", getOrDefault(orderMapper.countByUserId(userId, new String[]{"SHIPPED"}), 0L));
+        counts.put("COMPLETED", getOrDefault(orderMapper.countByUserId(userId, new String[]{"COMPLETED"}), 0L));
+        counts.put("CANCELLED", getOrDefault(orderMapper.countByUserId(userId, new String[]{"CANCELLED"}), 0L));
+        counts.put("pendingReview", getOrDefault(orderItemMapper.countPendingReviewByUserId(userId), 0L));
         return counts;
+    }
+
+    private Long getOrDefault(Long value, Long defaultValue) {
+        return value != null ? value : defaultValue;
     }
 
     /**
@@ -369,22 +448,13 @@ public class OrderService {
      */
     @Transactional
     public void cancelOrder(Long userId, Long orderId) {
-        // 查询订单（带权限校验）
         Order order = orderMapper.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> new RuntimeException("订单不存在"));
 
-        // 只有待付款的订单才能取消
         if (order.getStatus() != Order.OrderStatus.PENDING) {
             throw new RuntimeException("只有待付款的订单才能取消");
         }
 
-        // 更新订单状态
-        order.setStatus(Order.OrderStatus.CANCELLED);
-        order.setCancelledAt(LocalDateTime.now());
-        order.setUpdatedAt(LocalDateTime.now());
-        orderMapper.updateStatus(order.getId(), order.getStatus().name());
-
-        // 恢复预扣的 SKU 库存
         String prestockKey = "order:prestock:" + order.getOrderNumber();
         Map<Object, Object> prestockMap = redisTemplate.opsForHash().entries(prestockKey);
 
@@ -392,21 +462,61 @@ public class OrderService {
             for (Map.Entry<Object, Object> entry : prestockMap.entrySet()) {
                 String key = (String) entry.getKey();
                 Integer quantity = Integer.valueOf((String) entry.getValue());
-
-                if (key.startsWith("sku:")) {
-                    Long skuId = Long.valueOf(key.substring(4));
-                    String skuStockKey = "product:stock:sku:" + skuId;
-                    redisTemplate.opsForValue().increment(skuStockKey, quantity);
-                    log.info("回滚 SKU 库存: skuId={}, quantity={}", skuId, quantity);
-                } else {
-                    // 按商品回滚
-                    Long productId = Long.valueOf(key);
-                    String stockKey = "product:stock:" + productId;
-                    redisTemplate.opsForValue().increment(stockKey, quantity);
-                    log.info("回滚商品库存: productId={}, quantity={}", productId, quantity);
-                }
+                handleStockRollback(key, quantity);
             }
             redisTemplate.delete(prestockKey);
+        } else {
+            log.warn("预扣记录不存在或已过期，从数据库查询订单项进行回滚: orderId={}", orderId);
+            List<OrderItem> orderItems = orderItemMapper.findByOrderId(orderId);
+            for (OrderItem item : orderItems) {
+                if (item.getSkuId() != null) {
+                    String key = "sku:" + item.getSkuId();
+                    handleStockRollback(key, item.getQuantity());
+                } else {
+                    String key = String.valueOf(item.getProductId());
+                    handleStockRollback(key, item.getQuantity());
+                }
+            }
+        }
+
+        order.setStatus(Order.OrderStatus.CANCELLED);
+        order.setCancelledAt(LocalDateTime.now());
+        order.setUpdatedAt(LocalDateTime.now());
+        orderMapper.updateStatus(order.getId(), Order.OrderStatus.CANCELLED.name());
+        orderMapper.updateCancelledTime(order.getId(), order.getCancelledAt());
+    }
+
+    private void handleStockRollback(String key, Integer quantity) {
+        if (key.startsWith("sku:")) {
+            Long skuId = Long.valueOf(key.substring(4));
+            String reservedStockKey = "sku:stock:reserved:" + skuId;
+
+            Object reservedObj = redisTemplate.opsForValue().get(reservedStockKey);
+            Long currentReserved = reservedObj instanceof Number 
+                ? ((Number) reservedObj).longValue() 
+                : null;
+
+            if (currentReserved == null || currentReserved < quantity) {
+                log.warn("Redis预扣库存异常，从数据库重新计算: skuId={}, currentReserved={}, quantity={}", 
+                        skuId, currentReserved, quantity);
+                Long dbReserved = orderItemMapper.sumReservedBySkuId(skuId);
+                if (dbReserved == null) dbReserved = 0L;
+                redisTemplate.opsForValue().set(reservedStockKey, dbReserved);
+                currentReserved = dbReserved;
+            }
+
+            if (currentReserved >= quantity) {
+                redisTemplate.opsForValue().increment(reservedStockKey, -quantity);
+                log.info("回滚 SKU 预扣库存: skuId={}, quantity={}", skuId, quantity);
+            } else {
+                log.warn("预扣库存不足，无法回滚: skuId={}, currentReserved={}, quantity={}", 
+                        skuId, currentReserved, quantity);
+            }
+        } else {
+            Long productId = Long.valueOf(key);
+            String stockKey = "product:stock:" + productId;
+            redisTemplate.opsForValue().increment(stockKey, quantity);
+            log.info("回滚商品库存: productId={}, quantity={}", productId, quantity);
         }
     }
 
@@ -418,8 +528,8 @@ public class OrderService {
         Order order = orderMapper.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> new RuntimeException("订单不存在"));
 
-        if (order.getStatus() != Order.OrderStatus.SHIPPED && order.getStatus() != Order.OrderStatus.DELIVERED) {
-            throw new RuntimeException("只有已发货或已送达的订单才能确认收货");
+        if (order.getStatus() != Order.OrderStatus.SHIPPED) {
+            throw new RuntimeException("只有已发货的订单才能确认收货");
         }
 
         orderMapper.confirmReceive(orderId);
@@ -435,14 +545,13 @@ public class OrderService {
             }
             
             // 根据不同售后状态处理：
-            // 1. SUCCESS（已退款完成）→ 保持COMPLETED状态，不做处理
+            // 1. SUCCESS（已退款完成）→ 保持不变
             // 2. PROCESSING（退款中）→ 确认收货不影响退款流程，保持不变
-            // 3. COMPLETED（售后已完成）→ 保持不变
-            // 4. FAILED（卖家拒绝退款）→ 买家确认收货后关闭售后，更新为COMPLETED
+            // 3. FAILED（卖家拒绝退款）→ 买家确认收货后关闭售后，更新为SUCCESS
             if ("FAILED".equals(refundStatus)) {
-                orderItemMapper.updateRefundStatus(item.getId(), "COMPLETED");
+                orderItemMapper.updateRefundStatus(item.getId(), "SUCCESS");
             }
-            // 其他状态（REFUNDING, AFTER_SALE, WAITING_RETURN, RETURNING, APPROVED）保持不变
+            // 其他状态（WAITING_RETURN, RETURNING）保持不变
         }
     }
 
@@ -558,35 +667,78 @@ public class OrderService {
      * @param status 订单状态
      * @return 订单VO列表
      */
-    public List<OrderWithItemsVO> getSellerOrders(Long sellerId, int page, int pageSize, String status) {
-        // 计算分页偏移量
+    public List<OrderWithItemsVO> getSellerOrders(Long sellerId, int page, int pageSize, String[] status) {
+        return getSellerOrders(sellerId, page, pageSize, status, null);
+    }
+
+    public List<OrderWithItemsVO> getSellerOrders(Long sellerId, int page, int pageSize, String[] status, String[] refundStatus) {
         int offset = (page - 1) * pageSize;
 
-        // 查询商家订单ID列表（通过订单项关联商家ID，使用DISTINCT去重）
-        List<Long> orderIds = orderMapper.findSellerOrderIds(sellerId, offset, pageSize, status);
+        List<Long> orderIds;
+        if (refundStatus != null && refundStatus.length > 0) {
+            orderIds = orderMapper.findSellerOrderIdsByRefundStatus(sellerId, offset, pageSize, refundStatus);
+        } else {
+            orderIds = orderMapper.findSellerOrderIds(sellerId, offset, pageSize, status);
+        }
 
-        // 订单ID为空时返回空列表
         if (orderIds == null || orderIds.isEmpty()) {
             return new ArrayList<>();
         }
 
-        // 批量查询订单详情
         List<Order> orders = orderMapper.findByIds(orderIds);
 
-        // 批量查询所有订单项
         List<OrderItem> allOrderItems = orderItemMapper.findByOrderIds(orderIds);
 
-        // 将订单项按订单ID分组
-        Map<Long, List<OrderItem>> orderItemMap = allOrderItems.stream()
-                .collect(Collectors.groupingBy(OrderItem::getOrderId));
+        final Map<Long, List<OrderItem>> orderItemMap = allOrderItems != null 
+                ? allOrderItems.stream().collect(Collectors.groupingBy(OrderItem::getOrderId))
+                : new HashMap<>();
 
-        // 组装VO，将订单信息和订单项列表合并
+        final String[] sellerInfo = getSellerInfo(sellerId);
+        final String name = sellerInfo[0];
+        final String avatar = sellerInfo[1];
+
         return orders.stream()
                 .map(order -> new OrderWithItemsVO(
                         order,
-                        orderItemMap.getOrDefault(order.getId(), Collections.emptyList())
+                        orderItemMap.getOrDefault(order.getId(), Collections.emptyList()),
+                        name,
+                        avatar
                 ))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 查询商家名称和头像
+     * @param sellerId 商家ID
+     * @return String数组，[0]为商家名称，[1]为商家头像
+     */
+    public String[] getSellerInfo(Long sellerId) {
+        String sellerName = "商家";
+        String sellerAvatar = null;
+        
+        Optional<SellerProfile> sellerProfile = sellerProfileMapper.findByUserId(sellerId);
+        if (sellerProfile.isPresent()) {
+            SellerProfile sp = sellerProfile.get();
+            sellerName = sp.getStoreName();
+            sellerAvatar = sp.getStoreAvatar();
+        }
+        
+        if (sellerName == null || sellerName.isEmpty()) {
+            Optional<UserProfile> userProfile = userProfileMapper.findByUserId(sellerId);
+            if (userProfile.isPresent()) {
+                UserProfile up = userProfile.get();
+                sellerName = up.getNickname();
+                if (sellerAvatar == null) {
+                    sellerAvatar = up.getAvatar();
+                }
+            }
+        }
+        
+        if (sellerName == null || sellerName.isEmpty()) {
+            sellerName = "商家";
+        }
+        
+        return new String[]{sellerName, sellerAvatar};
     }
 
     // 辅助方法：枚举转字符串
@@ -601,7 +753,14 @@ public class OrderService {
      * @param status 订单状态
      * @return 订单总数
      */
-    public long countSellerOrders(Long sellerId, String status) {
+    public long countSellerOrders(Long sellerId, String[] status) {
+        return countSellerOrders(sellerId, status, null);
+    }
+
+    public long countSellerOrders(Long sellerId, String[] status, String[] refundStatus) {
+        if (refundStatus != null && refundStatus.length > 0) {
+            return orderMapper.countSellerOrdersByRefundStatus(sellerId, refundStatus);
+        }
         return orderMapper.countSellerOrders(sellerId, status);
     }
 
@@ -622,15 +781,19 @@ public class OrderService {
         counts.put("CANCELLED", 0L);
         counts.put("REFUNDING", 0L);
 
-        for (Map<String, Object> item : list) {
-            String status = (String) item.get("status");
-            Long count = (Long) item.get("count");
-            counts.put(status, count);
-            counts.put("total", counts.get("total") + count);
+        if (list != null) {
+            for (Map<String, Object> item : list) {
+                String status = (String) item.get("status");
+                Long count = (Long) item.get("count");
+                counts.put(status, count);
+                counts.put("total", counts.get("total") + count);
+            }
         }
 
-        // 统计退款中的订单项数量
         Long refundingCount = orderMapper.countRefundingItems(sellerId);
+        if (refundingCount == null) {
+            refundingCount = 0L;
+        }
         counts.put("REFUNDING", refundingCount);
 
         return counts;
@@ -656,9 +819,11 @@ public class OrderService {
 
         // 更新订单状态为处理中
         order.setStatus(Order.OrderStatus.PROCESSING);
-        order.setProcessingAt(LocalDateTime.now());
-        order.setUpdatedAt(LocalDateTime.now());
+        LocalDateTime processingTime = LocalDateTime.now();
+        order.setProcessingAt(processingTime);
+        order.setUpdatedAt(processingTime);
         orderMapper.updateStatus(orderId, Order.OrderStatus.PROCESSING.name());
+        orderMapper.updateProcessingTime(orderId, processingTime);
 
 
     }
@@ -708,33 +873,10 @@ public class OrderService {
         }
 
         // 发送发货通知给用户
-        webSocketService.sendUserShipment(order.getUserId(), order.getOrderNumber(), trackingNumber);
+        webSocketService.sendUserShipment(order.getUserId(), order.getId(), order.getOrderNumber(), trackingNumber);
 
     }
 
-
-    /**
-     * 根据物流单号更新订单送达时间
-     *
-     * @param trackingNumber 物流单号
-     * @param deliveredTime 送达时间
-     */
-    @Transactional
-    public void updateDeliveredTime(String trackingNumber, String deliveredTime) {
-        // 解析送达时间
-        LocalDateTime deliveredAt = LocalDateTime.parse(deliveredTime,
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-        // 更新送达时间和订单状态
-        int updated = orderMapper.updateDeliveredTimeByTrackingNumber(trackingNumber, deliveredAt);
-
-        // 更新失败时抛出异常
-        if (updated == 0) {
-            throw new RuntimeException("订单不存在或更新失败");
-        }
-
-
-    }
 
 
 }

@@ -307,22 +307,6 @@
   opacity: 1;
 }
 
-/* 内容加载后淡入 */
-.content-wrapper {
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* ========== 商品卡片专用骨架 ========== */
 .image-skeleton {
   position: absolute;

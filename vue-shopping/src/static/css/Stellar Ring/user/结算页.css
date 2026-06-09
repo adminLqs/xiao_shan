@@ -101,9 +101,7 @@ html {
   color: transparent;
 }
 
-.page-nav-title i {
-  color: #4a6491;
-}
+
 
 .page-nav-right {
   width: 36px;
@@ -270,26 +268,25 @@ html {
 .tags-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 8px;
   margin-top: 4px;
 }
 
 .tag-spec {
-  padding: 2px 8px;
-  background: rgba(100, 116, 139, 0.1);
-  border-radius: 12px;
   font-size: 12px;
-  color: #64748b;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #94a3b8;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 
 .tag-quantity {
-  padding: 2px 8px;
-  font-size: 11px;
-  color: #64748b;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  background: transparent;
+  padding: 0;
+  white-space: nowrap;
 }
 
 .product-price {
@@ -1151,29 +1148,25 @@ html {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 /* 规格标签 */
 .tag-spec {
-  padding: 2px 8px;
-  background: rgba(100, 116, 139, 0.1);
-  border-radius: 12px;
   font-size: 12px;
-  color: #64748b;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #94a3b8;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 
 /* 数量标签 - 灰色无背景 */
 .tag-quantity {
-  padding: 2px 6px;
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8;
   font-weight: 500;
   background: transparent;
+  padding: 0;
   white-space: nowrap;
 }
 

@@ -94,9 +94,7 @@
   color: transparent;
 }
 
-.page-nav-title i {
-  color: #4a6491;
-}
+
 
 .page-nav-right {
   width: 36px;
@@ -309,11 +307,7 @@
 
 .product-spec {
   font-size: 12px;
-  color: #94a3b8;
-  margin-bottom: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #1e293b;
 }
 
 .product-meta {
@@ -333,10 +327,10 @@
 
 .tag-quantity {
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8;
   font-weight: 500;
   background: transparent;
-  padding: 2px 4px;
+  padding: 0;
   white-space: nowrap;
 }
 

@@ -1,12 +1,11 @@
 <template>
   <div class="cart-container">
     <!-- 购物车导航栏 -->
-    <div class="cart-navbar">
-      <button class="cart-nav-back" @click="router.back()">
+    <div class="page-navbar">
+      <button class="page-nav-back" @click="router.back()">
         <i class="fas fa-chevron-left"></i>
       </button>
-      <div class="cart-nav-title">
-        <i class="fas fa-shopping-bag"></i>
+      <div class="page-nav-title">
         <span>购物袋</span>
       </div>
 
@@ -51,31 +50,45 @@
           :key="item.id"
           class="cart-item"
           :class="{
-            'out-of-stock': item.stock <= 0,
+            'out-of-stock': item.stock <= 0 || item.productStatus === 2,
+            'deleted': item.productStatus === 2,
             'selected': selectedIds.includes(item.id)
           }"
           @click="toggleSelectItem(item)"
         >
+          <div class="order-header">
+            <div class="order-header-top">
+              <div class="order-header-left">
+                <img :src="item.sellerAvatar || sellerDefaultAvatar" class="seller-avatar" :alt="item.sellerName" />
+                <span class="seller-name">{{ item.sellerName }}</span>
+              </div>
+            </div>
+          </div>
         <div class="cart-item-top">
           <div class="item-image" @click.stop="goToProduct(item.productId)">
             <img :src="item.productImage" :alt="item.productName" />
+            <div v-if="item.productStatus === 2" class="image-overlay">
+              <span class="deleted-tag">已下架</span>
+            </div>
           </div>
           <div class="item-info">
-            <div class="item-name" @click.stop="goToProduct(item.productId)">{{ item.productName }}</div>
+            <div class="item-name">{{ item.productName }}</div>
             <div class="tags-group">
               <span v-if="item.skuName" class="item-sku">{{ item.skuName }}</span>
-              <span v-if="item.stock <= 0" class="out-of-stock-tag">缺货</span>
+               <span v-if="item.productStatus === 2" class="deleted-tag">商品已下架</span>
+              <span v-else-if="item.stock <= 0" class="out-of-stock-tag">缺货</span>
             </div>
           </div>
           <div class="price-col">
-            <div class="current-price">¥{{ formatPrice(item.price) }}</div>
-            <div v-if="item.originalPrice && item.originalPrice > item.price" class="original-price">¥{{ formatPrice(item.originalPrice) }}</div>
+            <div class="current-price" :class="{ 'deleted-price': item.productStatus === 2 }">¥{{ formatPrice(item.price) }}</div>
+            <div v-if="item.originalPrice && item.originalPrice > item.price && item.productStatus !== 2" class="original-price">¥{{ formatPrice(item.originalPrice) }}</div>
           </div>
         </div>
 
           <div class="item-bottom">
             <div class="item-status">
-              <span v-if="item.stock <= 0" class="stock-text">暂时缺货</span>
+              <span v-if="item.productStatus === 2" class="stock-text deleted-text">商品已下架</span>
+              <span v-else-if="item.stock <= 0" class="stock-text">暂时缺货</span>
               <template v-else>
                 <span v-if="selectedIds.includes(item.id)" class="selected-text">
                   <i class="fas fa-check"></i> 已选
@@ -84,7 +97,7 @@
               </template>
             </div>
 
-            <div class="item-quantity-tags">
+            <div class="item-quantity-tags" v-if="item.productStatus !== 2">
               <span class="qty-tag" :class="{ active: item.quantity === 1 }" @click.stop="setQuantity(item, 1)">1件</span>
               <span v-if="item.stock >= 2" class="qty-tag" :class="{ active: item.quantity === 2 }" @click.stop="setQuantity(item, 2)">2件</span>
               <span v-if="item.stock >= 3" class="qty-tag" :class="{ active: item.quantity === 3 }" @click.stop="setQuantity(item, 3)">3件</span>
@@ -123,7 +136,7 @@
               <span class="capsule-total-price">¥{{ formatPrice(totalAmount) }}</span>
             </div>
           </div>
-          
+
           <i class="fas fa-chevron-up capsule-arrow" :class="{ expanded: showSelectedDetail }" @click="showSelectedDetail = !showSelectedDetail"></i>
 
           <!-- 右侧结算按钮 -->
@@ -192,6 +205,7 @@
   import { authAPI } from '@/api/authAPI'
   import Message from '@/utils/message'
   import { useAuthStore } from '@/stores/auth'
+  import sellerDefaultAvatar from '@/static/images/seller-avatar.jpg'
 
   // 路由实例
   const router = useRouter()
@@ -214,6 +228,9 @@
     originalPrice?: number  // 原价
     productImage: string // 商品图片
     stock: number        // 库存数量
+    productStatus?: number // 商品状态（0-下架，1-上架，2-已删除）
+    sellerName?: string  // 卖家名称
+    sellerAvatar?: string // 卖家头像
   }
 
   // ========== 响应式数据 ==========
@@ -244,18 +261,18 @@
   // ========== 计算属性 ==========
 
   /**
-   * 可选的购物车项（库存大于0的商品）
-   */
-  const selectableItems = computed(() =>
-    cartItems.value.filter(item => item.stock > 0)
-  )
+     * 可选的购物车项（库存大于0且商品未被删除的商品）
+     */
+    const selectableItems = computed(() =>
+      cartItems.value.filter(item => item.stock > 0 && item.productStatus !== 2)
+    )
 
-  /**
-   * 缺货商品数量（库存为0的商品）
-   */
-  const outOfStockCount = computed(() =>
-    cartItems.value.filter(item => item.stock <= 0).length
-  )
+    /**
+     * 不可购买商品数量（库存为0或已删除的商品）
+     */
+    const outOfStockCount = computed(() =>
+      cartItems.value.filter(item => item.stock <= 0 || item.productStatus === 2).length
+    )
 
   /**
    * 是否全选（只针对可选商品）
@@ -296,10 +313,10 @@
       const response = await authAPI.getCartList()
       if (response.success && response.data?.records) {
         cartItems.value = response.data.records
-        // 加载完成后，清空已选中的缺货商品ID
+        // 加载完成后，清空已选中的缺货或已删除商品ID
         selectedIds.value = selectedIds.value.filter(id => {
           const item = cartItems.value.find(i => i.id === id)
-          return item && item.stock > 0
+          return item && item.stock > 0 && item.productStatus !== 2
         })
       } else {
         throw new Error(response.message || '加载购物车失败')
@@ -312,39 +329,44 @@
   }
 
   /**
-   * 切换单个商品选中状态
-   * @param item - 目标购物车项
-   */
-  const toggleSelectItem = (item: CartItem) => {
-    if (item.stock <= 0) return
+     * 切换单个商品选中状态
+     * @param item - 目标购物车项
+     */
+    const toggleSelectItem = (item: CartItem) => {
+        if (item.stock <= 0 || item.productStatus === 2) return
 
-    const index = selectedIds.value.indexOf(item.id)
-    if (index > -1) {
-      selectedIds.value.splice(index, 1)
-    } else {
-      selectedIds.value.push(item.id)
+        const index = selectedIds.value.indexOf(item.id)
+        if (index > -1) {
+            selectedIds.value.splice(index, 1)
+        } else {
+            selectedIds.value.push(item.id)
+        }
     }
-  }
 
   /**
-   * 全选/取消全选
-   * 只操作可选商品（库存大于0的商品），缺货商品不会被选中
-   */
-  const toggleSelectAll = () => {
-    if (isAllSelected.value) {
-      // 取消全选：清空所有选中
-      selectedIds.value = []
-    } else {
-      // 全选：只选中可选商品的ID（缺货商品不选中）
-      const allSelectableIds = selectableItems.value.map(item => item.id)
-      selectedIds.value = [...allSelectableIds]
+     * 全选/取消全选
+     * 只操作可选商品（库存大于0且未被删除的商品），缺货或已删除商品不会被选中
+     */
+    const toggleSelectAll = () => {
+        if (isAllSelected.value) {
+            // 取消全选：清空所有选中
+            selectedIds.value = []
+        } else {
+            // 全选：只选中可选商品的ID（缺货或已删除商品不选中）
+            const allSelectableIds = selectableItems.value.map(item => item.id)
+            selectedIds.value = [...allSelectableIds]
 
-      // 如果有缺货商品，给出提示
-      if (outOfStockCount.value > 0) {
-        Message.info(`已选中${allSelectableIds.length}件商品，缺货商品不可选`)
-      }
+            // 如果有缺货或已删除商品，给出提示
+            if (outOfStockCount.value > 0) {
+                const deletedCount = cartItems.value.filter(item => item.productStatus === 2).length
+                const stockOutCount = cartItems.value.filter(item => item.stock <= 0 && item.productStatus !== 2).length
+                let msg = `已选中${allSelectableIds.length}件商品`
+                if (deletedCount > 0) msg += `，${deletedCount}件商品已下架不可选`
+                if (stockOutCount > 0) msg += `，${stockOutCount}件商品缺货不可选`
+                Message.info(msg)
+            }
+        }
     }
-  }
 
   /**
    * 更新商品数量（调用API）

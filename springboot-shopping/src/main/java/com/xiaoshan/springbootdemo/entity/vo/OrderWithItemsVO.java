@@ -18,8 +18,21 @@ public class OrderWithItemsVO {
     // 该订单下的所有商品
     private List<OrderItem> orderItems;
 
+    // 商家名称
+    private String sellerName;
+
+    // 商家头像
+    private String sellerAvatar;
+
     public OrderWithItemsVO(Order order, List<OrderItem> orderItems) {
         this.order = order;
         this.orderItems = orderItems;
+    }
+
+    public OrderWithItemsVO(Order order, List<OrderItem> orderItems, String sellerName, String sellerAvatar) {
+        this.order = order;
+        this.orderItems = orderItems;
+        this.sellerName = sellerName;
+        this.sellerAvatar = sellerAvatar;
     }
 }

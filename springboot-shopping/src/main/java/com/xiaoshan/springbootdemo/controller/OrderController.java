@@ -1,11 +1,14 @@
 package com.xiaoshan.springbootdemo.controller;
 
 import com.xiaoshan.springbootdemo.entity.Address;
+import com.xiaoshan.springbootdemo.entity.LogisticsTrace;
 import com.xiaoshan.springbootdemo.entity.Order;
+import com.xiaoshan.springbootdemo.entity.OrderCoupon;
 import com.xiaoshan.springbootdemo.entity.OrderItem;
 import com.xiaoshan.springbootdemo.entity.dto.OrderDTO;
 import com.xiaoshan.springbootdemo.entity.vo.OrderDetailVO;
 import com.xiaoshan.springbootdemo.entity.vo.OrderWithItemsVO;
+import com.xiaoshan.springbootdemo.mapper.OrderCouponMapper;
 import com.xiaoshan.springbootdemo.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +18,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,9 +41,10 @@ public class OrderController {
     private final AlipayService alipayService;
     private final LogisticsService logisticsService;
     private final OrderRefundService orderRefundService;
+    private final OrderCouponMapper orderCouponMapper;
 
     /**
-     * 创建订单
+     * 创建订单（按卖家拆单）
      * POST /api/v1/orders
      */
     @PostMapping("/orders")
@@ -44,7 +54,6 @@ public class OrderController {
             @Valid @RequestBody OrderDTO orderDTO
     ) {
         try {
-            // 测试阶段仅开放支付宝支付，微信支付暂不支持
             if (!"ALIPAY".equals(orderDTO.getPaymentMethod())) {
                 String message = "WECHAT".equals(orderDTO.getPaymentMethod())
                         ? "测试阶段仅限于支付宝支付"
@@ -52,30 +61,35 @@ public class OrderController {
                 return ResponseEntity.ok(Map.of("success", false, "message", message));
             }
 
-            // 校验订单项
             if (orderDTO.getOrderItems() == null || orderDTO.getOrderItems().isEmpty()) {
                 return ResponseEntity.ok().body(Map.of(
                         "success", false, "message", "订单项不能为空"
                 ));
             }
 
-            // 获取当前用户ID
             Long userId = userService.getCurrentUserId(authentication);
 
-            // 创建订单
-            Order order = orderService.createOrder(userId, orderDTO);
+            List<Order> orders = orderService.createOrdersBySeller(userId, orderDTO);
 
-            // 调用支付宝沙箱API，返回支付页面HTML
-            String paymentHtml  = alipayService.createPagePay(order);
+            if (orders.isEmpty()) {
+                return ResponseEntity.ok().body(Map.of(
+                        "success", false, "message", "创建订单失败"
+                ));
+            }
+
+            BigDecimal totalAmount = orders.stream()
+                    .map(Order::getTotalAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            String paymentHtml = alipayService.createPagePayForMultipleOrders(orders, totalAmount);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "订单创建成功",
                     "data", Map.of(
-                            "orderId", order.getId(),
-                            "orderNumber", order.getOrderNumber(),
-                            "totalAmount", order.getTotalAmount(),
-                            "paymentHtml", paymentHtml // 支付网页
+                            "orders", orders,
+                            "totalAmount", totalAmount,
+                            "paymentHtml", paymentHtml
                     )
             ));
 
@@ -142,7 +156,7 @@ public class OrderController {
             Authentication authentication,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String status
+            @RequestParam(required = false) String[] status
     ) {
         try {
             // 获取认证用户ID
@@ -154,28 +168,27 @@ public class OrderController {
             // 查询总数
             long total = orderService.countUserOrdersWithStatus(userId, status);
 
-            // 查询各状态数量统计
             Map<String, Long> counts = orderService.getOrderCountsByUserId(userId);
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", Map.of(
-                            "records", orders,
-                            "total", total,
-                            "page", page,
-                            "size", pageSize,
-                            "totalPages", (int) Math.ceil((double) total / pageSize),
-                            "counts", counts
-                            )
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put("records", orders);
+            dataMap.put("total", total);
+            dataMap.put("page", page);
+            dataMap.put("size", pageSize);
+            dataMap.put("totalPages", (int) Math.ceil((double) total / pageSize));
+            dataMap.put("counts", counts != null ? counts : new HashMap<>());
 
-            ));
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", dataMap);
+            return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            log.error("获取订单列表失败: {}", e.getMessage());
-            return ResponseEntity.ok().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
+            log.error("获取订单列表失败", e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("success", false);
+            errorResult.put("message", e.getMessage() != null ? e.getMessage() : "服务器内部错误");
+            return ResponseEntity.ok().body(errorResult);
         }
     }
 
@@ -189,19 +202,21 @@ public class OrderController {
         try {
             Long userId = userService.getCurrentUserId(authentication);
 
-            // 复用已有的统计方法
             Map<String, Long> counts = orderService.getOrderCountsByUserId(userId);
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", Map.of("counts", counts)
-            ));
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put("counts", counts != null ? counts : new HashMap<>());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", dataMap);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("获取订单统计失败: {}", e.getMessage());
-            return ResponseEntity.ok().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
+            log.error("获取订单统计失败", e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("success", false);
+            errorResult.put("message", e.getMessage() != null ? e.getMessage() : "服务器内部错误");
+            return ResponseEntity.ok().body(errorResult);
         }
     }
 
@@ -271,7 +286,7 @@ public class OrderController {
     }
 
     /**
-     * 获取订单详情（完整版：含地址和商品列表）
+     * 获取订单详情（完整版：含地址和商品列表和默认物流）
      * GET /api/v1/orders/{orderId}/detail
      */
     @GetMapping("/orders/{orderId}/detail")
@@ -293,7 +308,26 @@ public class OrderController {
             // 查询地址表信息
             Address address = addressService.getAddressByUserIdAndAddressId(userId, order.getAddressId());
 
-            OrderDetailVO orderDetailVO = new OrderDetailVO(order, orderItems, address);
+            // 查询商家信息
+            String sellerName = "商家";
+            String sellerAvatar = null;
+            if (!orderItems.isEmpty() && orderItems.get(0).getSellerId() != null) {
+                String[] sellerInfo = orderService.getSellerInfo(orderItems.get(0).getSellerId());
+                sellerName = sellerInfo[0];
+                sellerAvatar = sellerInfo[1];
+            }
+
+            // 生成默认物流轨迹
+            List<LogisticsTrace> traces = generateDefaultTraces(order);
+
+            OrderDetailVO orderDetailVO = new OrderDetailVO(order, orderItems, address, sellerName, sellerAvatar, traces);
+
+            List<OrderCoupon> orderCoupons = orderCouponMapper.findByOrderId(orderId);
+            if (orderCoupons != null && !orderCoupons.isEmpty()) {
+                OrderCoupon orderCoupon = orderCoupons.get(0);
+                orderDetailVO.setCouponName(orderCoupon.getCouponName());
+                orderDetailVO.setCouponDiscountAmount(orderCoupon.getDiscountAmount());
+            }
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -307,6 +341,70 @@ public class OrderController {
                     "message", e.getMessage()
             ));
         }
+    }
+
+    /**
+     * 生成默认物流轨迹
+     * @param order 订单
+     * @return 物流轨迹列表
+     */
+    private List<LogisticsTrace> generateDefaultTraces(Order order) {
+        String status = order.getStatus() != null ? order.getStatus().name() : "";
+        String time = getOrderTime(order);
+        String description = "";
+        String location = "";
+
+        switch (status) {
+            case "PENDING":
+                description = "订单已提交，等待支付";
+                break;
+            case "PAID":
+                description = "订单已付款，等待发货";
+                break;
+            case "PROCESSING":
+                description = "商家正在备货中";
+                break;
+            case "SHIPPED":
+                description = "商品已发货，运输中";
+                break;
+            case "COMPLETED":
+                description = "订单已完成";
+                break;
+            case "CANCELLED":
+                description = "订单已取消";
+                break;
+            default:
+                description = "订单已提交";
+        }
+
+        LogisticsTrace trace = new LogisticsTrace(time, description, description, location);
+        return Collections.singletonList(trace);
+    }
+
+    /**
+     * 获取订单相关时间
+     * @param order 订单
+     * @return 时间字符串
+     */
+    private String getOrderTime(Order order) {
+        if (order.getPaidAt() != null) {
+            return formatDateTime(order.getPaidAt());
+        } else if (order.getShippedAt() != null) {
+            return formatDateTime(order.getShippedAt());
+        } else if (order.getCreatedAt() != null) {
+            return formatDateTime(order.getCreatedAt());
+        }
+        return formatDateTime(LocalDateTime.now());
+    }
+
+    /**
+     * 格式化日期时间
+     * @param dateTime 日期时间
+     * @return 格式化后的字符串
+     */
+    private String formatDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) return "";
+        return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
     /**
@@ -414,40 +512,48 @@ public class OrderController {
             Authentication authentication,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String status
+            @RequestParam(required = false) String[] status
     ) {
         try {
-            // 获取当前商家的ID
             Long sellerId = userService.getCurrentUserId(authentication);
 
-            // 调用服务层查询商家订单列表
-            List<OrderWithItemsVO> orders = orderService.getSellerOrders(sellerId, page, pageSize, status);
+            String[] refundStatus = null;
+            
+            if (status != null && status.length > 0) {
+                if ("REFUNDING".equals(status[0])) {
+                    refundStatus = new String[]{"PROCESSING", "WAITING_RETURN", "RETURNING"};
+                    status = null;
+                } else if ("REFUNDED".equals(status[0])) {
+                    refundStatus = new String[]{"SUCCESS"};
+                    status = null;
+                }
+            }
 
-            // 调用服务层查询订单总数
-            long total = orderService.countSellerOrders(sellerId, status);
+            List<OrderWithItemsVO> orders = orderService.getSellerOrders(sellerId, page, pageSize, status, refundStatus);
 
-            // 调用服务层查询各状态订单数量统计
+            long total = orderService.countSellerOrders(sellerId, status, refundStatus);
+
             Map<String, Long> counts = orderService.getSellerOrderCounts(sellerId);
 
-            // 返回成功响应，包含订单列表、总数、当前页、每页数量、总页数、状态统计
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", Map.of(
-                            "records", orders,
-                            "total", total,
-                            "page", page,
-                            "size", pageSize,
-                            "totalPages", (int) Math.ceil((double) total / pageSize),
-                            "counts", counts)
+            Map<String, Object> dataMap = new HashMap<>();
+            dataMap.put("records", orders);
+            dataMap.put("total", total);
+            dataMap.put("page", page);
+            dataMap.put("size", pageSize);
+            dataMap.put("totalPages", (int) Math.ceil((double) total / pageSize));
+            dataMap.put("counts", counts != null ? counts : new HashMap<>());
 
-            ));
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", dataMap);
+            return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            // 返回错误响应
-            return ResponseEntity.ok().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
+            log.error("获取商家订单列表失败", e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("success", false);
+            errorResult.put("message", e.getMessage() != null ? e.getMessage() : "服务器内部错误");
+            return ResponseEntity.ok().body(errorResult);
         }
     }
 
@@ -473,7 +579,19 @@ public class OrderController {
             // 地址信息
             Address address = addressService.getAddressById(order.getAddressId());
 
-            OrderDetailVO orderDetailVO = new OrderDetailVO(order, orderItems, address);
+            // 查询商家信息（商家端查看自己的订单，显示自己的店铺信息）
+            String[] sellerInfo = orderService.getSellerInfo(sellerId);
+            String sellerName = sellerInfo[0];
+            String sellerAvatar = sellerInfo[1];
+
+            OrderDetailVO orderDetailVO = new OrderDetailVO(order, orderItems, address, sellerName, sellerAvatar);
+
+            List<OrderCoupon> orderCoupons = orderCouponMapper.findByOrderId(orderId);
+            if (orderCoupons != null && !orderCoupons.isEmpty()) {
+                OrderCoupon orderCoupon = orderCoupons.get(0);
+                orderDetailVO.setCouponName(orderCoupon.getCouponName());
+                orderDetailVO.setCouponDiscountAmount(orderCoupon.getDiscountAmount());
+            }
 
 
             return ResponseEntity.ok(Map.of(

@@ -151,21 +151,7 @@
       </div>
 
       <div class="trend-chart">
-        <div class="line-chart-container" ref="chartContainer">
-          <canvas
-            ref="canvasRef"
-            @mousemove="handleMouseMove"
-            @mouseleave="handleMouseLeave"
-          ></canvas>
-          <div
-            v-if="hoveredIndex !== null"
-            class="tooltip"
-            :style="tooltipStyle"
-          >
-            <div class="tooltip-date">{{ chartLabels[hoveredIndex] }}</div>
-            <div class="tooltip-value">{{ chartData[hoveredIndex] }} 笔订单</div>
-          </div>
-        </div>
+        <div ref="trendChartRef" style="height:200px;"></div>
       </div>
     </div>
   </div>
@@ -178,6 +164,7 @@ import { useRouter } from 'vue-router'
 import { authAPI } from '@/api/authAPI'
 import Message from '@/utils/message'
 import { useAuthStore } from '@/stores/auth'
+import * as echarts from 'echarts'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -240,15 +227,9 @@ const incomeTrend = ref(0)
 const currentTime = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
 
-// 图表相关
-const chartContainer = ref<HTMLDivElement | null>(null)
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-const hoveredIndex = ref<number | null>(null)
-const tooltipStyle = ref({})
-
-const chartHeight = 200
-const padding = { top: 30, right: 20, bottom: 35, left: 40 }
-const animationId: number | null = null
+// 图表引用
+const trendChartRef = ref<HTMLDivElement | null>(null)
+let trendChart: echarts.ECharts | null = null
 
 // ==================== 计算属性 ====================
 
@@ -275,174 +256,57 @@ const updateTime = (): void => {
   currentTime.value = `${hours}:${minutes}:${seconds}`
 }
 
-// ==================== 图表绘制 ====================
+// ==================== ECharts 图表初始化 ====================
 
-const drawChart = () => {
-  if (!canvasRef.value || !chartContainer.value) return
+const initTrendChart = () => {
+  if (!trendChartRef.value) return
 
-  // ========== 添加数据验证 ==========
-  if (!chartData.value.length || !chartLabels.value.length) {
-    return
+  if (trendChart) trendChart.dispose()
+  trendChart = echarts.init(trendChartRef.value)
+
+  const option: echarts.EChartsOption = {
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        const item = params[0]
+        return `${item.axisValue}<br/>订单量: ${item.value}笔`
+      }
+    },
+    grid: {
+      left: '12%',
+      right: '8%',
+      bottom: '20%',
+      top: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'value',
+      axisLabel: { color: '#606266', fontSize: 11 },
+      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }
+    },
+    yAxis: {
+      type: 'category',
+      data: chartLabels.value,
+      inverse: true,
+      axisLine: { lineStyle: { color: '#e0e6f1' } },
+      axisLabel: { color: '#606266', fontSize: 11 }
+    },
+    series: [{
+      name: '订单量',
+      type: 'bar',
+      data: chartData.value,
+      barWidth: '50%',
+      itemStyle: {
+        borderRadius: [0, 6, 6, 0],
+        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          { offset: 0, color: '#f093fb' },
+          { offset: 1, color: '#f5576c' }
+        ])
+      }
+    }]
   }
 
-  const canvas = canvasRef.value
-  const containerWidth = chartContainer.value.clientWidth
-
-  canvas.width = containerWidth
-  canvas.height = chartHeight
-
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-
-  const width = canvas.width - padding.left - padding.right
-  const height = canvas.height - padding.top - padding.bottom
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-  const maxValue = Math.max(...chartData.value, 1)
-  const minValue = Math.min(...chartData.value, 0)
-  const valueRange = maxValue - minValue || 1
-
-  const xStep = width / (chartData.value.length - 1)
-
-  // 网格线
-  ctx.strokeStyle = '#e0e0e0'
-  ctx.lineWidth = 1
-  ctx.setLineDash([4, 4])
-
-  const gridLines = 5
-  for (let i = 0; i <= gridLines; i++) {
-    const y = padding.top + (height / gridLines) * i
-    ctx.beginPath()
-    ctx.moveTo(padding.left, y)
-    ctx.lineTo(padding.left + width, y)
-    ctx.stroke()
-
-    const value = maxValue - (maxValue - minValue) * (i / gridLines)
-    ctx.fillStyle = '#666'
-    ctx.font = '12px Arial'
-    ctx.textAlign = 'right'
-    ctx.fillText(Math.round(value).toString(), padding.left - 8, y + 4)
-  }
-
-  ctx.setLineDash([])
-
-  // X轴标签
-  ctx.fillStyle = '#666'
-  ctx.font = '12px Arial'
-  ctx.textAlign = 'center'
-  chartLabels.value.forEach((label, i) => {
-    const x = padding.left + xStep * i
-    ctx!.fillText(label, x, canvas.height - 10)
-  })
-
-  // 计算点坐标
-  const points: { x: number; y: number }[] = []
-  chartData.value.forEach((value, i) => {
-    const x = padding.left + xStep * i
-    const y = padding.top + height - ((value - minValue) / valueRange) * height
-    points.push({ x, y })
-  })
-
-  if (points.length === 0) return
-
-  // 渐变填充
-  const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + height)
-  gradient.addColorStop(0, 'rgba(74, 108, 183, 0.3)')
-  gradient.addColorStop(1, 'rgba(74, 108, 183, 0)')
-
-  ctx.beginPath()
-  const firstPoint = points[0]!
-  ctx.moveTo(firstPoint.x, padding.top + height)
-  points.forEach((point) => {
-    ctx.lineTo(point.x, point.y)
-  })
-  const lastPoint = points[points.length - 1]!
-  ctx.lineTo(lastPoint.x, padding.top + height)
-  ctx.closePath()
-  ctx.fillStyle = gradient
-  ctx.fill()
-
-  // 曲线
-  ctx.beginPath()
-  ctx.moveTo(firstPoint.x, firstPoint.y)
-
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1]!
-    const curr = points[i]!
-    const xc = (prev.x + curr.x) / 2
-    const yc = (prev.y + curr.y) / 2
-    ctx.quadraticCurveTo(prev.x, prev.y, xc, yc)
-  }
-  ctx.lineTo(lastPoint.x, lastPoint.y)
-
-  ctx.strokeStyle = '#4b6cb7'
-  ctx.lineWidth = 3
-  ctx.stroke()
-
-  // 数据点
-  points.forEach((point, i) => {
-    ctx.beginPath()
-    ctx.arc(point.x, point.y, 5, 0, Math.PI * 2)
-    ctx.fillStyle = '#fff'
-    ctx.fill()
-    ctx.strokeStyle = '#4b6cb7'
-    ctx.lineWidth = 2
-    ctx.stroke()
-
-    if (hoveredIndex.value === i) {
-      ctx.beginPath()
-      ctx.arc(point.x, point.y, 10, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(74, 108, 183, 0.15)'
-      ctx.fill()
-      ctx.beginPath()
-      ctx.arc(point.x, point.y, 6, 0, Math.PI * 2)
-      ctx.fillStyle = '#4b6cb7'
-      ctx.fill()
-      ctx.strokeStyle = '#fff'
-      ctx.lineWidth = 2
-      ctx.stroke()
-    }
-  })
-}
-
-const handleMouseMove = (e: MouseEvent) => {
-  if (!canvasRef.value || !chartContainer.value) return
-
-  const rect = canvasRef.value.getBoundingClientRect()
-  const x = e.clientX - rect.left
-  const width = canvasRef.value.width - padding.left - padding.right
-  const xStep = width / (chartData.value.length - 1)
-
-  const index = Math.round((x - padding.left) / xStep)
-
-  if (index >= 0 && index < chartData.value.length) {
-    hoveredIndex.value = index
-
-    const maxValue = Math.max(...chartData.value, 1)
-    const minValue = Math.min(...chartData.value, 0)
-    const valueRange = maxValue - minValue || 1
-    const height = canvasRef.value.height - padding.top - padding.bottom
-
-    const px = padding.left + xStep * index
-    const dataPoint = chartData.value[index]
-    const py = padding.top + height - (((dataPoint ?? 0) - minValue) / valueRange) * height
-
-    tooltipStyle.value = {
-      left: `${px + 15}px`,
-      top: `${py - 50}px`
-    }
-  } else {
-    hoveredIndex.value = null
-  }
-}
-
-const handleMouseLeave = () => {
-  hoveredIndex.value = null
-}
-
-const handleChartResize = () => {
-  drawChart()
+  trendChart.setOption(option)
 }
 
 // ==================== 数据加载 ====================
@@ -460,7 +324,7 @@ const loadAllData = async (): Promise<void> => {
     loading.value = false
     await nextTick()
     setTimeout(() => {
-      drawChart()
+      initTrendChart()
     }, 150)
   }
 }
@@ -585,6 +449,14 @@ const formatPrice = (price: number): string => {
 
 // ==================== 生命周期 ====================
 
+const handleChartResize = () => {
+  trendChart?.resize()
+}
+
+const handleReturnSubmitted = () => {
+  loadAllData()
+}
+
 onMounted(() => {
   if (!authStore.validateSellerPermission()) return
 
@@ -593,6 +465,7 @@ onMounted(() => {
   updateTime()
   timer = setInterval(updateTime, 1000)
   window.addEventListener('resize', handleChartResize)
+  window.addEventListener('return-submitted', handleReturnSubmitted)
 })
 
 onUnmounted(() => {
@@ -601,9 +474,8 @@ onUnmounted(() => {
     timer = null
   }
   window.removeEventListener('resize', handleChartResize)
-  if (animationId) {
-    cancelAnimationFrame(animationId)
-  }
+  window.removeEventListener('return-submitted', handleReturnSubmitted)
+  trendChart?.dispose()
 })
 </script>
 

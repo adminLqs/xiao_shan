@@ -3,7 +3,8 @@
 .seller-dashboard {
   min-height: 100vh;
   background: #f5f7fa;
-  padding: 20px 24px 60px;
+  padding: 0;
+  margin: 0;
   position: relative;
 }
 
@@ -392,94 +393,16 @@ canvas {
   color: #fbbf24;
 }
 
-/* ========== 响应式 ========== */
-@media (max-width: 1024px) {
-  .stats-grid {
-    gap: 16px;
-  }
-
-  .action-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .welcome-section {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .welcome-time {
-    width: 100%;
-    text-align: center;
-  }
-
-  .stats-grid {
-    gap: 12px;
-  }
-
-  .action-grid {
-    gap: 12px;
-  }
-
-  .todo-item {
-    flex-wrap: wrap;
-  }
-
-  .todo-action {
-    width: 100%;
-  }
-
-  .todo-action button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-grid {
-    gap: 10px;
-  }
-
-  .action-grid {
-    gap: 10px;
-  }
-
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
-/* 横屏模式适配 */
-@media (max-width: 896px) and (orientation: landscape) {
-  .stats-grid {
-    gap: 10px;
-  }
-
-  .action-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .todo-item {
-    flex-direction: row;
-    flex-wrap: nowrap;
-  }
-
-  .todo-action {
-    width: auto;
-  }
-}
-
 /* 安全区域适配 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .seller-dashboard {
-    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
 @supports (padding-top: env(safe-area-inset-top)) {
   .seller-dashboard {
-    padding-top: calc(20px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
   }
 }
 
@@ -500,4 +423,122 @@ canvas {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* ========== 移动端响应式布局 ========== */
+@media (max-width: 768px) {
+  .welcome-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .welcome-text h2 {
+    font-size: 18px;
+  }
+
+  .welcome-text p {
+    font-size: 12px;
+  }
+
+  .welcome-time {
+    display: none;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .stat-trend {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+  }
+
+  .section-header {
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+  }
+
+  .section-header h3 {
+    font-size: 15px;
+  }
+
+  .section-tip {
+    display: none;
+  }
+
+  .todo-item {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .todo-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .todo-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .todo-title {
+    font-size: 14px;
+  }
+
+  .todo-action {
+    width: 100%;
+  }
+
+  .todo-action .btn-sm {
+    width: 100%;
+    text-align: center;
+  }
+
+  .action-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .action-item {
+    padding: 14px;
+    gap: 8px;
+  }
+
+  .action-item i {
+    font-size: 24px;
+  }
+
+  .action-item span {
+    font-size: 12px;
+  }
+
+  .trend-section {
+    padding: 14px;
+  }
+
+  .trend-chart {
+    min-height: 200px;
+  }
 }

@@ -38,7 +38,7 @@ public interface OrderItemMapper {
      * @return 订单项
      */
     @Select("SELECT id, order_id, product_id, seller_id, product_name, product_image, " +
-            "quantity, price, total_price, is_reviewed, reviewed_at, refund_status, refund_id, created_at, " +
+            "quantity, price, total_price, is_reviewed, reviewed_at, refund_status, created_at, " +
             "sku_name as skuName " +
             "FROM order_items WHERE id = #{id}")
     Optional<OrderItem> findById(Long id);
@@ -50,7 +50,7 @@ public interface OrderItemMapper {
      * @return 订单项列表
      */
     @Select("SELECT id, order_id, product_id, seller_id, product_name, product_image, " +
-            "quantity, price, total_price, is_reviewed, reviewed_at, refund_status, refund_id, created_at, " +
+            "quantity, price, total_price, is_reviewed, reviewed_at, refund_status, created_at, " +
             "sku_name as skuName " +
             "FROM order_items WHERE order_id = #{orderId}")
     List<OrderItem> findByOrderId(Long orderId);
@@ -63,7 +63,7 @@ public interface OrderItemMapper {
      */
     @Select("<script>" +
             "SELECT id, order_id, product_id, seller_id, product_name, product_image, " +
-            "quantity, price, total_price, is_reviewed, reviewed_at, refund_status, refund_id, created_at, " +
+            "quantity, price, total_price, is_reviewed, reviewed_at, refund_status, created_at, " +
             "sku_name as skuName " +
             "FROM order_items WHERE order_id IN " +
             "<foreach collection='orderIds' item='id' open='(' separator=',' close=')'>" +
@@ -82,7 +82,7 @@ public interface OrderItemMapper {
     @Select("<script>" +
             "SELECT id, order_id, product_id, seller_id, " +
             "product_name, product_image, quantity, price, total_price, " +
-            "is_reviewed, reviewed_at, refund_status, refund_id, created_at, " +
+            "is_reviewed, reviewed_at, refund_status, created_at, " +
             "sku_name as skuName " +
             "FROM order_items " +
             "WHERE order_id IN " +
@@ -191,7 +191,7 @@ public interface OrderItemMapper {
      * @param orderId 订单ID
      * @return 未退款完成的订单项数量
      */
-    @Select("SELECT COUNT(*) FROM order_items WHERE order_id = #{orderId} AND (refund_status IS NULL OR refund_status != 'COMPLETED')")
+    @Select("SELECT COUNT(*) FROM order_items WHERE order_id = #{orderId} AND (refund_status IS NULL OR refund_status != 'SUCCESS')")
     int countUnrefundedByOrderId(Long orderId);
 
     // ========== 改 ==========
@@ -243,35 +243,24 @@ public interface OrderItemMapper {
     int updateRefundStatus(@Param("id") Long id, @Param("refundStatus") String refundStatus);
 
     /**
-     * 更新订单项售后状态和退款ID
-     *
-     * @param id 订单项ID
-     * @param refundStatus 售后状态
-     * @param refundId 退款记录ID
-     * @return 影响行数
-     */
-    @Update("UPDATE order_items SET refund_status = #{refundStatus}, refund_id = #{refundId} WHERE id = #{id}")
-    int updateRefundStatusWithId(@Param("id") Long id, @Param("refundStatus") String refundStatus, @Param("refundId") Long refundId);
-
-    /**
      * 根据ID更新订单项
      *
      * @param orderItem 订单项对象
      * @return 影响行数
      */
     @Update("UPDATE order_items SET " +
-            "refund_status = #{refundStatus}, " +
-            "refund_id = #{refundId} " +
+            "refund_status = #{refundStatus} " +
             "WHERE id = #{id}")
     int updateById(OrderItem orderItem);
 
     /**
-     * 根据商品ID删除订单项
-     * 用于删除商品时清理关联的订单数据
+     * 根据SKU ID计算预扣库存（订单状态为 PENDING, PAID, PROCESSING, SHIPPED 的商品数量之和）
      *
-     * @param productId 商品ID
-     * @return 影响行数
+     * @param skuId SKU ID
+     * @return 预扣库存数量
      */
-    @Delete("DELETE FROM order_items WHERE product_id = #{productId}")
-    int deleteByProductId(Long productId);
+    @Select("SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi " +
+            "INNER JOIN orders o ON oi.order_id = o.id " +
+            "WHERE oi.sku_id = #{skuId} AND o.status IN ('PENDING', 'PAID', 'PROCESSING', 'SHIPPED')")
+    Long sumReservedBySkuId(Long skuId);
 }

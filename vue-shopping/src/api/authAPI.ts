@@ -219,6 +219,41 @@ export const authAPI = {
         return api.get('/favorites/count')
     },
 
+    // ============ 浏览记录 ============
+
+    /**
+     * 记录浏览历史
+     * @param item - 浏览记录项
+     */
+    recordBrowse: (item: { id: number; productName?: string; productImage?: string; productPrice?: number }) => {
+        return api.post('/user/browse-history', { productId: item.id })
+    },
+
+    /**
+     * 获取浏览历史列表（最多50条）
+     */
+    getBrowseHistory: () => {
+        return api.get('/user/browse-history')
+    },
+
+    /**
+     * 清空浏览历史
+     */
+    clearBrowseHistory: () => {
+        return api.delete('/user/browse-history')
+    },
+
+    /**
+     * 获取推荐商品（基于浏览记录或热销）
+     */
+    getRecommendProducts: () => {
+        return api.get('/products/recommend')
+    },
+
+    getSearchSuggest: (keyword: string) => {
+        return api.get('/products/suggest', { params: { keyword } })
+    },
+
     // ============ 地址管理 ============
 
     /**
@@ -331,7 +366,7 @@ export const authAPI = {
     getOrders: (params: {
         page?: number
         pageSize?: number
-        status?: string
+        status?: string | string[]
     }) => {
         return api.get('/orders', { params })
     },
@@ -479,6 +514,15 @@ export const authAPI = {
     },
 
     /**
+     * 获取订单项的所有退款记录
+     * GET /api/v1/seller/refunds/by-order-item/{orderItemId}
+     * @param orderItemId - 订单项ID
+     */
+    getSellerRefundsByOrderItem: (orderItemId: number) => {
+        return api.get(`/seller/refunds/by-order-item/${orderItemId}`)
+    },
+
+    /**
      * 商家同意退款
      * POST /api/v1/seller/refunds/{refundId}/approve
      * @param refundId - 退款ID
@@ -496,6 +540,15 @@ export const authAPI = {
      */
     rejectRefund: (orderId: number, refundId: number, reviewNotes: string) => {
         return api.put(`/seller/orders/${orderId}/refund/${refundId}/reject`, { reviewNotes })
+    },
+
+    /**
+     * 商家确认收货并退款
+     * POST /api/v1/seller/refunds/{refundId}/confirm-receive
+     * @param refundId - 退款ID
+     */
+    confirmReceiveAndRefund: (refundId: number) => {
+        return api.post(`/seller/refunds/${refundId}/confirm-receive`)
     },
 
     /**
@@ -652,6 +705,14 @@ export const authAPI = {
             appealContent,
             evidenceImages
         })
+    },
+
+    /**
+     * 申请平台介入
+     * @param refundId - 退款ID
+     */
+    applyIntervene: (refundId: number) => {
+        return api.post(`/refunds/${refundId}/intervene`)
     },
 
     // ============ 退款聊天接口 ============
@@ -943,14 +1004,30 @@ export const authAPI = {
         return api.post('/cart/items/batch', { ids })
     },
 
+    /**
+     * 获取结算页可用优惠券
+     * @param orderAmount - 订单金额
+     */
+    getAvailableCouponsForCheckout: (orderAmount: number) => {
+        return api.get('/checkout/coupons', { params: { orderAmount } })
+    },
+
     // ============ 商家入驻 ============
 
     /**
-     * 获取商品详情
+     * 获取商品详情（用户端）
      * @param productId - 商品ID
      */
     getProduct: (productId: number) => {
         return api.get(`/products/${productId}`)
+    },
+
+    /**
+     * 获取商品详情（商家端，可查看所有状态）
+     * @param productId - 商品ID
+     */
+    getSellerProduct: (productId: number) => {
+        return api.get(`/seller/products/${productId}`)
     },
 
     /**
@@ -1062,6 +1139,14 @@ export const authAPI = {
         return api.patch(`/seller/products/${productId}`, { status });
     },
 
+    /**
+     * 恢复已删除商品
+     * @param productId - 商品ID
+     */
+    restoreProduct: (productId: number) => {
+        return api.post(`/seller/products/${productId}/restore`);
+    },
+
     // ============ 商家数据分析 ===========
     /**
      * 获取商家数据分析
@@ -1101,11 +1186,100 @@ export const authAPI = {
     },
 
     /**
-     * 获取用户优惠券列表
-     * GET /api/v1/user/coupons
+     * 获取所有可领取的优惠券列表
+     * GET /api/v1/coupons/available
      */
-    getUserCoupons: () => {
-        return api.get('/user/coupons')
+    getAvailableCoupons: () => {
+        return api.get('/coupons/available')
+    },
+
+    /**
+     * 领取优惠券
+     * POST /api/v1/coupons/{id}/receive
+     */
+    receiveCoupon: (couponId: number) => {
+        return api.post(`/coupons/${couponId}/receive`)
+    },
+
+    /**
+     * 获取店铺可用优惠券列表
+     * GET /api/v1/seller/{sellerId}/coupons/available
+     */
+    getShopAvailableCoupons: (sellerId: number) => {
+        return api.get(`/seller/${sellerId}/coupons/available`)
+    },
+
+    /**
+     * 获取用户优惠券列表
+     * GET /api/v1/user/coupons?status=UNUSED/USED/EXPIRED
+     */
+    getUserCoupons: (status?: 'UNUSED' | 'USED' | 'EXPIRED') => {
+        return api.get('/user/coupons', { params: status ? { status } : {} })
+    },
+
+    /**
+     * 订单应用优惠券
+     * POST /api/v1/orders/{orderId}/apply-coupon
+     */
+    applyCoupon: (orderId: number, userCouponId: number) => {
+        return api.post(`/orders/${orderId}/apply-coupon`, { userCouponId })
+    },
+
+    // ============ 商家优惠券管理 ============
+
+    /**
+     * 获取商家优惠券列表（分页）
+     * @param params - 查询参数
+     * @param params.page - 页码
+     * @param params.pageSize - 每页数量
+     */
+    getSellerCoupons: (params: {
+        page?: number;
+        pageSize?: number;
+    }) => {
+        return api.get('/seller/coupons', { params })
+    },
+
+    /**
+     * 获取优惠券详情
+     * @param couponId - 优惠券ID
+     */
+    getSellerCoupon: (couponId: number) => {
+        return api.get(`/seller/coupons/${couponId}`)
+    },
+
+    /**
+     * 创建优惠券
+     * @param data - 优惠券数据
+     */
+    createSellerCoupon: (data: any) => {
+        return api.post('/seller/coupons', data)
+    },
+
+    /**
+     * 更新优惠券
+     * @param couponId - 优惠券ID
+     * @param data - 优惠券数据
+     */
+    updateSellerCoupon: (couponId: number, data: any) => {
+        return api.put(`/seller/coupons/${couponId}`, data)
+    },
+
+    /**
+     * 删除优惠券
+     * @param couponId - 优惠券ID
+     */
+    deleteSellerCoupon: (couponId: number) => {
+        return api.delete(`/seller/coupons/${couponId}`)
+    },
+
+    /**
+     * 启用/禁用优惠券
+     * @param couponId - 优惠券ID
+     * @param status - 状态（0-禁用，1-启用）
+     */
+    updateSellerCouponStatus: (couponId: number, status: number) => {
+        return api.put(`/seller/coupons/${couponId}/status`, { status })
     },
 
     /**
@@ -1195,7 +1369,7 @@ export const authAPI = {
      * @param params - 查询参数
      * @param params.page - 页码，默认1
      * @param params.pageSize - 每页数量，默认10
-     * @param params.status - 订单状态筛选（PENDING/PAID/PROCESSING/SHIPPED/COMPLETED/CANCELLED/REFUNDED）
+     * @param params.status - 订单状态筛选（PENDING/PAID/PROCESSING/SHIPPED/COMPLETED/CANCELLED）
      * @returns Promise
      */
     getSellerOrders: (params: {
@@ -1293,6 +1467,312 @@ export const authAPI = {
         return api.delete('/messages')
     },
 
+    /**
+     * 获取未读消息数量
+     * @returns Promise<ApiResponse<number>>
+     */
+    getUnreadCount: () => {
+        return api.get('/notifications/unread-count')
+    },
+
+    /**
+     * 获取商家未读通知数量
+     * @returns Promise<ApiResponse<{ count: number }>>
+     */
+    getSellerUnreadCount: () => {
+        return api.get('/seller/notifications/unread-count')
+    },
+
+    /**
+     * 获取消息汇总（订单/系统/物流 + 客服列表）
+     * @returns Promise<ApiResponse<any>>
+     */
+    getNotificationsSummary: () => {
+        return api.get('/notifications/summary')
+    },
+
+    /**
+     * 获取商家端消息汇总（订单/系统/物流 + 客服列表）
+     * @returns Promise<ApiResponse<any>>
+     */
+    getSellerNotificationsSummary: () => {
+        return api.get('/seller/notifications/summary')
+    },
+
+    /**
+     * 获取用户通知列表（分页）
+     * @param params - 查询参数
+     * @param params.page - 页码，默认1
+     * @param params.pageSize - 每页数量，默认10
+     * @param params.type - 通知类型（ORDER/SYSTEM/LOGISTICS/REFUND/CHAT/ALL），默认ALL
+     * @returns Promise<ApiResponse<any>>
+     */
+    getNotifications: (params?: { page?: number; pageSize?: number; type?: string }) => {
+        return api.get('/notifications', { params })
+    },
+
+    /**
+     * 获取商家通知列表（分页）
+     * @param params - 查询参数
+     * @param params.page - 页码，默认1
+     * @param params.pageSize - 每页数量，默认10
+     * @param params.type - 通知类型（ORDER/SYSTEM/LOGISTICS/REFUND/CHAT/ALL），默认ALL
+     * @returns Promise<ApiResponse<any>>
+     */
+    getSellerNotifications: (params?: { page?: number; pageSize?: number; type?: string }) => {
+        return api.get('/seller/notifications', { params })
+    },
+
+    /**
+     * 标记单条通知为已读
+     * @param id - 通知ID
+     * @returns Promise<ApiResponse<any>>
+     */
+    markNotificationAsRead: (id: number) => {
+        return api.put(`/notifications/${id}/read`)
+    },
+
+    /**
+     * 标记用户所有通知为已读
+     * @returns Promise<ApiResponse<any>>
+     */
+    markAllNotificationsAsRead: () => {
+        return api.put('/notifications/read-all')
+    },
+
+    /**
+     * 标记商家所有通知为已读
+     * @returns Promise<ApiResponse<any>>
+     */
+    markAllSellerNotificationsAsRead: () => {
+        return api.put('/seller/notifications/read-all')
+    },
+
+    /**
+     * 获取聊天目标用户信息
+     * @param targetId 目标用户ID
+     * @returns Promise<ApiResponse<any>>
+     */
+    getChatTarget: (targetId: number) => {
+        return api.get(`/chat/${targetId}/info`)
+    },
+
+    /**
+     * 获取用户在线状态
+     * @param userId 用户ID
+     * @returns Promise<ApiResponse<{ online: boolean, lastOfflineTime: string, offlineMinutes: number }>>
+     */
+    getOnlineStatus: (userId: number) => {
+        return api.get(`/user/${userId}/online-status`)
+    },
+
+    /**
+     * 发送聊天消息
+     * @param formData 消息数据
+     * @returns Promise<ApiResponse<any>>
+     */
+    sendChatMessage: (formData: FormData) => {
+        return api.post('/chat/send', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+    },
+
+    /**
+     * 获取聊天消息列表（分页）
+     * @param targetId 目标用户ID
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @returns Promise<ApiResponse<any>>
+     */
+    getChatMessages: (targetId: number, page: number = 1, pageSize: number = 20) => {
+        return api.get(`/chat/${targetId}/messages`, { params: { page, pageSize } })
+    },
+
+    /**
+     * 发送文本消息
+     * @param targetId 目标用户ID
+     * @param content 消息内容
+     * @returns Promise<ApiResponse<any>>
+     */
+    sendTextMessage: (targetId: number, content: string) => {
+        return api.post('/chat/send/text', null, { params: { targetId, content } })
+    },
+
+    /**
+     * 发送图片消息
+     * @param targetId 目标用户ID
+     * @param images 图片文件列表
+     * @returns Promise<ApiResponse<any>>
+     */
+    sendImageMessage: (targetId: number, images: File[]) => {
+        const formData = new FormData()
+        formData.append('targetId', String(targetId))
+        images.forEach((img, i) => formData.append(`images`, img))
+        return api.post('/chat/send/image', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+    },
+
+    /**
+     * 发送文字+媒体消息
+     * @param targetId 目标用户ID
+     * @param content 文字内容
+     * @param files 媒体文件列表
+     * @returns Promise<ApiResponse<any>>
+     */
+    sendMessageWithMedia: (targetId: number, content: string, files: File[]) => {
+        const formData = new FormData()
+        formData.append('targetId', String(targetId))
+        formData.append('content', content)
+        files.forEach((file, i) => formData.append(`files`, file))
+        return api.post('/chat/send/with-media', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+    },
+
+    /**
+     * 发送视频消息
+     * @param targetId 目标用户ID
+     * @param video 视频文件
+     * @returns Promise<ApiResponse<any>>
+     */
+    sendVideoMessage: (targetId: number, video: File) => {
+        const formData = new FormData()
+        formData.append('targetId', String(targetId))
+        formData.append('video', video)
+        return api.post('/chat/send/video', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+    },
+
+    /**
+     * 发送商品卡片消息
+     * @param targetId 目标用户ID
+     * @param productId 商品ID
+     * @returns Promise<ApiResponse<any>>
+     */
+    sendProductCard: (targetId: number, productId: number) => {
+        return api.post('/chat/send/product', null, { params: { targetId, productId } })
+    },
+
+    /**
+     * 发送订单卡片消息
+     * @param targetId 目标用户ID
+     * @param orderId 订单ID
+     * @returns Promise<ApiResponse<any>>
+     */
+    sendOrderCard: (targetId: number, orderId: number) => {
+        return api.post('/chat/send/order', null, { params: { targetId, orderId } })
+    },
+
+    /**
+     * 撤回消息
+     * @param messageId 消息ID
+     * @returns Promise<ApiResponse<any>>
+     */
+    recallMessage: (messageId: number) => {
+        return api.post(`/chat/${messageId}/recall`)
+    },
+
+    /**
+     * 获取会话列表
+     * @returns Promise<ApiResponse<any>>
+     */
+    getChatSessions: () => {
+        return api.get('/chat/sessions')
+    },
+
+    /**
+     * 设置会话置顶
+     * @param sessionId 会话ID
+     * @param isTop 是否置顶
+     * @returns Promise<ApiResponse<any>>
+     */
+    setSessionTop: (sessionId: number, isTop: boolean) => {
+        return api.post(`/chat/session/${sessionId}/top`, null, { params: { isTop } })
+    },
+
+    /**
+     * 设置会话免打扰
+     * @param sessionId 会话ID
+     * @param isMuted 是否免打扰
+     * @returns Promise<ApiResponse<any>>
+     */
+    setSessionMute: (sessionId: number, isMuted: boolean) => {
+        return api.post(`/chat/session/${sessionId}/mute`, null, { params: { isMuted } })
+    },
+
+    /**
+     * 删除会话
+     * @param targetId 目标用户ID
+     * @returns Promise<ApiResponse<any>>
+     */
+    deleteChatSession: (targetId: number) => {
+        return api.delete(`/chat/session/${targetId}`)
+    },
+
+    /**
+     * 获取未读消息总数
+     * @returns Promise<ApiResponse<any>>
+     */
+    getChatUnreadCount: () => {
+        return api.get('/chat/unread-count')
+    },
+
+    /**
+     * 获取商家快捷回复列表
+     * @returns Promise<ApiResponse<any>>
+     */
+    getQuickReplies: () => {
+        return api.get('/seller/quick-replies')
+    },
+
+    /**
+     * 添加快捷回复
+     * @param content 快捷回复内容
+     * @returns Promise<ApiResponse<any>>
+     */
+    addQuickReply: (content: string) => {
+        return api.post('/seller/quick-replies', null, { params: { content } })
+    },
+
+    /**
+     * 更新快捷回复
+     * @param id 快捷回复ID
+     * @param content 新内容
+     * @returns Promise<ApiResponse<any>>
+     */
+    updateQuickReply: (id: number, content: string) => {
+        return api.put(`/seller/quick-replies/${id}`, null, { params: { content } })
+    },
+
+    /**
+     * 删除快捷回复
+     * @param id 快捷回复ID
+     * @returns Promise<ApiResponse<any>>
+     */
+    deleteQuickReply: (id: number) => {
+        return api.delete(`/seller/quick-replies/${id}`)
+    },
+
+    /**
+     * 获取商品详情（用于卡片预览）
+     * @param productId 商品ID
+     * @returns Promise<ApiResponse<any>>
+     */
+    getProductForCard: (productId: number) => {
+        return api.get(`/products/${productId}`)
+    },
+
+    /**
+     * 获取订单详情（用于卡片预览）
+     * @param orderId 订单ID
+     * @returns Promise<ApiResponse<any>>
+     */
+    getOrderForCard: (orderId: number) => {
+        return api.get(`/orders/${orderId}`)
+    },
+
     // ============ 公共接口 ============
 
     /**
@@ -1308,6 +1788,15 @@ export const authAPI = {
      */
     getAccountProfile: () => {
         return api.get('/account/profile')
+    },
+
+    /**
+     * 切换活跃角色
+     * POST /api/v1/user/switch-role
+     * @param role - 目标角色（ROLE_USER/ROLE_SELLER/ROLE_ADMIN）
+     */
+    switchRole: (role: string) => {
+        return api.post('/user/switch-role', { role })
     },
 
     /**

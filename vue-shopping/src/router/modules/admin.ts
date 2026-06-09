@@ -28,12 +28,27 @@ export default [
       {
         path: 'products',
         name: 'AdminProducts',
-        component: () => import('@/views/admin/Products.vue'),
+        component: () => import('@/views/admin/AdminProducts.vue'),
+      },
+      {
+        path: 'categories',
+        name: 'AdminCategories',
+        component: () => import('@/views/admin/Category.vue'),
+      },
+      {
+        path: 'banners',
+        name: 'AdminBanners',
+        component: () => import('@/views/admin/Banner.vue'),
       },
       {
         path: 'users',
         name: 'AdminUsers',
         component: () => import('@/views/admin/Users.vue'),
+      },
+      {
+        path: 'admin-users',
+        name: 'AdminAdminUsers',
+        component: () => import('@/views/admin/AdminUsers.vue'),
       }
     ]
   }

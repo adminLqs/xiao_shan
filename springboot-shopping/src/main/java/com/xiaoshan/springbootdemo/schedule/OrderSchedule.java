@@ -1,6 +1,7 @@
 package com.xiaoshan.springbootdemo.schedule;  // 包路径
 
 import com.xiaoshan.springbootdemo.entity.Order;
+import com.xiaoshan.springbootdemo.mapper.OrderItemMapper;
 import com.xiaoshan.springbootdemo.mapper.OrderMapper;
 import com.xiaoshan.springbootdemo.service.OrderService;
 import com.xiaoshan.springbootdemo.service.SellerPackageService;
@@ -20,12 +21,13 @@ import java.util.Map;
 public class OrderSchedule {
 
     private final OrderMapper orderMapper;      // 订单数据库操作
+    private final OrderItemMapper orderItemMapper;  // 订单项数据库操作
     private final OrderService orderService;    // 订单业务服务
     private final SellerPackageService sellerPackageService;  // 商家套餐服务
     private final RedisTemplate<String, Object> redisTemplate;  // Redis 操作模板
 
     /**
-     * 每5分钟执行一次，取消超时未支付的订单
+     * 订单超时兜底：每天凌晨2点执行
      * 并回滚 Redis 预扣库存
      */
     @Scheduled(cron = "0 0 2 * * ?")
@@ -40,30 +42,10 @@ public class OrderSchedule {
 
         for (Order order : expiredOrders) {
             try {
-                // 回滚 Redis 库存（先回滚，再取消订单）
-                String prestockKey = "order:prestock:" + order.getOrderNumber();
-                Map<Object, Object> prestockMap = redisTemplate.opsForHash().entries(prestockKey);
-
-                for (Map.Entry<Object, Object> entry : prestockMap.entrySet()) {
-                    Long productId = Long.valueOf(entry.getKey().toString());
-                    Integer quantity = Integer.valueOf(entry.getValue().toString());
-
-                    String stockKey = "product:stock:" + productId;
-                    redisTemplate.opsForValue().increment(stockKey, quantity);
-
-                }
-
-                // 删除 Redis 预扣记录
-                redisTemplate.delete(prestockKey);
-
-                // 调用订单服务取消订单（复用已有方法）
-                //  注意：定时任务没有 userId，需要从 order 对象获取
                 orderService.cancelOrder(order.getUserId(), order.getId());
-
-
-
+                log.info("定时任务取消过期订单: orderNumber={}", order.getOrderNumber());
             } catch (Exception e) {
-                log.error("取消订单失败: orderNumber={}, error={}", order.getOrderNumber(), e.getMessage());
+                log.error("定时任务取消订单失败: orderNumber={}, error={}", order.getOrderNumber(), e.getMessage());
             }
         }
 

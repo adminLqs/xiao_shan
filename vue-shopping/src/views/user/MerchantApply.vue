@@ -1,4 +1,4 @@
-<!-- views/user/MerchantApply.vue -->
+﻿<!-- views/user/MerchantApply.vue -->
 <template>
   <div class="merchant-apply-container">
     <!-- 页面头部 -->
@@ -318,7 +318,7 @@ import AddressSelector from '@/components/user/AddressSelector.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const { isLoggedIn, isSeller, isAdmin } = storeToRefs(authStore)
+const { isLoggedIn } = storeToRefs(authStore)
 
 // ==================== 步骤控制 ====================
 const currentStep = ref(1)
@@ -426,7 +426,7 @@ onMounted(() => {
     return
   }
 
-  if (isSeller.value || isAdmin.value) {
+  if (authStore.hasRole('ROLE_SELLER') || authStore.hasRole('ROLE_ADMIN')) {
     Message.confirm('您已经是商家账号，无需重复申请', '提示').then(() => {
       router.replace({ name: 'SellerDashboard' })
     }).catch(() => {

@@ -2,25 +2,50 @@ import { ref } from 'vue'
 import { Client } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import Message from '@/utils/message'
-import { ElNotification } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 import { authAPI } from '@/api/authAPI'
 import orderSound from '@/static/audio/订单创建播报.mp3'
-import paymentSound from '@/static/audio/订单支付播报.mp3'
+import paymentSuccessSound  from '@/static/audio/订单支付播报.mp3'
 import refundSound from '@/static/audio/订单退款播报.mp3'
 import chatSound from '@/static/audio/苹果短信消息.mp3'
 import shipSound from '@/static/audio/订单发货音频.mp3'
+import afterSaleProcessedSound from '@/static/audio/订单售后已处理音频.mp3'
+import orderPaidSound from '@/static/audio/订单支付成功.mp3'
 import package7DaySound from '@/static/audio/套餐7天到期.mp3'
 import package1DaySound from '@/static/audio/套餐一天到期.mp3'
 import packageExpireSound from '@/static/audio/套餐已到期.mp3'
-import packageRenewSound from '@/static/audio/套餐续费恢复.mp3'
+import packageRenewSound from '@/static/audio/套餐购买成功.mp3'
 
 export const useWebSocket = () => {
     const stompClient = ref<Client | null>(null)
     const isConnected = ref(false)
     const unreadCount = ref(0)
     const authStore = useAuthStore()
+    let disconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let heartbeatInterval: ReturnType<typeof setInterval> | null = null
+
+    // 启动心跳，每 60 秒发送一次
+    const startHeartbeat = () => {
+        stopHeartbeat()
+        heartbeatInterval = setInterval(() => {
+            if (stompClient.value?.connected) {
+                stompClient.value.publish({
+                    destination: '/app/heartbeat',
+                    body: ''
+                })
+                console.log('心跳已发送')
+            }
+        }, 60000)
+    }
+
+    // 停止心跳
+    const stopHeartbeat = () => {
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval)
+            heartbeatInterval = null
+        }
+    }
 
     // 请求通知权限
     const requestNotificationPermission = () => {
@@ -61,7 +86,7 @@ export const useWebSocket = () => {
             try {
                 handler(JSON.parse(msg.body))
             } catch (e) {
-                Message.error(`解析${topic}消息失败: ${e}`)
+                console.error(`解析${topic}消息失败: ${e}`)
             }
         })
     }
@@ -70,7 +95,7 @@ export const useWebSocket = () => {
     // 公共订阅 - 踢下线通知（商家端和用户端都需要）
     const setupCommonSubscriptions = (client: Client, userId: number) => {
         subscribeToTopic(client, `/exchange/amq.topic/kickout.user.${userId}`, (data: any) => {
-            Message.warning(data.content || '您的账号在其他设备登录')
+            Message.websocketKickout(data.content)
             // 清除登录状态
             authAPI.logout()
             authStore.clear()
@@ -88,22 +113,23 @@ export const useWebSocket = () => {
     const connectUser = (userId: number) => {
         if (!userId) return
 
-        requestNotificationPermission()
-        preloadAudios([orderSound, paymentSound, refundSound, chatSound, shipSound])
+        preloadAudios([orderSound, chatSound, shipSound, orderPaidSound, afterSaleProcessedSound])
 
         const client = new Client({
             webSocketFactory: () => new SockJS('/ws'),
+            connectHeaders: { userId: String(userId) },
             reconnectDelay: 5000,
             onConnect: () => {
                 isConnected.value = true
                 console.log('已连接用户端订阅')
+                startHeartbeat()
 
                 // 公共订阅 - 踢下线通知
                 setupCommonSubscriptions(client, userId)
 
                 // 订单支付成功通知
                 subscribeToTopic(client, `/exchange/amq.topic/user.payment.${userId}`, (data: any) => {
-                    playSound(paymentSound)
+                    playSound(orderPaidSound)
                     Message.success(`订单 ${data.orderNumber} 支付成功！`)
                     window.dispatchEvent(new CustomEvent('user-payment-success', { detail: data }))
                 })
@@ -111,42 +137,38 @@ export const useWebSocket = () => {
                 // 订阅发货通知
                 subscribeToTopic(client, `/exchange/amq.topic/user.shipment.${userId}`, (data: any) => {
                     playSound(shipSound)
-                    sendNotification('发货通知', `订单 ${data.orderNumber} 已发货`)
-                    ElNotification({
-                        title: '发货通知',
-                        message: `订单 <strong>${data.orderNumber}</strong> 已发货<br>物流单号: ${data.content}`,
-                        type: 'success',
-                        dangerouslyUseHTMLString: true,
-                        duration: 5000
-                    })
+                    Message.websocketShip(data.orderNumber, data.content)
                     window.dispatchEvent(new CustomEvent('shipment-notification', { detail: data }))
                 })
 
                 // 退款处理结果通知
                 subscribeToTopic(client, `/exchange/amq.topic/user.refund.${userId}`, (data: any) => {
-                    playSound(refundSound)
-                    sendNotification('退款处理通知', data.content)
-                    Message.info(`退款状态更新: ${data.content}`)
+                    playSound(afterSaleProcessedSound)
+                    Message.websocketRefundResult(data.content)
                     window.dispatchEvent(new CustomEvent('refund-update', { detail: data }))
                 })
 
                 // 退款沟通消息
                 subscribeToTopic(client, `/exchange/amq.topic/user.refund.chat.${userId}`, (data: any) => {
                     playSound(chatSound)
-                    sendNotification('退款沟通', data.content)
-                    Message.info(`退款沟通: ${data.content}`)
+                    const prefix = data.senderType === 'SELLER' ? '商家' : '买家'
+                    Message.info(`${prefix}: ${data.content}`)
                     window.dispatchEvent(new CustomEvent('refund-chat-message', { detail: data }))
+
+                    // 如果当前在退款沟通页面，自动刷新聊天记录
+                    if (data.refundId) {
+                        window.dispatchEvent(new CustomEvent('refresh-refund-chat', { detail: { refundId: data.refundId } }))
+                    }
                 })
 
                 // 订阅客服消息
                 subscribeToTopic(client, `/exchange/amq.topic/user.chat.${userId}`, (data: any) => {
                     playSound(chatSound)
-                    sendNotification('商家回复', `${data.content}`)
-                    Message.info(`商家: ${data.content}`)
+                    Message.info(`${data.senderName || '商家'}: ${data.text || '[媒体消息]'}`)
                     window.dispatchEvent(new CustomEvent('new-chat-message', { detail: data }))
                 })
             },
-            onStompError: (frame: any) => Message.error('WebSocket错误:', frame)
+            onStompError: (frame: any) => console.error('WebSocket错误:', frame)
         })
 
         client.activate()
@@ -156,17 +178,18 @@ export const useWebSocket = () => {
 
     // 商家端连接
     const connectSeller = (userId: number) => {
-        requestNotificationPermission()
-        preloadAudios([orderSound, paymentSound, refundSound, chatSound, shipSound,
+        preloadAudios([orderSound, paymentSuccessSound , refundSound, chatSound, shipSound,
              package7DaySound, package1DaySound,  packageExpireSound,  packageRenewSound
         ])
 
         const client = new Client({
             webSocketFactory: () => new SockJS('/ws'),
+            connectHeaders: { userId: String(userId) },
             reconnectDelay: 5000,
             onConnect: () => {
                 isConnected.value = true
                 console.log('已连接商家端订阅')
+                startHeartbeat()
 
                 // 公共订阅 - 踢下线通知
                 setupCommonSubscriptions(client, userId)
@@ -176,32 +199,37 @@ export const useWebSocket = () => {
                 // 新订单
                 subscribeToTopic(client, '/exchange/amq.topic/seller.new-order', (data: any) => {
                     playSound(orderSound)
-                    sendNotification('新订单通知', `订单号: ${data.orderNumber} | 金额: ¥${data.amount}`)
-                    Message.success(`新订单！订单号: ${data.orderNumber}`)
+                    Message.websocketNewOrder(data.orderNumber, data.amount)
                     window.dispatchEvent(new CustomEvent('new-order', { detail: data }))
                 })
 
                 // 支付成功
                 subscribeToTopic(client, '/exchange/amq.topic/seller.payment-success', (data: any) => {
-                    playSound(paymentSound)
-                    sendNotification('支付成功通知', `订单 ${data.orderNumber} 支付成功`)
-                    Message.success(`订单 ${data.orderNumber} 支付成功！`)
+                    playSound(paymentSuccessSound )
+                    Message.websocketPaymentSuccess(data.orderNumber)
                     window.dispatchEvent(new CustomEvent('payment-success', { detail: data }))
                 })
 
                 // 退款申请
                 subscribeToTopic(client, `/exchange/amq.topic/seller.refund.${userId}`, (data: any) => {
                     playSound(refundSound)
-                    sendNotification('退款申请通知', `订单号: ${data.orderNumber} | 退款金额: ¥${data.amount}`)
-                    Message.warning(`用户申请退款，订单号: ${data.orderNumber}`)
+                    Message.websocketRefundApply(data.orderNumber, data.amount)
                     window.dispatchEvent(new CustomEvent('refund-application', { detail: data }))
+                })
+
+                // 买家退货提交
+                subscribeToTopic(client, `/exchange/amq.topic/seller.return.${userId}`, (data: any) => {
+                    playSound(chatSound)
+                    Message.info(`买家已提交退货，物流单号: ${data.trackingNumber}`)
+                    window.dispatchEvent(new CustomEvent('return-submitted', { detail: data }))
+                    window.dispatchEvent(new CustomEvent('new-notification'))
                 })
 
                 // 退款沟通消息
                 subscribeToTopic(client, `/exchange/amq.topic/seller.refund.chat.${userId}`, (data: any) => {
                     playSound(chatSound)
-                    sendNotification('退款沟通', data.content)
-                    Message.info(`退款沟通: ${data.content}`)
+                    const prefix = data.senderType === 'SELLER' ? '商家' : '买家'
+                    Message.info(`${prefix}: ${data.content}`)
                     window.dispatchEvent(new CustomEvent('refund-chat-message', { detail: data }))
                 })
 
@@ -218,46 +246,19 @@ export const useWebSocket = () => {
                         playSound(packageRenewSound)
                     }
 
-                    sendNotification('套餐通知', data.content)
-                    Message.warning(data.content)
+                    Message.websocketPackage(data.content)
                     window.dispatchEvent(new CustomEvent('package-notification', { detail: data }))
                 })
 
                 // 用户消息
                 subscribeToTopic(client, `/exchange/amq.topic/seller.chat.${userId}`, (data: any) => {
                     playSound(chatSound)
-                    sendNotification('新用户消息', `${data.content}`)
-                    Message.info(`收到新用户消息`)
+                    Message.info(`${data.senderName || '用户'}: ${data.text || '[媒体消息]'}`)
                     window.dispatchEvent(new CustomEvent('new-chat-message', { detail: data }))
                 })
 
-
-                // ===== 用户端基础订阅（商家也会在用户端购物） =====
-
-                // // 发货通知
-                // subscribeToTopic(client, `/exchange/amq.topic/user.shipment.${userId}`, (data: any) => {
-                //     playSound(shipSound)
-                //     Message.success(`订单 ${data.orderNumber} 已发货`)
-                //     window.dispatchEvent(new CustomEvent('shipment-notification', { detail: data }))
-                // })
-
-                // // 退款处理结果通知
-                // subscribeToTopic(client, `/exchange/amq.topic/user.refund.${userId}`, (data: any) => {
-                //     playSound(refundSound)
-                //     Message.info(`退款状态更新: ${data.content}`)
-                //     window.dispatchEvent(new CustomEvent('refund-update', { detail: data }))
-                // })
-
-                // // 客服回复
-                // subscribeToTopic(client, `/exchange/amq.topic/user.chat.${userId}`, (data: any) => {
-                //     playSound(chatSound)
-                //     Message.info(`商家: ${data.content}`)
-                //     window.dispatchEvent(new CustomEvent('new-chat-message', { detail: data }))
-                // })
-
-
             },
-            onStompError: (frame: any) => Message.error('WebSocket错误:', frame)
+            onStompError: (frame: any) => console.error('WebSocket错误:', frame)
         })
 
         client.activate()
@@ -266,16 +267,37 @@ export const useWebSocket = () => {
 
     // 管理员订阅
     const connectAdmin = () => {
-
+        const client = new Client({
+            webSocketFactory: () => new SockJS('/ws'),
+            connectHeaders: { userId: String(authStore.userId) },
+            reconnectDelay: 5000,
+            onConnect: () => {
+                isConnected.value = true
+                console.log('已连接管理员端订阅')
+                startHeartbeat()
+                setupCommonSubscriptions(client, authStore.userId!)
+            },
+            onStompError: (frame: any) => console.error('WebSocket错误:', frame)
+        })
+        client.activate()
+        stompClient.value = client
     }
 
 
     const disconnect = () => {
-        if (stompClient.value) {
-            stompClient.value.deactivate()
-            stompClient.value = null
-            isConnected.value = false
-        }
+        if (disconnectTimer) clearTimeout(disconnectTimer)
+        stopHeartbeat()
+        disconnectTimer = setTimeout(() => {
+            if (stompClient.value) {
+                // 只有在连接已建立或正在连接时才断开
+                if (stompClient.value.connected || stompClient.value.active) {
+                    stompClient.value.deactivate()
+                }
+                stompClient.value = null
+                isConnected.value = false
+            }
+            disconnectTimer = null
+        }, 100)
     }
 
     return {
